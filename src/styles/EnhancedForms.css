@@ -1,0 +1,355 @@
+/* Simple Clean Forms Styling */
+
+/* Clean Weight Card */
+.modern-weight-card {
+  background: #ffffff;
+  border: 1px solid #e1e5e9;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  margin: 1.5rem 0;
+}
+
+.second-weight-card {
+  border-top: 3px solid #007bff;
+}
+
+.first-weight-card {
+  border-top: 3px solid #28a745;
+}
+
+.final-weight-card {
+  border-top: 3px solid #ffc107;
+}
+
+/* Simple Header */
+.modern-card-header {
+  background: #f8f9fa;
+  border-bottom: 1px solid #e9ecef;
+  padding: 1rem 2rem;
+}
+
+.header-content {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.icon-container {
+  background: #007bff;
+  border-radius: 6px;
+  padding: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.header-icon {
+  color: white;
+}
+
+
+.header-text {
+  flex: 1;
+}
+
+.form-title.gradient-text {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 0 0 0.25rem 0;
+  color: #343a40;
+}
+
+.form-subtitle {
+  font-size: 0.9rem;
+  margin: 0;
+  color: #6c757d;
+  font-weight: 400;
+}
+
+/* Simple Form Body */
+.modern-card-body {
+  padding: 1.5rem;
+}
+
+.enhanced-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+@media (max-width: 768px) {
+  .enhanced-form-grid {
+    grid-template-columns: 1fr !important;
+    gap: 1.5rem;
+  }
+}
+
+/* Simple Input Groups */
+.input-group-enhanced {
+  margin-bottom: 1rem;
+}
+
+/* Weight Input Styling */
+.weight-input-enhanced {
+  width: 100%;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  padding: 0.75rem 1rem;
+  font-size: 1rem;
+  font-weight: 400;
+  background: #ffffff;
+  color: #495057;
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+  height: 58px;
+  box-sizing: border-box;
+}
+
+.weight-input-enhanced::placeholder {
+  color: #6c757d;
+}
+
+.weight-input-enhanced:focus {
+  border-color: #007bff;
+  outline: 0;
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+.weight-input-enhanced.error {
+  border-color: #dc3545;
+  color: #495057;
+}
+
+.weight-input-enhanced.error:focus {
+  border-color: #dc3545;
+  box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+}
+
+/* Simple Select Container */
+.select-container-enhanced {
+  /* Clean container */
+}
+
+/* Simple Weight Input */
+.weight-input-group {
+  /* Clean weight input group */
+}
+
+.weight-input-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  transition: border-color 0.15s ease-in-out;
+  height: 58px;
+}
+
+.weight-input-container:focus-within {
+  border-color: #007bff;
+  outline: 0;
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+.weight-input-container .weight-input-enhanced {
+  flex: 1;
+  border: none;
+  outline: none;
+  padding: 0.75rem 1rem;
+  font-size: 1rem;
+  font-weight: 400;
+  background: transparent;
+  color: #495057;
+  height: 100%;
+  box-sizing: border-box;
+}
+
+.weight-input-container .weight-input-enhanced::placeholder {
+  color: #6c757d;
+}
+
+.weight-input-container .weight-input-enhanced.error {
+  color: #495057;
+}
+
+.weight-input-container.error {
+  border-color: #dc3545;
+}
+
+.weight-input-container.error:focus-within {
+  border-color: #dc3545;
+  box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+}
+
+.weight-unit {
+  padding: 0.75rem 1rem;
+  font-weight: 600;
+  color: #495057;
+  background: #f8f9fa;
+  border-left: 1px solid #ced4da;
+  font-size: 0.9rem;
+  height: 100%;
+  display: flex;
+  align-items: center;
+}
+
+/* Live Badge Styling - Inline inside weight container */
+.weight-input-container .live-badge {
+  background: #28a745;
+  color: white;
+  padding: 0.25rem 0.6rem;
+  border-radius: 0 3px 3px 0;
+  font-size: 0.65rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  animation: pulse 2s infinite;
+  border-left: 1px solid #ced4da;
+  height: 100%;
+}
+
+.live-dot {
+  width: 6px;
+  height: 6px;
+  background: white;
+  border-radius: 50%;
+  animation: blink 1s infinite;
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+@keyframes blink {
+  25%, 70% { opacity: 1; }
+  51%, 100% { opacity: 0.3; }
+}
+
+/* Checkbox Container */
+.checkbox-container {
+  height: 58px;
+  display: flex;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  background: #ffffff;
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.checkbox-container:hover {
+  border-color: #007bff;
+}
+
+.checkbox-container .form-check {
+  margin: 0;
+}
+
+/* Simple Error Messages */
+.error-message-enhanced {
+  display: flex;
+  align-items: center;
+  color: #dc3545;
+  font-size: 0.8rem;
+  margin-top: 0.25rem;
+}
+
+/* Simple Submit Button */
+.submit-section {
+  margin-top: 1.5rem;
+  display: flex;
+  justify-content: center;
+}
+
+.submit-button-enhanced {
+  background: #007bff;
+  border: none;
+  border-radius: 4px;
+  color: white;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 500;
+  padding: 0.75rem 2rem;
+  transition: background-color 0.15s ease-in-out;
+  min-width: 200px;
+}
+
+.submit-button-enhanced:hover {
+  background: #0056b3;
+}
+
+.submit-button-enhanced:disabled {
+  background: #6c757d;
+  cursor: not-allowed;
+}
+
+.button-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.button-text {
+  font-weight: 500;
+}
+
+.button-arrow {
+  opacity: 0.8;
+}
+
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .modern-weight-card {
+    margin: 1rem;
+  }
+  
+  .modern-card-header {
+    padding: 1rem 1.5rem;
+  }
+  
+  .modern-card-body {
+    padding: 1.5rem;
+  }
+  
+  .form-title.gradient-text {
+    font-size: 1.25rem;
+  }
+  
+  .submit-button-enhanced {
+    min-width: 180px;
+    padding: 0.6rem 1.5rem;
+  }
+}
+
+/* Form Specific Colors */
+.second-weight-submit {
+  background: #007bff;
+}
+
+.second-weight-submit:hover {
+  background: #0056b3;
+}
+
+.first-weight-submit {
+  background: #28a745;
+}
+
+.first-weight-submit:hover {
+  background: #1e7e34;
+}
+
+.final-weight-submit {
+  background: #ffc107;
+  color: #212529;
+}
+
+.final-weight-submit:hover {
+  background: #e0a800;
+  color: #212529;
+}

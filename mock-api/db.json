@@ -1,0 +1,44 @@
+{
+  "users": [
+    {
+      "id": 1,
+      "username": "admin",
+      "password": "admin123",
+      "role": "admin"
+    },
+    {
+      "id": 2,
+      "username": "operator",
+      "password": "operator123",
+      "role": "operator"
+    }
+  ],
+  "records": [
+    {
+      "id": 1,
+      "vehicle_number": "ABC-123",
+      "vehicle_type": "Truck",
+      "first_weight": 5000,
+      "second_weight": 3000,
+      "net_weight": 2000,
+      "price_per_unit": 10,
+      "total_price": 20000,
+      "date": "2023-05-01",
+      "time": "10:30:00",
+      "status": "completed"
+    },
+    {
+      "id": 2,
+      "vehicle_number": "XYZ-789",
+      "vehicle_type": "Trailer",
+      "first_weight": 8000,
+      "second_weight": null,
+      "net_weight": null,
+      "price_per_unit": 15,
+      "total_price": null,
+      "date": "2023-05-02",
+      "time": "14:45:00",
+      "status": "pending"
+    }
+  ]
+}

@@ -1,0 +1,141 @@
+<div className="container my-4">
+  <div className="card shadow-sm">
+    {/* Header */}
+    <div className="card-header bg-primary text-white">
+      <h4 className="mb-0">First Weight Entry</h4>
+    </div>
+
+    <div className="card-body bg-light">
+      <form onSubmit={formik.handleSubmit}>
+        {/* Row 1: Main Inputs */}
+        <div className="row g-3">
+          <div className="col-md-3">
+            <div className="form-floating">
+              <input
+                type="text"
+                name="vehicleNumber"
+                className={`form-control ${formik.touched.vehicleNumber && formik.errors.vehicleNumber ? "is-invalid" : ""}`}
+                value={formik.values.vehicleNumber}
+                onChange={formik.handleChange}
+                onBlur={formik.handleBlur}
+                placeholder="Vehicle Number"
+              />
+              <label>Vehicle Number</label>
+              {formik.touched.vehicleNumber && formik.errors.vehicleNumber && (
+                <div className="invalid-feedback">{formik.errors.vehicleNumber}</div>
+              )}
+            </div>
+          </div>
+
+          <div className="col-md-3">
+            <div className="form-floating">
+              <input
+                type="text"
+                name="party"
+                className={`form-control ${formik.touched.party && formik.errors.party ? "is-invalid" : ""}`}
+                value={formik.values.party}
+                onChange={formik.handleChange}
+                onBlur={formik.handleBlur}
+                placeholder="Party Name"
+              />
+              <label>Party Name</label>
+              {formik.touched.party && formik.errors.party && (
+                <div className="invalid-feedback">{formik.errors.party}</div>
+              )}
+            </div>
+          </div>
+
+          <div className="col-md-3">
+            <div className="form-floating">
+              <select
+                name="vehicleType"
+                className={`form-select ${formik.touched.vehicleType && formik.errors.vehicleType ? "is-invalid" : ""}`}
+                value={formik.values.vehicleType}
+                onChange={handleVehicleTypeChange}
+                onBlur={formik.handleBlur}
+              >
+                {Object.keys(vehiclePrices).map((type) => (
+                  <option key={type} value={type}>
+                    {type} — {vehiclePrices[type].toLocaleString()}
+                  </option>
+                ))}
+              </select>
+              <label>Vehicle Type</label>
+              {formik.touched.vehicleType && formik.errors.vehicleType && (
+                <div className="invalid-feedback">{formik.errors.vehicleType}</div>
+              )}
+            </div>
+          </div>
+
+          <div className="col-md-3">
+            <div className="form-floating">
+              <select
+                name="product"
+                className={`form-select ${formik.touched.product && formik.errors.product ? "is-invalid" : ""}`}
+                value={formik.values.product}
+                onChange={formik.handleChange}
+                onBlur={formik.handleBlur}
+              >
+                <option value="">Select Product</option>
+                <option value="Cement">Cement</option>
+                <option value="Steel">Steel</option>
+                <option value="Sand">Sand</option>
+              </select>
+              <label>Product</label>
+              {formik.touched.product && formik.errors.product && (
+                <div className="invalid-feedback">{formik.errors.product}</div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Row 2: Weight + Checkbox + Submit */}
+        <div className="row g-3 mt-3 align-items-end">
+          <div className="col-md-3">
+            <div className="form-floating">
+              <input
+                type="number"
+                name="currentWeight"
+                className={`form-control ${formik.touched.currentWeight && formik.errors.currentWeight ? "is-invalid" : ""}`}
+                value={formik.values.currentWeight}
+                onChange={formik.handleChange}
+                onBlur={formik.handleBlur}
+                readOnly
+                placeholder="Weight"
+              />
+              <label>Weight (kg)</label>
+              {formik.touched.currentWeight && formik.errors.currentWeight && (
+                <div className="invalid-feedback">{formik.errors.currentWeight}</div>
+              )}
+            </div>
+          </div>
+
+          <div className="col-md-3">
+            <div className="form-check form-switch mt-2">
+              <input
+                type="checkbox"
+                name="withDriver"
+                className="form-check-input"
+                checked={formik.values.withDriver}
+                onChange={formik.handleChange}
+                id="withDriverSwitch"
+              />
+              <label className="form-check-label" htmlFor="withDriverSwitch">
+                With Driver
+              </label>
+            </div>
+          </div>
+
+          {/* Empty column for alignment */}
+          <div className="col-md-3"></div>
+
+          <div className="col-md-3">
+            <button type="submit" className="btn btn-primary w-100">
+              Save First Weight
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
