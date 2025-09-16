@@ -29,7 +29,7 @@ export default function RecordsPage() {
   const [editRecord, setEditRecord] = useState(null);
   const [editSlipType, setEditSlipType] = useState("first");
 
-  const recordsPerPage = 9;
+  const recordsPerPage = 12;
 
   // Fetch records when component mounts
   useEffect(() => {
@@ -142,7 +142,7 @@ export default function RecordsPage() {
     startY: margin + 15,
     head: [["S.No", "Party", "Price"]],
     body: filteredRecords.map((r, index) => [
-      index + 1,
+      r.id,
       r.party_name || '-',
       r.total_price || "-"
     ]),

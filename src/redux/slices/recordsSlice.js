@@ -98,7 +98,19 @@ const recordsSlice = createSlice({
         }
         return total;
       }, 0);
-    }
+    },
+    calculateTodaysVehicles: (state) => {
+  const today = new Date().toISOString().split("T")[0];
+
+  state.totalVehiclesToday = state.records.reduce((count, record) => {
+    const firstWeightDateStr = record.first_weight_time || record.firstTime;
+    if (!firstWeightDateStr) return count;
+    const recordDate = firstWeightDateStr.substring(0, 10);
+    return recordDate === today ? count + 1 : count;
+  }, 0);
+}
+
+
   },
   extraReducers: (builder) => {
     builder
@@ -203,6 +215,6 @@ const recordsSlice = createSlice({
 });
 
 
-export const { setSelectedRecord, clearSelectedRecord, calculateTodayTotal } = recordsSlice.actions;
+export const { setSelectedRecord, clearSelectedRecord, calculateTodayTotal, calculateTodaysVehicles } = recordsSlice.actions;
 
 export default recordsSlice.reducer;

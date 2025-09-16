@@ -115,8 +115,8 @@ const FirstWeightForm = ({ liveWeight, onSuccess }) => {
     vehicleType: Yup.string().notOneOf(["Select"], "Please select a vehicle type"),
     product: Yup.string().required("Vehicle number is required"),
     currentWeight: Yup.number()
-      .required("Weight is required")
-      .min(1, "Weight must be greater than 0"),
+  .required("Weight is required")
+  .min(0, "Weight cannot be negative"),
       withDriver: Yup.boolean()
   });
 
@@ -209,10 +209,10 @@ const FirstWeightForm = ({ liveWeight, onSuccess }) => {
 
   // ✅ Update weight when liveWeight changes
   useEffect(() => {
-    if (liveWeight && liveWeight > 0) {
-      formik.setFieldValue("currentWeight", liveWeight);
-    }
-  }, [liveWeight]);
+  if (liveWeight !== undefined && liveWeight !== null) {
+    formik.setFieldValue("currentWeight", liveWeight);
+  }
+}, [liveWeight]);
 
   return (
     <div className="modern-weight-card first-weight-card">

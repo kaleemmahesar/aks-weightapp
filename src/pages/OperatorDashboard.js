@@ -7,13 +7,13 @@ import RecordsTable from "../components/RecordsTable";
 import PrintModal from "../components/PrintModal";
 import notify from "../components/notification";
 import "../styles/Dashboard.css";
-import { fetchRecords, calculateTodayTotal, setSelectedRecord } from "../redux/slices/recordsSlice";
+import { fetchRecords, calculateTodayTotal, setSelectedRecord, calculateTodaysVehicles } from "../redux/slices/recordsSlice";
 import { getVehiclePrices } from "../config/vehicleConfig";
 
 
 export default function OperatorDashboard() {
   const dispatch = useDispatch();
-  const { records = [], selectedRecord, todayTotal = 0 } = useSelector(state => state.records || {});
+  const { records = [], selectedRecord, todayTotal = 0, totalVehiclesToday = 0 } = useSelector(state => state.records || {});
   const { settings = {} } = useSelector(state => state.settings || {});
   
   // ✅ State variables
@@ -29,6 +29,7 @@ export default function OperatorDashboard() {
 
   // ✅ Dashboard Stats
   const totalVehicles = records.length;
+  const todaysVehicles = records.length;
   const pendingSecond = records.filter((r) => r && !r.second_weight).length;
 
   // ✅ Fetch Records from Backend
@@ -40,6 +41,7 @@ export default function OperatorDashboard() {
   useEffect(() => {
     if (records.length > 0) {
       dispatch(calculateTodayTotal());
+      dispatch(calculateTodaysVehicles());
     }
   }, [records.length, dispatch]);
 
@@ -90,7 +92,7 @@ export default function OperatorDashboard() {
 
         {/* Stats Cards */}
         <StatsCards
-          totalVehicles={totalVehicles}
+          totalVehiclesToday={totalVehiclesToday}
           pendingSecond={pendingSecond}
           todaysTotal={todayTotal}
         />

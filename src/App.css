@@ -1,9 +1,9 @@
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 @import 'bootstrap/dist/css/bootstrap.min.css';
 
 body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  font-family: 'Arial', 'Segoe UI', 'Roboto', sans-serif;
+  font-family: 'Consolas', 'Segoe UI', 'Roboto', sans-serif !important;
   font-optical-sizing: auto;
   font-weight: 400;
   font-style: normal;
@@ -192,4 +192,51 @@ button:focus {
 .logout-btn:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);
+}
+
+.weight-summary {
+  margin-top: 0;
+  padding: 1rem;
+  background: #f8f9fc;
+  border: 1px solid #dee2e6;
+  border-radius: 0.75rem;
+}
+
+.summary-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+  color: #333;
+}
+
+.summary-column {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.summary-item {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.95rem;
+}
+
+.summary-label {
+  font-weight: 500;
+  color: #555;
+}
+
+.summary-value {
+  font-weight: 600;
+  color: #0d6efd;
+}
+
+.summary-item.net-weight .summary-label {
+  font-weight: 700;
+  color: #000;
+}
+
+.summary-item.net-weight .summary-value {
+  font-weight: 700;
+  color: #198754; /* Bootstrap green */
 }

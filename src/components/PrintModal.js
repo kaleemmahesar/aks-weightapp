@@ -29,7 +29,7 @@ const PrintModal = ({ show, slipType, onClose }) => {
 
 
  const handlePrint = () => {
-  const win = window.open("", "", "width=300,height=500");
+  const win = window.open("", "", "width=950,height=500");
   if (!win) {
     alert("پاپ اپ بلاک ہو گیا ہے! براہ کرم اس سائٹ کے لیے پاپ اپ کی اجازت دیں۔");
     return;

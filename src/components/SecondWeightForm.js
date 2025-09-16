@@ -14,15 +14,27 @@ export default function SecondWeightForm({ liveWeight, onSuccess }) {
   const { records = [] } = useSelector(state => state.records || {});
   const { settings = {} } = useSelector(state => state.settings || {});
   const vehiclePrices = settings.vehiclePrices || {};
+  // const options = [
+  //   { value: "Select", label: "Select Vehicle" },
+  //   ...records
+  //     .filter((r) => r && (r.second_weight === null || r.second_weight === undefined || !r.second_weight))
+  //     .map((r) => ({
+  //       value: r.id,
+  //       label: `${r.party_name || 'Unknown'} | Serial No: ${r.id || 'N/A'}`,
+  //     }))
+  // ];
+
   const options = [
-    { value: "Select", label: "Select Vehicle" },
-    ...records
-      .filter((r) => r && (r.second_weight === null || r.second_weight === undefined || !r.second_weight))
-      .map((r) => ({
-        value: r.id,
-        label: `${r.party_name || 'Unknown'} | Serial No: ${r.id || 'N/A'}`,
-      }))
-  ];
+  { value: "Select", label: "Select Vehicle" },
+  ...records
+    .filter((r) => r && (r.second_weight === null || r.second_weight === undefined || !r.second_weight))
+    .map((r) => ({
+      value: r.id,
+      label: `${r.party_name || 'Unknown'} | Serial No: ${r.id || 'N/A'}`,
+      record: r   // ✅ keep the full record here
+    }))
+];
+
 
   // Custom styles for react-select (matching updated styling with z-index fix)
   const customSelectStyles = {
@@ -254,6 +266,45 @@ export default function SecondWeightForm({ liveWeight, onSuccess }) {
               )}
             </div>
           </div>
+          
+          
+          
+          {/* ✅ Summary Section */}
+{formik.values.selectedVehicle?.record && (
+  <div className="row">
+            <div className="col-6">
+  <div className="weight-summary">
+    <h4 className="summary-title">Weight Summary</h4>
+    <div className="summary-column">
+      <div className="summary-item">
+        <span className="summary-label">First Weight:</span>
+        <span className="summary-value">
+          {formik.values.selectedVehicle.record.first_weight} KG
+        </span>
+      </div>
+      <div className="summary-item">
+        <span className="summary-label">Second Weight:</span>
+        <span className="summary-value">
+          {formik.values.secondWeight || "-"} KG
+        </span>
+      </div>
+      <div className="summary-item net-weight">
+        <span className="summary-label">Net Weight:</span>
+        <span className="summary-value">
+          {formik.values.secondWeight
+            ? formik.values.selectedVehicle.record.first_weight -
+              formik.values.secondWeight
+            : "-"}{" "}
+          KG
+        </span>
+      </div>
+    </div>
+  </div>
+  </div>
+  </div>
+)}
+
+
 
           {/* Enhanced Submit Button */}
           <div className="submit-section">

@@ -142,8 +142,8 @@ export default function FinalWeightForm({
         .typeError("Must be a number")
         .required("Required"),
       finalWeight: Yup.number()
-        .typeError("Must be a number")
-        .required("Required"),
+  .required("Weight is required")
+  .min(0, "Weight cannot be negative"),
     }),
     onSubmit: async (values, { resetForm }) => {
       const netWeight =
@@ -186,11 +186,13 @@ export default function FinalWeightForm({
     },
   });
 
+// ✅ Update weight when liveWeight changes
+
   useEffect(() => {
-    if (liveWeight) {
-      formik.setFieldValue("finalWeight", liveWeight);
-    }
-  }, [liveWeight]);
+  if (liveWeight !== undefined && liveWeight !== null) {
+    formik.setFieldValue("finalWeight", liveWeight);
+  }
+}, [liveWeight]);
 
   return (
     <div className="modern-weight-card final-weight-card">
