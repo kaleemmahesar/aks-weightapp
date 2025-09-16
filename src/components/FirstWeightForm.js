@@ -151,7 +151,7 @@ const FirstWeightForm = ({ liveWeight, onSuccess }) => {
 
       try {
         const formatTo12Hour = (dateString) => {
-  const date = new Date(dateString); // assuming backend gives ISO string "2025-09-06T12:36:00"
+  const date = new Date(dateString); 
   return date.toLocaleString("en-US", {
     timeZone: "Asia/Karachi",
     month: "2-digit",

@@ -27,6 +27,111 @@ const PrintModal = ({ show, slipType, onClose }) => {
 }
 
 
+  const handleOldPrinterPrint = (record, slipType) => {
+  const win = window.open("", "", "width=1000,height=600");
+  if (!win) {
+    alert("Popup blocked! Please allow popups for this site.");
+    return;
+  }
+
+  const { sign, munds, remKg } = kgToMundsString(record.net_weight);
+
+  const html = `
+  <!doctype html>
+  <html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Weighbridge Slip (Old Printer)</title>
+    <style>
+      @page { size: landscape; margin: 8mm; }
+      body {
+        font-family: Arial, sans-serif;
+        direction: ltr;
+        text-align: left;
+        font-size: 14px;
+        margin: 0;
+        line-height: 1.6;
+      }
+      .slip-container {
+        width: 95%; 
+        margin: 10px auto; 
+        border:1px solid #000; 
+        padding:10px; 
+        background:#fff;
+      }
+      .row {
+        display: flex;
+        justify-content: space-between;
+        margin: 6px 0;
+        font-size: 13px;
+        border-bottom: 1px dotted #888;
+        padding-bottom: 4px;
+      }
+      .row span { flex: 1; }
+      .center-row {
+        text-align: center;
+        font-weight: bold;
+        font-size: 16px;
+        margin: 10px 0;
+      }
+      .footer {
+        margin-top: 10px;
+        text-align: center;
+        font-size: 12px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="slip-container">
+
+      <!-- Row 1 -->
+      <div class="row">
+        <span>Party Name: ${record.party_name || "N/A"}</span>
+      </div>
+
+      <!-- Row 2 -->
+      <div class="row">
+        <span>Serial No: ${record.vehicle_id || "N/A"}</span>
+        <span>First Weight: ${record.first_weight ? Number(record.first_weight).toFixed(2) : "0.00"} Kg</span>
+        <span>Time: ${record.first_weight_time || "N/A"}</span>
+      </div>
+
+      <!-- Row 3 -->
+      <div class="row">
+        <span>Vehicle No: ${record.vehicle_number || "N/A"}</span>
+        <span>Second Weight: ${record.second_weight ? Number(record.second_weight).toFixed(2) : "0.00"} Kg</span>
+        <span>Time: ${record.second_weight_time || "N/A"}</span>
+      </div>
+
+      <!-- Row 4 -->
+      <div class="row">
+        <span>Product: ${record.product || "N/A"}</span>
+        <span>Net Weight: ${record.net_weight ? Number(record.net_weight).toFixed(2) : "0.00"} Kg</span>
+      </div>
+
+      <!-- Row 5 -->
+      <div class="center-row">
+        Net Weight: ${sign}${munds} Munds ${remKg} Kg
+      </div>
+
+      <!-- Footer -->
+      <div class="footer">
+        Date: ${new Date().toLocaleDateString()} | Time: ${new Date().toLocaleTimeString()}
+      </div>
+    </div>
+  </body>
+  </html>
+  `;
+
+  win.document.write(html);
+  win.document.close();
+
+  win.onload = () => {
+    win.focus();
+    win.print();
+    win.close();
+  };
+};
 
  const handlePrint = () => {
   const win = window.open("", "", "width=950,height=500");
@@ -374,6 +479,9 @@ const PrintModal = ({ show, slipType, onClose }) => {
               <button className="btn btn-primary" onClick={handlePrint}>
                 Print
               </button>
+              <button className="btn btn-warning" onClick={handleOldPrinterPrint}>
+    Print with Old Printer
+  </button>
               <button className="btn btn-secondary" onClick={onClose}>
                 Close
               </button>
