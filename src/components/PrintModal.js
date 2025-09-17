@@ -27,111 +27,83 @@ const PrintModal = ({ show, slipType, onClose }) => {
 }
 
 
-  const handleOldPrinterPrint = (record, slipType) => {
-  const win = window.open("", "", "width=1000,height=600");
-  if (!win) {
-    alert("Popup blocked! Please allow popups for this site.");
-    return;
-  }
+  const handleOldPrinterPrint = (slipType) => {
+  const win = window.open("", "", "width=800,height=600");
+  if (!win) return alert("Popup blocked! Please allow popups.");
 
   const { sign, munds, remKg } = kgToMundsString(record.net_weight);
 
+  // adjust top padding based on slip type
+   let topPadding = "26mm"; // default for "first"
+  if (slipType === "second" || slipType === "final") {
+    topPadding = "20mm";
+  }
+
   const html = `
   <!doctype html>
-  <html lang="en">
+  <html>
   <head>
     <meta charset="utf-8">
-    <title>Weighbridge Slip (Old Printer)</title>
+    <title>Weighbridge Slip</title>
     <style>
-      @page { size: landscape; margin: 8mm; }
-      body {
-        font-family: Arial, sans-serif;
-        direction: ltr;
-        text-align: left;
-        font-size: 14px;
-        margin: 0;
-        line-height: 1.6;
-      }
-      .slip-container {
-        width: 95%; 
-        margin: 10px auto; 
-        border:1px solid #000; 
-        padding:10px; 
-        background:#fff;
-      }
-      .row {
-        display: flex;
-        justify-content: space-between;
-        margin: 6px 0;
-        font-size: 13px;
-        border-bottom: 1px dotted #888;
-        padding-bottom: 4px;
-      }
-      .row span { flex: 1; }
-      .center-row {
-        text-align: center;
-        font-weight: bold;
-        font-size: 16px;
-        margin: 10px 0;
-      }
-      .footer {
-        margin-top: 10px;
-        text-align: center;
-        font-size: 12px;
+      @media print {
+        @page { size: 180mm 180mm; margin: 0; }
+
+        html, body {
+          margin: 0; padding: 0;
+          font-family: Tahoma, Verdana, Arial, sans-serif;
+          font-size: 14px;
+          text-transform: uppercase;
+          color: #000;
+          line-height: 1.4;
+          letter-spacing: 0.5px;
+        }
+
+        .slip-container {
+          width: 100%;
+          box-sizing: border-box;
+          padding: 36mm 15mm 0mm; /* 👈 simulate 10mm margins */
+          background: #fff;
+          page-break-inside: avoid;
+        }
+
+        .row {
+          display: flex;
+          justify-content: space-between;
+          margin: 2mm 21mm 0 14mm;
+          font-size: 13px;
+          border-bottom: 1px solid #000;
+          padding-bottom: 1mm;
+        }
+
+        .center-row {
+          text-align: center;
+          font-size: 15px;
+          font-weight: bold;
+          margin: 3mm 0;
+          letter-spacing: 1px;
+        }
+
+        .footer { display: none; }
       }
     </style>
   </head>
   <body>
     <div class="slip-container">
-
-      <!-- Row 1 -->
-      <div class="row">
-        <span>Party Name: ${record.party_name || "N/A"}</span>
-      </div>
-
-      <!-- Row 2 -->
-      <div class="row">
-        <span>Serial No: ${record.vehicle_id || "N/A"}</span>
-        <span>First Weight: ${record.first_weight ? Number(record.first_weight).toFixed(2) : "0.00"} Kg</span>
-        <span>Time: ${record.first_weight_time || "N/A"}</span>
-      </div>
-
-      <!-- Row 3 -->
-      <div class="row">
-        <span>Vehicle No: ${record.vehicle_number || "N/A"}</span>
-        <span>Second Weight: ${record.second_weight ? Number(record.second_weight).toFixed(2) : "0.00"} Kg</span>
-        <span>Time: ${record.second_weight_time || "N/A"}</span>
-      </div>
-
-      <!-- Row 4 -->
-      <div class="row">
-        <span>Product: ${record.product || "N/A"}</span>
-        <span>Net Weight: ${record.net_weight ? Number(record.net_weight).toFixed(2) : "0.00"} Kg</span>
-      </div>
-
-      <!-- Row 5 -->
-      <div class="center-row">
-        Net Weight: ${sign}${munds} Munds ${remKg} Kg
-      </div>
-
-      <!-- Footer -->
-      <div class="footer">
-        Date: ${new Date().toLocaleDateString()} | Time: ${new Date().toLocaleTimeString()}
-      </div>
+      <div class="row"><span>Party Name: ${record.party_name || "N/A"}</span></div>
+      <div class="row"><span>Serial No: ${record.vehicle_id || "N/A"}</span><span>Time: ${record.first_weight_time || "N/A"}</span><span>${record.first_weight || "0.00"} Kg</span></div>
+      <div class="row"><span>Vehicle No: ${record.vehicle_number || "N/A"}</span><span>Time: ${record.second_weight_time || "N/A"}</span><span>${record.second_weight || "0.00"} Kg</span></div>
+      <div class="row"><span>Product: ${record.product || "N/A"}</span><span>${record.net_weight || "0.00"} Kg</span></div>
+      <div class="center-row">Net Weight: ${sign}${munds} Munds ${remKg} Kg</div>
     </div>
   </body>
-  </html>
-  `;
+  </html>`;
 
   win.document.write(html);
   win.document.close();
-
-  win.onload = () => {
-    win.focus();
-    win.print();
-    win.close();
-  };
+  win.onload = () => { win.print(); win.close(); };
 };
+
 
  const handlePrint = () => {
   const win = window.open("", "", "width=950,height=500");
@@ -479,9 +451,9 @@ const PrintModal = ({ show, slipType, onClose }) => {
               <button className="btn btn-primary" onClick={handlePrint}>
                 Print
               </button>
-              <button className="btn btn-warning" onClick={handleOldPrinterPrint}>
+              {/* <button className="btn btn-warning" onClick={() => handleOldPrinterPrint(slipType)}>
     Print with Old Printer
-  </button>
+  </button> */}
               <button className="btn btn-secondary" onClick={onClose}>
                 Close
               </button>
