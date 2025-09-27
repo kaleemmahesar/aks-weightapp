@@ -2,6 +2,7 @@
   "name": "weighbridge-operator",
   "version": "0.1.0",
   "private": true,
+  "homepage": "https://skbusinesslogics.com/awamikanta/",
   "dependencies": {
     "@reduxjs/toolkit": "^2.9.0",
     "@testing-library/dom": "^10.4.1",

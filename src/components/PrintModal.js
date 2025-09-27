@@ -4,8 +4,7 @@ import { FaBalanceScale  } from "react-icons";
 import logo from '../assets/scale.png';
 const PrintModal = ({ show, slipType, onClose }) => {
   const { selectedRecord: record } = useSelector(state => state.records || {});
-  console.log(record)
-  // console.log('PrintModal - show:', show, 'slipType:', slipType, 'record:', record);
+  // console.log('PrintModal - vehicle_type:', record?.vehicle_type, 'record:', record);
   
   if (!show || !record) return null; // Completely unmount when hidden
 
@@ -33,10 +32,14 @@ const PrintModal = ({ show, slipType, onClose }) => {
 
   const { sign, munds, remKg } = kgToMundsString(record.net_weight);
 
+  // Check if vehicle type is Daalo/Daala or GadahGano for smaller print view
+  const vehicleType = (record.vehicle_type || '').toLowerCase();
+  const isSmallVehicle = vehicleType === "daalo" || vehicleType === "daala" || vehicleType === "gadahgano";
+
   // adjust top padding based on slip type
-   let topPadding = "26mm"; // default for "first"
+   let topPadding = isSmallVehicle ? "18mm" : "26mm"; // default for "first"
   if (slipType === "second" || slipType === "final") {
-    topPadding = "20mm";
+    topPadding = isSmallVehicle ? "14mm" : "20mm";
   }
 
   const html = `
@@ -47,22 +50,22 @@ const PrintModal = ({ show, slipType, onClose }) => {
     <title>Weighbridge Slip</title>
     <style>
       @media print {
-        @page { size: 180mm 180mm; margin: 0; }
+        @page { size: ${isSmallVehicle ? '140mm 140mm' : '180mm 180mm'}; margin: 0; }
 
         html, body {
           margin: 0; padding: 0;
           font-family: Tahoma, Verdana, Arial, sans-serif;
-          font-size: 14px;
+          font-size: ${isSmallVehicle ? '9px' : '14px'};
           text-transform: uppercase;
           color: #000;
-          line-height: 1.4;
-          letter-spacing: 0.5px;
+          line-height: ${isSmallVehicle ? '1.2' : '1.4'};
+          letter-spacing: ${isSmallVehicle ? '0.3px' : '0.5px'};
         }
 
         .slip-container {
           width: 100%;
           box-sizing: border-box;
-          padding: 36mm 15mm 0mm; /* 👈 simulate 10mm margins */
+          padding: ${topPadding} ${isSmallVehicle ? '10mm' : '15mm'} 0mm; /* 👈 simulate 10mm margins */
           background: #fff;
           page-break-inside: avoid;
         }
@@ -70,18 +73,18 @@ const PrintModal = ({ show, slipType, onClose }) => {
         .row {
           display: flex;
           justify-content: space-between;
-          margin: 2mm 21mm 0 14mm;
-          font-size: 13px;
+          margin: ${isSmallVehicle ? '1.5mm 15mm 0 10mm' : '2mm 21mm 0 14mm'};
+          font-size: ${isSmallVehicle ? '10px' : '13px'};
           border-bottom: 1px solid #000;
-          padding-bottom: 1mm;
+          padding-bottom: ${isSmallVehicle ? '0.5mm' : '1mm'};
         }
 
         .center-row {
           text-align: center;
-          font-size: 15px;
+          font-size: ${isSmallVehicle ? '12px' : '15px'};
           font-weight: bold;
-          margin: 3mm 0;
-          letter-spacing: 1px;
+          margin: ${isSmallVehicle ? '2mm 0' : '3mm 0'};
+          letter-spacing: ${isSmallVehicle ? '0.5px' : '1px'};
         }
 
         .footer { display: none; }
@@ -112,6 +115,10 @@ const PrintModal = ({ show, slipType, onClose }) => {
     return;
   }
 
+  // Check if vehicle type is Daalo/Daala or GadahGano for smaller print view
+  const vehicleType = (record.vehicle_type || '').toLowerCase();
+  const isSmallVehicle = vehicleType === "daalo" || vehicleType === "daala" || vehicleType === "gadahgano";
+
   const html = `
     <!doctype html>
     <html lang="ur">
@@ -123,15 +130,15 @@ const PrintModal = ({ show, slipType, onClose }) => {
       <link href="https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu&display=swap" rel="stylesheet">
       <title>وزن سلپ</title>
       <style>
-        @page { margin: 0; size: 80mm 220mm; }
+        @page { margin: 0; size: ${isSmallVehicle ? '60mm 160mm' : '80mm 220mm'}; }
         html,body { margin:0; padding:0; }
         body {
           font-family: 'Noto Nastaliq Urdu', 'Noto Naskh Arabic', serif;
           direction: rtl;
           text-align: right;
-          font-size: 14px;
+          font-size: ${isSmallVehicle ? '8px' : '14px'};
           margin: 0;
-          line-height: 1.6;          /* better Urdu readability */
+          line-height: ${isSmallVehicle ? '1.3' : '1.6'};          /* better Urdu readability */
           word-spacing: 0.18em;     /* increase space between words */
           -webkit-font-smoothing: antialiased;
           text-rendering: optimizeLegibility;
@@ -147,22 +154,22 @@ const PrintModal = ({ show, slipType, onClose }) => {
         }
         */
 
-        .slip-container { width:70mm; margin:0 auto; border:1px solid #000; padding:6px; background:#fff; box-sizing:border-box; }
-        .header { text-align:center; border-bottom:1px solid #000; padding-bottom:6px; margin-bottom:8px; }
-        .company-name { font-size:18px; font-weight:bold; }
-        .company-details { font-size:10px; margin:1px 0; }
-        .copy-label { text-align:center; font-size:14px; font-weight:bold; margin-bottom:6px; }
-        .content-section { margin:6px 0; }
-        .info-row { display:flex; justify-content:space-between; gap:6px; margin:4px 0; border-bottom:1px dotted #999; font-size:11px; align-items:center; }
-        .info-row .info-label { font-weight:bold; display:inline-block; min-width:70px; white-space:normal; }
-        .info-row .info-value { font-size:13px; font-weight:bold; display:inline-block; white-space:normal; word-break:break-word; }
-        .weight-section { border:1px solid #000; margin:6px 0; padding:6px; }
-        .weight-row { display:flex; justify-content:space-between; margin:3px 0; font-weight:bold; font-size:13px; gap:6px; align-items:center; }
-        .net-weight { border:1px solid #000; padding:4px; font-size:14px; margin-top:4px; }
-        .warning { border:1px solid #000; padding:4px; font-size:10px; text-align:center; font-weight:bold; margin-top:6px; }
-        .footer { padding-top:6px; margin-top:8px; text-align:center; font-size:10px; }
-        .footer .eng { margin-top:8px; text-align:center; font-family: Arial, sans-serif; direction:ltr; font-size:8px; letter-spacing:1px; display:block; }
-        .page-break { page-break-after: always; margin:10px 0; }
+        .slip-container { width:${isSmallVehicle ? '55mm' : '70mm'}; margin:0 auto; border:1px solid #000; padding:${isSmallVehicle ? '4px' : '6px'}; background:#fff; box-sizing:border-box; }
+        .header { text-align:center; border-bottom:1px solid #000; padding-bottom:${isSmallVehicle ? '2px' : '6px'}; margin-bottom:${isSmallVehicle ? '3px' : '8px'}; }
+        .company-name { font-size:${isSmallVehicle ? '11px' : '18px'}; font-weight:bold; }
+        .company-details { font-size:${isSmallVehicle ? '8px' : '10px'}; margin:1px 0; }
+        .copy-label { text-align:center; font-size:${isSmallVehicle ? '9px' : '14px'}; font-weight:bold; margin-bottom:${isSmallVehicle ? '4px' : '6px'}; }
+        .content-section { margin:${isSmallVehicle ? '4px 0' : '6px 0'}; }
+        .info-row { display:flex; justify-content:space-between; gap:${isSmallVehicle ? '4px' : '6px'}; margin:${isSmallVehicle ? '2px 0' : '4px 0'}; border-bottom:1px dotted #999; font-size:${isSmallVehicle ? '7px' : '11px'}; align-items:center; }
+        .info-row .info-label { font-weight:bold; display:inline-block; min-width:${isSmallVehicle ? '50px' : '70px'}; white-space:normal; }
+        .info-row .info-value { font-size:${isSmallVehicle ? '8px' : '13px'}; font-weight:bold; display:inline-block; white-space:normal; word-break:break-word; }
+        .weight-section { border:1px solid #000; margin:${isSmallVehicle ? '4px 0' : '6px 0'}; padding:${isSmallVehicle ? '4px' : '6px'}; }
+        .weight-row { display:flex; justify-content:space-between; margin:${isSmallVehicle ? '2px 0' : '3px 0'}; font-weight:bold; font-size:${isSmallVehicle ? '8px' : '13px'}; gap:${isSmallVehicle ? '4px' : '6px'}; align-items:center; }
+        .net-weight { border:1px solid #000; padding:${isSmallVehicle ? '3px' : '4px'}; font-size:${isSmallVehicle ? '9px' : '14px'}; margin-top:${isSmallVehicle ? '3px' : '4px'}; }
+        .warning { border:1px solid #000; padding:${isSmallVehicle ? '3px' : '4px'}; font-size:${isSmallVehicle ? '6px' : '10px'}; text-align:center; font-weight:bold; margin-top:${isSmallVehicle ? '4px' : '6px'}; }
+        .footer { padding-top:${isSmallVehicle ? '4px' : '6px'}; margin-top:${isSmallVehicle ? '5px' : '8px'}; text-align:center; font-size:${isSmallVehicle ? '8px' : '10px'}; }
+        .footer .eng { margin-top:${isSmallVehicle ? '5px' : '8px'}; text-align:center; font-family: Arial, sans-serif; direction:ltr; font-size:${isSmallVehicle ? '6px' : '8px'}; letter-spacing:1px; display:block; }
+        .page-break { page-break-after: always; margin:${isSmallVehicle ? '6px 0' : '10px 0'}; }
       </style>
     </head>
     <body>
@@ -172,13 +179,15 @@ const PrintModal = ({ show, slipType, onClose }) => {
 ).map((copyType, index) => `
         <div class="slip-container">
           <div class="copy-label">${copyType}</div>
-          <hr style="border: 1px dashed #000; margin: 5px 0 10px;" />
+          <hr style="border: 1px dashed #000; margin: ${isSmallVehicle ? '3px 0 6px' : '5px 0 10px'};" />
           <div class="header">
-            <img src="${logo}" alt="logo" style="width:30px;height:30px;display:block;margin:0 auto 4px auto" />
+            ${!isSmallVehicle ? `<img src="${logo}" alt="logo" style="width:30px;height:30px;display:block;margin:0 auto 4px auto" />` : ''}
             <div class="company-name">عوامی کمپیوٹرائزڈ کانٹا</div>
+            ${!isSmallVehicle ? `
             <div class="company-details">میرو خان روڈ، لاڑکانہ</div>
             <div class="company-details">فون: 03420721023</div>
-            <div class="company-details" style="font-weight:bold;font-size:12px;margin-top:6px;">
+            ` : ''}
+            <div class="company-details" style="font-weight:bold;font-size:${isSmallVehicle ? '9px' : '12px'};margin-top:${isSmallVehicle ? '4px' : '6px'};">
               ${slipType === "first" ? "پہلا وزن سلپ" : slipType === "second" ? "دوسرا وزن سلپ" : "حتمی وزن سلپ"}
             </div>
           </div>
@@ -206,43 +215,43 @@ const PrintModal = ({ show, slipType, onClose }) => {
             ${slipType !== "final" ? `
               <div class="weight-row">
                 <span>پہلا وزن:</span>
-                <span style="font-size:18px">${record.first_weight ? Number(record.first_weight).toFixed(2) : "0.00"} کلو</span>
+                <span style="font-size:${isSmallVehicle ? '14px' : '18px'}">${record.first_weight ? Number(record.first_weight).toFixed(2) : "0.00"} کلو</span>
               </div>
               <div class="info-row">
-                <span class="info-label" style="font-size:11px;">پہلے وزن کا وقت:</span>
-                <span class="info-value" style="font-size:11px;">${record.first_weight_time || "N/A"}</span>
+                <span class="info-label" style="font-size:${isSmallVehicle ? '8px' : '11px'};">پہلے وزن کا وقت:</span>
+                <span class="info-value" style="font-size:${isSmallVehicle ? '8px' : '11px'};">${record.first_weight_time || "N/A"}</span>
               </div>` : ""}
 
             ${slipType === "final" && record.first_weight ? `
               <div class="weight-row">
                 <span>موجودہ وزن:</span>
-                <span style="font-size:18px">${Number(record.first_weight).toFixed(2)} کلو</span>
+                <span style="font-size:${isSmallVehicle ? '14px' : '18px'}">${Number(record.first_weight).toFixed(2)} کلو</span>
               </div>
               <div class="info-row">
-                <span class="info-label" style="font-size:11px;">وقت:</span>
-                <span class="info-value" style="font-size:11px;">${record.first_weight_time || "N/A"}</span>
+                <span class="info-label" style="font-size:${isSmallVehicle ? '8px' : '11px'};">وقت:</span>
+                <span class="info-value" style="font-size:${isSmallVehicle ? '8px' : '11px'};">${record.first_weight_time || "N/A"}</span>
               </div>` : ""}
 
             ${slipType !== "first" && record.second_weight ? `
               <div class="weight-row">
                 <span>${slipType === "final" ? "خالی وزن:" : "دوسرا وزن:"}</span>
-                <span style="font-size:18px">${Number(record.second_weight).toFixed(2)} کلو</span>
+                <span style="font-size:${isSmallVehicle ? '14px' : '18px'}">${Number(record.second_weight).toFixed(2)} کلو</span>
               </div>
               ${slipType !== "final" ? `
                 <div class="info-row">
-                  <span class="info-label" style="font-size:11px;">دوسرے وزن کا وقت:</span>
-                  <span class="info-value" style="font-size:11px;">${record.second_weight_time || "N/A"}</span>
+                  <span class="info-label" style="font-size:${isSmallVehicle ? '8px' : '11px'};">دوسرے وزن کا وقت:</span>
+                  <span class="info-value" style="font-size:${isSmallVehicle ? '8px' : '11px'};">${record.second_weight_time || "N/A"}</span>
                 </div>` : ""}` : ""}
 
             ${slipType !== "first" && record.net_weight ? `
               <div class="net-weight">
                 <div class="weight-row">
                   <span>خالص وزن:</span>
-                  <span style="font-size:18px">${Number(record.net_weight).toFixed(2)} کلو</span>
+                  <span style="font-size:${isSmallVehicle ? '14px' : '18px'}">${Number(record.net_weight).toFixed(2)} کلو</span>
                 </div>
                 <div class="weight-row">
   <span>من:</span>
-  <span style="font-size:18px">
+  <span style="font-size:${isSmallVehicle ? '14px' : '18px'}">
     ${(({ sign, munds, remKg }) => `${sign}${munds} من ${remKg} کلو`)(kgToMundsString(record.net_weight))}
   </span>
 </div>
@@ -257,10 +266,12 @@ const PrintModal = ({ show, slipType, onClose }) => {
 
           <div class="warning">⚠️ براہ کرم روانگی سے پہلے وزن کی درستگی چیک کریں۔ بعد میں کوئی تبدیلی قبول نہیں کی جائے گی۔</div>
 
+          ${!isSmallVehicle ? `
           <div class="footer">
             <div>تاریخ: ${new Date().toLocaleDateString()} | وقت: ${new Date().toLocaleTimeString()}</div>
             <div class="eng">Software by <span style="display:inline-block;padding:2px 8px;font-weight:bold;border:1px solid #000;border-radius:6px;background:#f0f0f0">AKS</span> Solutions 0333-7227847</div>
           </div>
+          ` : ''}
         </div>
         ${index === 0 ? '<div class="page-break"></div>' : ''}
       `).join('')}

@@ -9,6 +9,7 @@ import FinalWeightPage from "./pages/FinalWeightPage";
 import Settings from "./components/Settings";
 import Navbar from "./components/Navbar";
 import RecordsPage from "./components/RecordsPage";
+import ExpensePage from "./components/ExpensePage";
 import { ToastContainer } from "react-toastify";
 import { restoreUserSession, logout } from "./redux/slices/authSlice";
 import { fetchRecords } from "./redux/slices/recordsSlice";
@@ -124,6 +125,22 @@ function App() {
             element={
               <ProtectedRoute loggedIn={loggedIn}>
                 <RecordsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/expenses"
+            element={
+              <ProtectedRoute loggedIn={loggedIn}>
+                <ExpensePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/settings"
+            element={
+              <ProtectedRoute loggedIn={loggedIn}>
+                <Settings />
               </ProtectedRoute>
             }
           />

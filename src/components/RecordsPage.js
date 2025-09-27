@@ -7,17 +7,21 @@ import jsPDF from "jspdf";
 import "jspdf-autotable";
 import autoTable from "jspdf-autotable";
 import { 
-  FaTruck, FaWeightHanging, FaBalanceScale, FaFileInvoice, FaCalculator, FaMoneyBill, FaClock, FaUserTie, FaCheck, 
+  FaTruck, FaFileInvoice, FaMoneyBill, FaClock, FaUserTie, FaCheck, 
   FaUser,
-  FaHashtag
+  FaHashtag,
+  FaMoneyBillWave,
+  FaChartLine,
+  FaArrowUp,
+  FaArrowDown
 } from "react-icons/fa";
-import { updateRecordData as updateRecord, setSelectedRecord, fetchRecords } from "../redux/slices/recordsSlice";
-import { getVehiclePrices } from "../config/vehicleConfig";
+import { setSelectedRecord, fetchRecords } from "../redux/slices/recordsSlice";
+import { fetchExpenses } from "../redux/slices/expenseSlice";
 
 export default function RecordsPage() {
   const dispatch = useDispatch();
   const { records = [], selectedRecord: reduxSelectedRecord } = useSelector(state => state.records || {});
-  const { settings = {} } = useSelector(state => state.settings || {});
+  const { expenses = [] } = useSelector(state => state.expenses || {});
   
   const [showPrintModal, setShowPrintModal] = useState(false);
   const [slipType, setSlipType] = useState("first");
@@ -28,15 +32,23 @@ export default function RecordsPage() {
   const [editModalShow, setEditModalShow] = useState(false);
   const [editRecord, setEditRecord] = useState(null);
   const [editSlipType, setEditSlipType] = useState("first");
+  const [reportType, setReportType] = useState("daily");
+  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [customFromDate, setCustomFromDate] = useState("");
+  const [customToDate, setCustomToDate] = useState("");
 
   const recordsPerPage = 12;
 
-  // Fetch records when component mounts
+  // Fetch records and expenses when component mounts
   useEffect(() => {
     if (records.length === 0) {
       dispatch(fetchRecords());
     }
-  }, [dispatch, records.length]);
+    if (expenses.length === 0) {
+      dispatch(fetchExpenses());
+    }
+  }, [dispatch, records.length, expenses.length]);
 
   const filteredRecords = records.filter((r) => {
   // ✅ Search filter
@@ -48,24 +60,39 @@ export default function RecordsPage() {
       r.id.toString().includes(search)
     : true;
 
-  // ✅ Date filter
-  const matchesDate = fromDate && toDate
-    ? (() => {
-        const recordDate = new Date(r.first_weight_time); // record date
-        const start = new Date(fromDate);
-        const end = new Date(toDate);
+  // ✅ Report type filter
+  const matchesReportType = (() => {
+    const today = new Date();
+    const recordDate = new Date(r.date || r.first_weight_time);
+    
+    if (isNaN(recordDate)) return false;
 
-        // ✅ Include entire end date by setting time to 23:59:59
-        end.setHours(23, 59, 59, 999);
+    switch (reportType) {
+      case 'daily':
+        const todayStr = today.toISOString().split('T')[0];
+        const dailyRecordDateStr = recordDate.toISOString().split('T')[0];
+        return dailyRecordDateStr === todayStr;
+        
+      case 'monthly':
+        return recordDate.getMonth() + 1 === selectedMonth && recordDate.getFullYear() === selectedYear;
+        
+      case 'yearly':
+        return recordDate.getFullYear() === selectedYear;
+        
+      case 'overall':
+        return true;
+        
+      case 'custom':
+        if (!customFromDate || !customToDate) return true;
+        const customRecordDateStr = recordDate.toISOString().split('T')[0];
+        return customRecordDateStr >= customFromDate && customRecordDateStr <= customToDate;
+        
+      default:
+        return true;
+    }
+  })();
 
-        // ✅ Check if valid date
-        if (isNaN(recordDate)) return false;
-
-        return recordDate >= start && recordDate <= end;
-      })()
-    : true;
-
-  return matchesSearch && matchesDate;
+  return matchesSearch && matchesReportType;
 });
 
 
@@ -76,6 +103,122 @@ export default function RecordsPage() {
   );
 
   const grandTotal = filteredRecords.reduce((sum, r) => sum + (parseFloat(r.total_price) || 0), 0);
+
+  // Financial calculations for stats cards
+  const calculateFinancialStats = () => {
+    // Total revenue from all records (not just filtered)
+    const totalRevenue = records.reduce((sum, r) => sum + (parseFloat(r.total_price) || 0), 0);
+    
+    // Regular business expenses (excluding deposits to owner)
+    const regularExpenses = expenses.reduce((sum, exp) => {
+      if (exp.category !== 'Deposit to Owner') {
+        return sum + (parseFloat(exp.amount) || 0);
+      }
+      return sum;
+    }, 0);
+    
+    // Total expenses (for display purposes)
+    const totalExpensesAmount = expenses.reduce((sum, exp) => sum + (parseFloat(exp.amount) || 0), 0);
+    
+    // Paid to Owner (expenses with category "Deposit to Owner")
+    const paidToOwner = expenses.reduce((sum, exp) => {
+      if (exp.category === 'Deposit to Owner') {
+        return sum + (parseFloat(exp.amount) || 0);
+      }
+      return sum;
+    }, 0);
+    
+    // Net profit (revenue minus regular business expenses only)
+    const netProfit = totalRevenue - regularExpenses;
+    
+    // Remaining amount (what's left for the owner after withdrawals)
+    const remainingAmount = netProfit - paidToOwner;
+    
+    // Today's calculations
+    const today = new Date().toISOString().split('T')[0];
+    const todayRevenue = records.reduce((sum, r) => {
+      const recordDate = r.first_weight_time ? new Date(r.first_weight_time).toISOString().split('T')[0] : null;
+      if (recordDate === today) {
+        return sum + (parseFloat(r.total_price) || 0);
+      }
+      return sum;
+    }, 0);
+    
+    const todayExpenses = expenses.reduce((sum, exp) => {
+      if (exp.date === today) {
+        return sum + (parseFloat(exp.amount) || 0);
+      }
+      return sum;
+    }, 0);
+    
+    // Today's regular expenses (excluding deposits to owner)
+    const todayRegularExpenses = expenses.reduce((sum, exp) => {
+      if (exp.date === today && exp.category !== 'Deposit to Owner') {
+        return sum + (parseFloat(exp.amount) || 0);
+      }
+      return sum;
+    }, 0);
+    
+    const todayProfit = todayRevenue - todayRegularExpenses;
+
+    // Filtered stats based on report type (for header display)
+    const getFilteredExpenses = () => {
+      switch (reportType) {
+        case 'daily':
+          return expenses.filter(e => e.date === today);
+        case 'monthly':
+          return expenses.filter(e => {
+            const expenseDate = new Date(e.date);
+            return expenseDate.getMonth() + 1 === selectedMonth && expenseDate.getFullYear() === selectedYear;
+          });
+        case 'yearly':
+          return expenses.filter(e => new Date(e.date).getFullYear() === selectedYear);
+        case 'overall':
+          return expenses;
+        default:
+          return expenses;
+      }
+    };
+
+    const filteredExpenses = getFilteredExpenses();
+    const filteredRevenue = filteredRecords.reduce((sum, r) => sum + (parseFloat(r.total_price) || 0), 0);
+    const filteredExpensesAmount = filteredExpenses.reduce((sum, exp) => sum + (parseFloat(exp.amount) || 0), 0);
+    
+    // Filtered regular expenses (excluding deposits to owner)
+    const filteredRegularExpenses = filteredExpenses.reduce((sum, exp) => {
+      if (exp.category !== 'Deposit to Owner') {
+        return sum + (parseFloat(exp.amount) || 0);
+      }
+      return sum;
+    }, 0);
+    
+    const filteredProfit = filteredRevenue - filteredRegularExpenses;
+    
+    return {
+      totalRevenue,
+      totalExpensesAmount,
+      netProfit,
+      paidToOwner,
+      remainingAmount,
+      todayRevenue,
+      todayExpenses,
+      todayProfit,
+      filteredRevenue,
+      filteredExpensesAmount,
+      filteredProfit
+    };
+  };
+
+  const financialStats = calculateFinancialStats();
+
+  // Format currency
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('en-PK', {
+      style: 'currency',
+      currency: 'PKR',
+      minimumFractionDigits: 0
+    }).format(amount);
+  };
 
   const formatTo12Hour = (dateString) => {
     if (!dateString) return "-";
@@ -101,9 +244,7 @@ export default function RecordsPage() {
     dispatch(setSelectedRecord(null));
   };
 
-  const handleUpdateRecord = (updatedRecord) => {
-    dispatch(updateRecord(updatedRecord));
-  };
+
 
   const openEditModal = (record) => {
     const type = record.final_weight === "Yes" ? "final" : "first";
@@ -113,70 +254,455 @@ export default function RecordsPage() {
     dispatch(setSelectedRecord(record));
   };
 
- const generatePDF = () => {
-  const rowsCount = filteredRecords.length;
-  const baseHeight = 40; // title + date + total
-  const rowHeight = 5;   // per row
-  const pageHeight = baseHeight + (rowsCount * rowHeight);
+const generatePDF = () => {
+  // Get filtered data based on report type
+  const getFilteredData = () => {
+    const today = new Date();
+    let filteredRecords = records;
+    let filteredExpenses = expenses;
+    let dateRange = '';
 
-  const doc = new jsPDF({
-    orientation: 'portrait',
-    unit: 'mm',
-    format: [80, pageHeight] // ✅ Big enough for all rows
-  });
+    switch (reportType) {
+      case 'daily':
+        const todayStr = today.toISOString().split('T')[0];
+        filteredRecords = records.filter(r => {
+          const recordDate = new Date(r.date || r.first_weight_time);
+          if (isNaN(recordDate)) return false;
+          const dailyDateStr = recordDate.toISOString().split('T')[0];
+          return dailyDateStr === todayStr;
+        });
+        filteredExpenses = expenses.filter(e => e.date === todayStr);
+        dateRange = `Daily Report - ${today.toLocaleDateString()}`;
+        break;
+        
+      case 'monthly':
+        filteredRecords = records.filter(r => {
+          const recordDate = new Date(r.date || r.first_weight_time);
+          if (isNaN(recordDate)) return false;
+          return recordDate.getMonth() + 1 === selectedMonth && recordDate.getFullYear() === selectedYear;
+        });
+        filteredExpenses = expenses.filter(e => {
+          const expenseDate = new Date(e.date);
+          return expenseDate.getMonth() + 1 === selectedMonth && expenseDate.getFullYear() === selectedYear;
+        });
+        const monthName = new Date(selectedYear, selectedMonth - 1).toLocaleString('default', { month: 'long' });
+        dateRange = `Monthly Report - ${monthName} ${selectedYear}`;
+        break;
+        
+      case 'yearly':
+        filteredRecords = records.filter(r => {
+          const recordDate = new Date(r.date || r.first_weight_time);
+          if (isNaN(recordDate)) return false;
+          return recordDate.getFullYear() === selectedYear;
+        });
+        filteredExpenses = expenses.filter(e => new Date(e.date).getFullYear() === selectedYear);
+        dateRange = `Yearly Report - ${selectedYear}`;
+        break;
+        
+      case 'overall':
+        filteredRecords = records;
+        filteredExpenses = expenses;
+        dateRange = 'Overall Report - All Time';
+        break;
+        
+      case 'custom':
+        if (!customFromDate || !customToDate) {
+          alert('Please select both from and to dates for custom range');
+          return;
+        }
+        filteredRecords = records.filter(r => {
+          const recordDate = new Date(r.date || r.first_weight_time);
+          if (isNaN(recordDate)) return false;
+          const customDateStr = recordDate.toISOString().split('T')[0];
+          return customDateStr >= customFromDate && customDateStr <= customToDate;
+        });
+        filteredExpenses = expenses.filter(e => e.date >= customFromDate && e.date <= customToDate);
+        dateRange = `Custom Report - ${new Date(customFromDate).toLocaleDateString()} to ${new Date(customToDate).toLocaleDateString()}`;
+        break;
+        
+      default:
+        filteredRecords = records;
+        filteredExpenses = expenses;
+        dateRange = 'Report';
+    }
 
-  const margin = 5;
+    return { filteredRecords, filteredExpenses, dateRange };
+  };
 
-  // ✅ Title
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(14);
-  doc.text("Awami Computerized Kanta", margin, margin + 5);
+  const { filteredRecords, filteredExpenses, dateRange } = getFilteredData();
 
-  // ✅ Date Range
-  doc.setFontSize(10);
-  doc.setFont("helvetica", "normal");
-  doc.text(`From: ${fromDate || "Start"}  To: ${toDate || "End"}`, margin, margin + 11);
+  // Calculate financial metrics
+  const reportRevenue = filteredRecords.reduce((sum, r) => sum + (parseFloat(r.total_price) || 0), 0);
+  
+  // Separate regular expenses from deposits to owner
+  const reportRegularExpenses = filteredExpenses.filter(e => e.category !== "Deposit to Owner");
+  const reportDepositsToOwner = filteredExpenses.filter(e => e.category === "Deposit to Owner");
+  
+  const reportExpensesAmount = reportRegularExpenses.reduce((sum, e) => sum + (parseFloat(e.amount) || 0), 0);
+  const reportDepositsAmount = reportDepositsToOwner.reduce((sum, e) => sum + (parseFloat(e.amount) || 0), 0);
+  const reportNetProfit = reportRevenue - reportExpensesAmount;
+  const reportFinalBalance = reportNetProfit - reportDepositsAmount;
+  
+  // Calculate cumulative totals (all time)
+  const totalRevenue = records.reduce((sum, r) => sum + (parseFloat(r.total_price) || 0), 0);
+  const totalRegularExpenses = expenses.filter(e => e.category !== "Deposit to Owner");
+  const totalDepositsToOwner = expenses.filter(e => e.category === "Deposit to Owner");
+  
+  const totalExpensesAmount = totalRegularExpenses.reduce((sum, e) => sum + (parseFloat(e.amount) || 0), 0);
+  const totalDepositsAmount = totalDepositsToOwner.reduce((sum, e) => sum + (parseFloat(e.amount) || 0), 0);
+  const totalNetProfit = totalRevenue - totalExpensesAmount;
+  const totalFinalBalance = totalNetProfit - totalDepositsAmount;
 
-  // ✅ Table
-  autoTable(doc, {
-    startY: margin + 15,
-    head: [["S.No", "Party", "Price"]],
-    body: filteredRecords.map((r, index) => [
-      r.id,
-      r.party_name || '-',
-      r.total_price || "-"
-    ]),
-    styles: {
-      fontSize: 7,
-      cellPadding: 1,
-      overflow: 'linebreak',
-      lineWidth: 0.1,
-      lineColor: [0, 0, 0],
-      textColor: [0, 0, 0]
-    },
-    headStyles: {
-      fillColor: [0, 0, 0],
-      textColor: [255, 255, 255],
-      fontSize: 8
-    },
-    columnStyles: {
-      0: { cellWidth: 10, halign: 'center' }, // S.No
-      1: { cellWidth: 40 },                   // Party
-      2: { cellWidth: 20, halign: 'right' }   // Price
-    },
-    theme: 'grid',
-    tableWidth: 'auto',
-    pageBreak: 'avoid', // ✅ Prevents internal page breaks
-    margin: { left: margin, right: margin }
-  });
+  // Create HTML content similar to PrintModal.js
+  const win = window.open("", "", "width=800,height=600");
+  if (!win) {
+    alert("Popup blocked! Please allow popups for PDF generation.");
+    return;
+  }
 
-  // ✅ Total at bottom
-  const finalY = doc.lastAutoTable.finalY || margin + 15;
-  doc.setFontSize(10);
-  doc.setFont("helvetica", "bold");
-  doc.text(`Total: ${grandTotal.toFixed(2)} PKR`, margin, finalY + 6);
+  const html = `
+    <!doctype html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <title>${dateRange}</title>
+      <style>
+        @page { margin: 0; size: 80mm auto; }
+        html, body { 
+          margin: 0; 
+          padding: 0; 
+          font-family: Tahoma, Verdana, Arial, sans-serif;
+          font-size: 14px;
+          color: #000;
+          line-height: 1.4;
+          letter-spacing: 0.5px;
+        }
 
-  doc.save("weighbridge_report.pdf");
+        .report-container {
+          width: 70mm;
+          margin: 0 auto;
+          border: 1px solid #000;
+          padding: 6px;
+          background: #fff;
+          box-sizing: border-box;
+        }
+
+        .header {
+          text-align: center;
+          border-bottom: 1px solid #000;
+          padding-bottom: 6px;
+          margin-bottom: 8px;
+        }
+
+        .company-name {
+          font-size: 18px;
+          font-weight: bold;
+        }
+
+        .company-details {
+          font-size: 10px;
+          margin: 1px 0;
+        }
+
+        .report-title {
+          text-align: center;
+          font-size: 12px;
+          font-weight: bold;
+          margin-bottom: 6px;
+        }
+
+        .content-section {
+          margin: 6px 0;
+        }
+
+        .section-title {
+          text-align: center;
+          font-size: 11px;
+          font-weight: bold;
+          border-bottom: 1px solid #000;
+          padding-bottom: 2px;
+          margin-bottom: 6px;
+        }
+
+        .info-row {
+          display: flex;
+          justify-content: space-between;
+          gap: 6px;
+          margin: 4px 0;
+          border-bottom: 1px dotted #999;
+          font-size: 11px;
+          align-items: center;
+        }
+
+        .info-label {
+          font-weight: bold;
+          display: inline-block;
+          min-width: 70px;
+          white-space: normal;
+        }
+
+        .info-value {
+          font-size: 12px;
+          font-weight: bold;
+          display: inline-block;
+          white-space: normal;
+          word-break: break-word;
+        }
+
+        .expense-item, .revenue-item {
+          border-bottom: 1px dotted #ccc;
+          padding: 2px 0;
+          margin: 1px 0;
+        }
+
+        .expense-item:last-child, .revenue-item:last-child {
+          border-bottom: none;
+        }
+
+        .expense-row {
+          display: flex;
+          justify-content: space-between;
+          gap: 4px;
+          margin: 2px 0;
+          font-size: 9px;
+          align-items: center;
+          line-height: 1.2;
+        }
+
+        .expense-label {
+          font-weight: normal;
+          display: inline-block;
+          min-width: 60px;
+          white-space: normal;
+          font-size: 9px;
+        }
+
+        .expense-value {
+          font-size: 10px;
+          font-weight: bold;
+          display: inline-block;
+          white-space: normal;
+          word-break: break-word;
+        }
+
+        .footer {
+          padding-top: 6px;
+          margin-top: 8px;
+          text-align: center;
+          font-size: 10px;
+          border-top: 1px solid #000;
+        }
+
+        .signature-line {
+          margin: 8px 0;
+          font-size: 10px;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="report-container">
+        <div class="header">
+          <div class="company-name">AWAMI KANTA</div>
+          <div class="company-details">Miro Khan Road, Larkana</div>
+        </div>
+
+        <div class="report-title">${dateRange}</div>
+        <div style="text-align: center; font-size: 10px; margin-bottom: 8px;">
+          ${new Date().toLocaleString()}
+        </div>
+
+        <!-- Financial Summary -->
+        <div class="content-section">
+          <div class="section-title">FINANCIAL SUMMARY</div>
+          ${reportType === 'daily' ? `
+            <div class="info-row">
+              <span class="info-label">Today Revenue:</span>
+              <span class="info-value">Rs ${reportRevenue.toLocaleString()}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Today Expenses:</span>
+              <span class="info-value">Rs ${reportExpensesAmount.toLocaleString()}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Today Net Profit:</span>
+              <span class="info-value">Rs ${reportNetProfit.toLocaleString()}</span>
+            </div>
+            ${reportDepositsAmount > 0 ? `
+              <div class="info-row">
+                <span class="info-label">Deposited to Owner:</span>
+                <span class="info-value">Rs ${reportDepositsAmount.toLocaleString()}</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">Final Balance:</span>
+                <span class="info-value">Rs ${reportFinalBalance.toLocaleString()}</span>
+              </div>
+            ` : ''}
+          ` : reportType === 'overall' ? `
+            <div class="info-row">
+              <span class="info-label">Total Revenue:</span>
+              <span class="info-value">Rs ${totalRevenue.toLocaleString()}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Total Expenses:</span>
+              <span class="info-value">Rs ${totalExpensesAmount.toLocaleString()}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Net Profit:</span>
+              <span class="info-value">Rs ${totalNetProfit.toLocaleString()}</span>
+            </div>
+            ${totalDepositsAmount > 0 ? `
+              <div class="info-row">
+                <span class="info-label">Deposited to Owner:</span>
+                <span class="info-value">Rs ${totalDepositsAmount.toLocaleString()}</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">Final Balance:</span>
+                <span class="info-value">Rs ${totalFinalBalance.toLocaleString()}</span>
+              </div>
+            ` : ''}
+          ` : `
+            <div class="info-row">
+              <span class="info-label">${reportType.charAt(0).toUpperCase() + reportType.slice(1)} Revenue:</span>
+              <span class="info-value">Rs ${reportRevenue.toLocaleString()}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">${reportType.charAt(0).toUpperCase() + reportType.slice(1)} Expenses:</span>
+              <span class="info-value">Rs ${reportExpensesAmount.toLocaleString()}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">${reportType.charAt(0).toUpperCase() + reportType.slice(1)} Net Profit:</span>
+              <span class="info-value">Rs ${reportNetProfit.toLocaleString()}</span>
+            </div>
+            ${reportDepositsAmount > 0 ? `
+              <div class="info-row">
+                <span class="info-label">Deposited to Owner:</span>
+                <span class="info-value">Rs ${reportDepositsAmount.toLocaleString()}</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">Final Balance:</span>
+                <span class="info-value">Rs ${reportFinalBalance.toLocaleString()}</span>
+              </div>
+            ` : ''}
+          `}
+        </div>
+
+        <!-- Expense Details -->
+        ${reportRegularExpenses.length > 0 ? `
+          <div class="content-section">
+            <div class="section-title">EXPENSE DETAILS</div>
+            ${reportRegularExpenses.map(expense => `
+              <div class="expense-item">
+                <div class="expense-row">
+                  <span class="expense-label">${expense.date ? expense.date.substring(5) : '-'} - ${expense.category || '-'}</span>
+                  <span class="expense-value">Rs ${(parseFloat(expense.amount) || 0).toLocaleString()}</span>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        ` : ''}
+
+        <!-- Owner Deposits Details -->
+        ${reportDepositsToOwner.length > 0 ? `
+          <div class="content-section">
+            <div class="section-title">DEPOSITS TO OWNER</div>
+            ${reportDepositsToOwner.map(deposit => `
+              <div class="expense-item">
+                <div class="expense-row">
+                  <span class="expense-label">${deposit.date ? deposit.date.substring(5) : '-'} - Deposited</span>
+                  <span class="expense-value">Rs ${(parseFloat(deposit.amount) || 0).toLocaleString()}</span>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        ` : ''}
+
+        <!-- Revenue Details (Only for Overall reports) -->
+        ${reportType === 'overall' && filteredRecords.length > 0 ? `
+          <div class="content-section">
+            <div class="section-title">REVENUE DETAILS</div>
+            ${filteredRecords.map(record => `
+              <div class="revenue-item">
+                <div class="expense-row">
+                  <span class="expense-label">${record.date ? record.date.substring(5) : '-'} - ${record.vehicle_number || '-'}</span>
+                  <span class="expense-value">Rs ${(parseFloat(record.total_price) || 0).toLocaleString()}</span>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        ` : ''}
+
+        <!-- Cash Management (Only for Overall reports) -->
+        ${reportType === 'overall' ? `
+          <div class="content-section">
+            <div class="section-title">CASH MANAGEMENT</div>
+            <div class="info-row">
+              <span class="info-label">Opening Balance:</span>
+              <span class="info-value">Rs 0</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Total Revenue:</span>
+              <span class="info-value">Rs ${totalRevenue.toLocaleString()}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Total Expenses:</span>
+              <span class="info-value">Rs ${totalExpensesAmount.toLocaleString()}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Remaining Cash:</span>
+              <span class="info-value">Rs ${totalFinalBalance.toLocaleString()}</span>
+            </div>
+          </div>
+        ` : ''}
+
+        <div class="footer">
+          <div class="signature-line">Operator: _____________</div>
+          <div class="signature-line">Owner: _____________</div>
+          <div style="margin-top: 8px; font-size: 8px;">
+            Software by <span style="display:inline-block;padding:2px 8px;font-weight:bold;border:1px solid #000;border-radius:6px;background:#f0f0f0">AKS</span> Solutions
+          </div>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  win.document.write(html);
+  win.document.close();
+
+  // Wait for content to load then print
+  const waitForResourcesAndPrint = async () => {
+    try {
+      // Wait for fonts to load
+      if (win.document.fonts && win.document.fonts.ready) {
+        await win.document.fonts.ready;
+      }
+    } catch (e) {
+      // ignore font loading errors
+    }
+
+    // Small delay to let layout settle
+    setTimeout(() => {
+      try { 
+        win.focus(); 
+        win.print(); 
+      } catch (e) { 
+        console.log('Print error:', e);
+      }
+      try { 
+        win.close(); 
+      } catch (e) {}
+    }, 100);
+  };
+
+  // Start the print process
+  if (win.document.readyState === 'complete') {
+    waitForResourcesAndPrint();
+  } else {
+    win.onload = waitForResourcesAndPrint;
+    setTimeout(() => {
+      if (!win.closed) waitForResourcesAndPrint();
+    }, 1000);
+  }
 };
 
 
@@ -196,18 +722,167 @@ export default function RecordsPage() {
           </div>
         </div>
         <div className="weight-form-body">
+          {/* Search and Report Generation Section */}
           <div className="row g-3">
-            <div className="col-md-4">
-              <input type="text" className="form-control" placeholder="Search..." value={search} onChange={e => { setSearch(e.target.value); setCurrentPage(1); }} />
+            <div className="col-md-9">
+              <div className="row g-3">
+                <div className="col-md-4">
+                  <label className="form-label text-muted fw-semibold">Search Records</label>
+                  <input type="text" className="form-control" placeholder="Search..." value={search} onChange={e => { setSearch(e.target.value); setCurrentPage(1); }} />
+                </div>
+                <div className="col-md-3">
+                  <label className="form-label text-muted fw-semibold">Report Type</label>
+                  <select 
+                    className="form-select" 
+                    value={reportType} 
+                    onChange={e => setReportType(e.target.value)}
+                  >
+                    <option value="daily">Daily Report</option>
+                    <option value="monthly">Monthly Report</option>
+                    <option value="yearly">Yearly Report</option>
+                    <option value="overall">Overall Report</option>
+                    <option value="custom">Custom Range</option>
+                  </select>
+                </div>
+                
+                {reportType === 'monthly' && (
+                  <div className="col-md-2">
+                    <label className="form-label text-muted fw-semibold">Month</label>
+                    <select 
+                      className="form-select" 
+                      value={selectedMonth} 
+                      onChange={e => setSelectedMonth(parseInt(e.target.value))}
+                    >
+                      {Array.from({length: 12}, (_, i) => (
+                        <option key={i+1} value={i+1}>
+                          {new Date(0, i).toLocaleString('default', { month: 'long' })}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+                
+                {(reportType === 'monthly' || reportType === 'yearly') && (
+                  <div className="col-md-3">
+                    <label className="form-label text-muted fw-semibold">Year</label>
+                    <select 
+                      className="form-select" 
+                      value={selectedYear} 
+                      onChange={e => setSelectedYear(parseInt(e.target.value))}
+                    >
+                      {Array.from({length: 5}, (_, i) => {
+                        const year = new Date().getFullYear() - i;
+                        return <option key={year} value={year}>{year}</option>
+                      })}
+                    </select>
+                  </div>
+                )}
+                
+                {reportType === 'custom' && (
+                  <>
+                    <div className="col-md-2">
+                      <label className="form-label text-muted fw-semibold">From Date</label>
+                      <input 
+                        type="date" 
+                        className="form-control" 
+                        value={customFromDate} 
+                        onChange={e => setCustomFromDate(e.target.value)}
+                      />
+                    </div>
+                    <div className="col-md-3">
+                      <label className="form-label text-muted fw-semibold">To Date</label>
+                      <input 
+                        type="date" 
+                        className="form-control" 
+                        value={customToDate} 
+                        onChange={e => setCustomToDate(e.target.value)}
+                      />
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
+            
             <div className="col-md-3">
-              <input type="date" className="form-control" value={fromDate} onChange={e => setFromDate(e.target.value)} />
+              <label className="form-label text-muted fw-semibold">&nbsp;</label>
+              <button className="btn btn-success w-100 d-block" onClick={generatePDF}>
+                <FaFileInvoice className="me-2" />
+                Generate Report
+              </button>
             </div>
-            <div className="col-md-3">
-              <input type="date" className="form-control" value={toDate} onChange={e => setToDate(e.target.value)} />
+          </div>
+        </div>
+      </div>
+
+      {/* Financial Overview Section */}
+      <div className="mb-5">
+        <div className="row mb-4">
+          <div className="col-12">
+            <h4 className="mb-4 fw-bold">
+              <FaChartLine className="me-3 text-primary" />
+              Financial Overview
+            </h4>
+          </div>
+        </div>
+
+        {/* Main Financial Stats - Larger Cards */}
+        <div className="row g-4 mb-4">
+          {/* Daily Stats */}
+          <div className="col-lg-4 col-md-6">
+            <div className="card border-0 shadow-lg h-100" style={{background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'}}>
+              <div className="card-body p-4 text-white">
+                <div className="d-flex justify-content-between align-items-center mb-3">
+                  <h6 className="text-white-50 mb-0 fw-normal">{reportType.charAt(0).toUpperCase() + reportType.slice(1)} Revenue</h6>
+                  <FaArrowUp className="fs-4" />
+                </div>
+                <h3 className="mb-1 fw-bold">{formatCurrency(financialStats.filteredRevenue)}</h3>
+                <small className="text-white-50">Expenses: {formatCurrency(financialStats.filteredExpensesAmount)}</small>
+                <div className="mt-2">
+                  <small className="text-white-50">Profit: </small>
+                  <span className={`fw-bold ${financialStats.filteredProfit >= 0 ? "text-white" : "text-warning"}`}>
+                    {formatCurrency(financialStats.filteredProfit)}
+                  </span>
+                </div>
+              </div>
             </div>
-            <div className="col-md-2">
-              <button className="btn btn-success w-100" onClick={generatePDF}>Export PDF</button>
+          </div>
+
+          {/* Total Revenue & Expenses */}
+          <div className="col-lg-4 col-md-6">
+            <div className="card border-0 shadow-lg h-100" style={{background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)'}}>
+              <div className="card-body p-4 text-white">
+                <div className="d-flex justify-content-between align-items-center mb-3">
+                  <h6 className="text-white-50 mb-0 fw-normal">Total Revenue</h6>
+                  <FaMoneyBill className="fs-4" />
+                </div>
+                <h3 className="mb-1 fw-bold">{formatCurrency(financialStats.totalRevenue)}</h3>
+                <small className="text-white-50">Expenses: {formatCurrency(financialStats.totalExpensesAmount)}</small>
+                <div className="mt-2">
+                  <small className="text-white-50">Net Profit: </small>
+                  <span className="fw-bold text-white">{formatCurrency(financialStats.netProfit)}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Owner Financial Status */}
+          <div className="col-lg-4 col-md-12">
+            <div className="card border-0 shadow-lg h-100" style={{background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)'}}>
+              <div className="card-body p-4 text-white">
+                <div className="d-flex justify-content-between align-items-center mb-3">
+                  <h6 className="text-white-50 mb-0 fw-normal">Owner Status</h6>
+                  <FaUserTie className="fs-4" />
+                </div>
+                <div className="mb-2">
+                  <small className="text-white-50">Paid to Owner</small>
+                  <h4 className="mb-1 fw-bold">{formatCurrency(financialStats.paidToOwner)}</h4>
+                </div>
+                <div className="mt-3">
+                  <small className="text-white-50">Remaining Amount</small>
+                  <h4 className={`mb-0 fw-bold ${financialStats.remainingAmount >= 0 ? "text-white" : "text-warning"}`}>
+                    {formatCurrency(financialStats.remainingAmount)}</h4>
+                </div>
+              </div>
             </div>
           </div>
         </div>
