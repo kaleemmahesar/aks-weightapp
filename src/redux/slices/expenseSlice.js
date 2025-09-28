@@ -1,51 +1,15 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+import api from '../../services/api';
 
-// Mock data for expenses (will be replaced with API calls later)
-const mockExpenses = [
-  {
-    id: 1,
-    description: 'Fuel for generator',
-    amount: 500,
-    category: 'Chae Pani',
-    date: new Date().toISOString().split('T')[0],
-    created_at: new Date().toISOString()
-  },
-  {
-    id: 2,
-    description: 'Maintenance of weighbridge',
-    amount: 15000,
-    category: 'Chae Pani',
-    date: new Date(Date.now() - 86400000).toISOString().split('T')[0], // Yesterday
-    created_at: new Date(Date.now() - 86400000).toISOString()
-  },
-  {
-    id: 3,
-    description: 'Office supplies',
-    amount: 2500,
-    category: 'Other',
-    date: new Date(Date.now() - 172800000).toISOString().split('T')[0], // 2 days ago
-    created_at: new Date(Date.now() - 172800000).toISOString()
-  },
-  {
-    id: 4,
-    description: 'Seth Waseem',
-    amount: 47350,
-    category: 'Deposit to Owner',
-    date: new Date(Date.now() - 172800000).toISOString().split('T')[0], // 2 days ago
-    created_at: new Date(Date.now() - 172800000).toISOString()
-  }
-];
-
-// Async thunks for expense operations (using mock data for now)
+// Async thunks for expense operations
 export const fetchExpenses = createAsyncThunk(
   'expenses/fetchExpenses',
   async (_, { rejectWithValue }) => {
     try {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 500));
-      return mockExpenses;
+      const response = await api.getExpenses();
+      return response.data || response;
     } catch (error) {
-      return rejectWithValue(error.message);
+      return rejectWithValue(error.response?.data || error.message);
     }
   }
 );
@@ -54,18 +18,10 @@ export const addExpense = createAsyncThunk(
   'expenses/addExpense',
   async (expenseData, { rejectWithValue }) => {
     try {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 300));
-      
-      const newExpense = {
-        id: Date.now(), // Simple ID generation for mock
-        ...expenseData,
-        created_at: new Date().toISOString()
-      };
-      
-      return newExpense;
+      const response = await api.addExpense(expenseData);
+      return response.data || response;
     } catch (error) {
-      return rejectWithValue(error.message);
+      return rejectWithValue(error.response?.data || error.message);
     }
   }
 );
@@ -74,11 +30,10 @@ export const updateExpense = createAsyncThunk(
   'expenses/updateExpense',
   async (expenseData, { rejectWithValue }) => {
     try {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 300));
-      return expenseData;
+      const response = await api.updateExpense(expenseData);
+      return response.data || response;
     } catch (error) {
-      return rejectWithValue(error.message);
+      return rejectWithValue(error.response?.data || error.message);
     }
   }
 );
@@ -87,11 +42,10 @@ export const deleteExpense = createAsyncThunk(
   'expenses/deleteExpense',
   async (expenseId, { rejectWithValue }) => {
     try {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 300));
+      await api.deleteExpense(expenseId);
       return expenseId;
     } catch (error) {
-      return rejectWithValue(error.message);
+      return rejectWithValue(error.response?.data || error.message);
     }
   }
 );
@@ -132,9 +86,30 @@ const expenseSlice = createSlice({
       })
       .addCase(fetchExpenses.fulfilled, (state, action) => {
         state.loading = false;
-        state.expenses = action.payload;
+        // Debug: Log the actual response structure
+        console.log('Backend response for fetchExpenses:', action.payload);
+        // Handle different response structures from backend
+        let expensesData = [];
+        if (Array.isArray(action.payload)) {
+          expensesData = action.payload;
+        } else if (action.payload && action.payload.data && Array.isArray(action.payload.data)) {
+          expensesData = action.payload.data;
+        } else if (action.payload && action.payload.expenses && Array.isArray(action.payload.expenses)) {
+          expensesData = action.payload.expenses;
+        } else if (action.payload && typeof action.payload === 'object') {
+          // If it's an object, try to find any array property
+          const keys = Object.keys(action.payload);
+          for (const key of keys) {
+            if (Array.isArray(action.payload[key])) {
+              expensesData = action.payload[key];
+              break;
+            }
+          }
+        }
+        console.log('Processed expenses data:', expensesData);
+        state.expenses = expensesData;
         // Auto-calculate total when expenses are loaded
-        state.totalExpenses = action.payload.reduce((total, expense) => {
+        state.totalExpenses = expensesData.reduce((total, expense) => {
           return total + parseFloat(expense.amount || 0);
         }, 0);
       })
@@ -150,7 +125,12 @@ const expenseSlice = createSlice({
       })
       .addCase(addExpense.fulfilled, (state, action) => {
         state.loading = false;
-        state.expenses.push(action.payload);
+        // Debug: Log the actual response structure
+        console.log('Backend response for addExpense:', action.payload);
+        // Handle different response structures from backend
+        const newExpense = action.payload.data || action.payload;
+        console.log('Processed new expense:', newExpense);
+        state.expenses.push(newExpense);
         // Recalculate total
         state.totalExpenses = state.expenses.reduce((total, expense) => {
           return total + parseFloat(expense.amount || 0);
@@ -163,9 +143,11 @@ const expenseSlice = createSlice({
       
       // Update Expense
       .addCase(updateExpense.fulfilled, (state, action) => {
-        const index = state.expenses.findIndex(exp => exp.id === action.payload.id);
+        // Handle different response structures from backend
+        const updatedExpense = action.payload.data || action.payload;
+        const index = state.expenses.findIndex(exp => exp.id === updatedExpense.id);
         if (index !== -1) {
-          state.expenses[index] = action.payload;
+          state.expenses[index] = updatedExpense;
           // Recalculate total
           state.totalExpenses = state.expenses.reduce((total, expense) => {
             return total + parseFloat(expense.amount || 0);

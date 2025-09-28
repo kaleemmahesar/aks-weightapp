@@ -10,7 +10,7 @@ import {
   calculateTotalExpenses,
   calculateTodayExpenses 
 } from '../redux/slices/expenseSlice';
-import { FaPlus, FaEdit, FaTrash, FaMoneyBillWave, FaCalendarAlt } from 'react-icons/fa';
+import { FaPlus, FaEdit, FaTrash, FaMoneyBillWave, FaCalendarAlt, FaSearch } from 'react-icons/fa';
 import notify from './notification';
 import '../styles/WeightForms.css';
 import '../styles/EnhancedForms.css';
@@ -19,14 +19,17 @@ const ExpensePage = () => {
   const dispatch = useDispatch();
   const { expenses, loading, totalExpenses, todayExpenses } = useSelector(state => state.expenses);
   const [editingExpense, setEditingExpense] = useState(null);
-  const [showForm, setShowForm] = useState(false);
+  const [showModal, setShowModal] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState(''); // For filtering by category
+  const [searchTerm, setSearchTerm] = useState(''); // For text-based search
 
   // Expense categories
   const expenseCategories = [
     'Regular Expense',
     'Deposit to Owner',
     'Chae Pani',
+    'Equipment',
+    'Staff Expense',
     'Other',
   ];
 
@@ -66,7 +69,7 @@ const ExpensePage = () => {
           notify('Expense added successfully!', 'success');
         }
         resetForm();
-        setShowForm(false);
+        setShowModal(false);
         dispatch(calculateTotalExpenses());
         dispatch(calculateTodayExpenses());
       } catch (error) {
@@ -88,13 +91,36 @@ const ExpensePage = () => {
     }
   }, [expenses, dispatch]);
 
-  // Filter expenses by category
-  const filteredExpenses = selectedCategory 
-    ? expenses.filter(expense => expense.category === selectedCategory)
-    : expenses;
+  // Filter expenses by category and search term
+  const filteredExpenses = expenses.filter(expense => {
+    // Filter by category if selected
+    const categoryMatch = selectedCategory ? expense.category === selectedCategory : true;
+    
+    // Filter by search term if provided
+    const searchMatch = searchTerm ? (
+      expense.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      expense.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      expense.amount.toString().includes(searchTerm)
+    ) : true;
+    
+    return categoryMatch && searchMatch;
+  });
 
   // Calculate total for filtered expenses
   const filteredTotal = filteredExpenses.reduce((sum, expense) => sum + (parseFloat(expense.amount) || 0), 0);
+
+  // Get category color
+  const getCategoryColor = (category) => {
+    const colorMap = {
+      'Regular Expense': 'bg-primary',
+      'Deposit to Owner': 'bg-success',
+      'Chae Pani': 'bg-info',
+      'Equipment': 'bg-warning text-dark',
+      'Staff Expense': 'bg-danger',
+      'Other': 'bg-secondary'
+    };
+    return colorMap[category] || 'bg-secondary';
+  };
 
   // Handle edit
   const handleEdit = (expense) => {
@@ -105,7 +131,7 @@ const ExpensePage = () => {
       category: expense.category,
       date: expense.date
     });
-    setShowForm(true);
+    setShowModal(true);
   };
 
   // Handle delete
@@ -125,7 +151,7 @@ const ExpensePage = () => {
   // Cancel edit/add
   const handleCancel = () => {
     setEditingExpense(null);
-    setShowForm(false);
+    setShowModal(false);
     formik.resetForm();
   };
 
@@ -145,7 +171,43 @@ const ExpensePage = () => {
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - days);
     
-    return expenses.filter(expense => new Date(expense.date) >= cutoffDate);
+    return expenses.filter(expense => {
+      const expenseDate = new Date(expense.date || expense.created_at);
+      return !isNaN(expenseDate.getTime()) && expenseDate >= cutoffDate;
+    });
+  };
+
+  // Calculate filtered stats based on current search and category filters
+  const getFilteredStats = (days = null) => {
+    let baseData = filteredExpenses; // Use already filtered data
+    
+    if (days) {
+      const cutoffDate = new Date();
+      cutoffDate.setDate(cutoffDate.getDate() - days);
+      baseData = baseData.filter(expense => {
+        const expenseDate = new Date(expense.date || expense.created_at);
+        return !isNaN(expenseDate.getTime()) && expenseDate >= cutoffDate;
+      });
+    }
+    
+    return baseData.reduce((sum, expense) => {
+      const amount = parseFloat(expense.amount);
+      return sum + (isNaN(amount) ? 0 : amount);
+    }, 0);
+  };
+
+  // Calculate today's filtered expenses
+  const getTodayFilteredExpenses = () => {
+    const today = new Date().toDateString();
+    return filteredExpenses
+      .filter(expense => {
+        const expenseDate = new Date(expense.date || expense.created_at);
+        return !isNaN(expenseDate.getTime()) && expenseDate.toDateString() === today;
+      })
+      .reduce((sum, expense) => {
+        const amount = parseFloat(expense.amount);
+        return sum + (isNaN(amount) ? 0 : amount);
+      }, 0);
   };
 
   return (
@@ -161,10 +223,10 @@ const ExpensePage = () => {
               </h2>
               <button
                 className="btn btn-primary"
-                onClick={() => setShowForm(!showForm)}
+                onClick={() => setShowModal(true)}
               >
                 <FaPlus className="me-2" />
-                {showForm ? 'Cancel' : 'Add Expense'}
+                Add Expense
               </button>
             </div>
           </div>
@@ -178,7 +240,7 @@ const ExpensePage = () => {
                 <div className="d-flex justify-content-between">
                   <div>
                     <h6 className="card-title">Today's Expenses</h6>
-                    <h4 className="mb-0">{formatCurrency(todayExpenses || 0)}</h4>
+                    <h4 className="mb-0">{formatCurrency(getTodayFilteredExpenses())}</h4>
                   </div>
                   <FaCalendarAlt size={30} />
                 </div>
@@ -192,9 +254,7 @@ const ExpensePage = () => {
                   <div>
                     <h6 className="card-title">This Week</h6>
                     <h4 className="mb-0">
-                      {formatCurrency(
-                        getFilteredExpenses(7).reduce((sum, exp) => sum + parseFloat(exp.amount), 0)
-                      )}
+                      {formatCurrency(getFilteredStats(7))}
                     </h4>
                   </div>
                   <FaCalendarAlt size={30} />
@@ -209,9 +269,7 @@ const ExpensePage = () => {
                   <div>
                     <h6 className="card-title">This Month</h6>
                     <h4 className="mb-0">
-                      {formatCurrency(
-                        getFilteredExpenses(30).reduce((sum, exp) => sum + parseFloat(exp.amount), 0)
-                      )}
+                      {formatCurrency(getFilteredStats(30))}
                     </h4>
                   </div>
                   <FaCalendarAlt size={30} />
@@ -225,7 +283,7 @@ const ExpensePage = () => {
                 <div className="d-flex justify-content-between">
                   <div>
                     <h6 className="card-title">Total Expenses</h6>
-                    <h4 className="mb-0">{formatCurrency(totalExpenses || 0)}</h4>
+                    <h4 className="mb-0">{formatCurrency(getFilteredStats())}</h4>
                   </div>
                   <FaMoneyBillWave size={30} />
                 </div>
@@ -234,118 +292,131 @@ const ExpensePage = () => {
           </div>
         </div>
 
-        {/* Add/Edit Form */}
-        {showForm && (
-          <div className="row mb-4">
-            <div className="col-12">
-              <div className="card">
-                <div className="card-header">
-                  <h5 className="mb-0">
-                    {editingExpense ? 'Edit Expense' : 'Add New Expense'}
-                  </h5>
-                </div>
-                <div className="card-body">
-                  <form onSubmit={formik.handleSubmit}>
-                    <div className="row">
-                      <div className="col-md-5">
-                        <div className="mb-3">
-                          <label className="form-label">Description *</label>
-                          <input
-                            type="text"
-                            className={`form-control ${formik.touched.description && formik.errors.description ? 'is-invalid' : ''}`}
-                            name="description"
-                            value={formik.values.description}
-                            onChange={formik.handleChange}
-                            onBlur={formik.handleBlur}
-                            placeholder="Enter expense description"
-                          />
-                          {formik.touched.description && formik.errors.description && (
-                            <div className="invalid-feedback">{formik.errors.description}</div>
-                          )}
-                        </div>
-                      </div>
-                      <div className="col-md-2">
-                        <div className="mb-3">
-                          <label className="form-label">Amount (PKR) *</label>
-                          <input
-                            type="number"
-                            className={`form-control ${formik.touched.amount && formik.errors.amount ? 'is-invalid' : ''}`}
-                            name="amount"
-                            value={formik.values.amount}
-                            onChange={formik.handleChange}
-                            onBlur={formik.handleBlur}
-                            placeholder="0"
-                            min="1"
-                            step="0.01"
-                          />
-                          {formik.touched.amount && formik.errors.amount && (
-                            <div className="invalid-feedback">{formik.errors.amount}</div>
-                          )}
-                        </div>
-                      </div>
-                      <div className="col-md-2">
-                        <div className="mb-3">
-                          <label className="form-label">Date *</label>
-                          <input
-                            type="date"
-                            className={`form-control ${formik.touched.date && formik.errors.date ? 'is-invalid' : ''}`}
-                            name="date"
-                            value={formik.values.date}
-                            onChange={formik.handleChange}
-                            onBlur={formik.handleBlur}
-                            max={new Date().toISOString().split('T')[0]}
-                          />
-                          {formik.touched.date && formik.errors.date && (
-                            <div className="invalid-feedback">{formik.errors.date}</div>
-                          )}
-                        </div>
-                      </div>
-                      <div className="col-md-3">
-                        <div className="mb-3">
-                          <label className="form-label">Category *</label>
-                          <select
-                            className={`form-select ${formik.touched.category && formik.errors.category ? 'is-invalid' : ''}`}
-                            name="category"
-                            value={formik.values.category}
-                            onChange={formik.handleChange}
-                            onBlur={formik.handleBlur}
-                          >
-                            <option value="">Select Category</option>
-                            {expenseCategories.map(category => (
-                              <option key={category} value={category}>{category}</option>
-                            ))}
-                          </select>
-                          {formik.touched.category && formik.errors.category && (
-                            <div className="invalid-feedback">{formik.errors.category}</div>
-                          )}
-                        </div>
+        {/* Add/Edit Modal */}
+        <div className={`modal fade ${showModal ? 'show' : ''}`} 
+             style={{ 
+               display: showModal ? 'flex' : 'none',
+               alignItems: 'center',
+               justifyContent: 'center'
+             }}
+             tabIndex="-1" 
+             aria-labelledby="expenseModalLabel" 
+             aria-hidden={!showModal}>
+          <div className="modal-dialog modal-lg" style={{ margin: 'auto' }}>
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title" id="expenseModalLabel">
+                  {editingExpense ? 'Edit Expense' : 'Add New Expense'}
+                </h5>
+                <button 
+                  type="button" 
+                  className="btn-close" 
+                  onClick={handleCancel}
+                  aria-label="Close">
+                </button>
+              </div>
+              <div className="modal-body">
+                <form onSubmit={formik.handleSubmit}>
+                  <div className="row">
+                    <div className="col-md-6">
+                      <div className="mb-3">
+                        <label className="form-label">Description *</label>
+                        <input
+                          type="text"
+                          className={`form-control ${formik.touched.description && formik.errors.description ? 'is-invalid' : ''}`}
+                          name="description"
+                          value={formik.values.description}
+                          onChange={formik.handleChange}
+                          onBlur={formik.handleBlur}
+                          placeholder="Enter expense description"
+                        />
+                        {formik.touched.description && formik.errors.description && (
+                          <div className="invalid-feedback">{formik.errors.description}</div>
+                        )}
                       </div>
                     </div>
-                    <div className="row">
-                      
+                    <div className="col-md-6">
+                      <div className="mb-3">
+                        <label className="form-label">Amount (PKR) *</label>
+                        <input
+                          type="number"
+                          className={`form-control ${formik.touched.amount && formik.errors.amount ? 'is-invalid' : ''}`}
+                          name="amount"
+                          value={formik.values.amount}
+                          onChange={formik.handleChange}
+                          onBlur={formik.handleBlur}
+                          placeholder="0"
+                          min="1"
+                          step="0.01"
+                        />
+                        {formik.touched.amount && formik.errors.amount && (
+                          <div className="invalid-feedback">{formik.errors.amount}</div>
+                        )}
+                      </div>
                     </div>
-                    <div className="d-flex gap-2">
-                      <button
-                        type="submit"
-                        className="btn btn-primary"
-                        disabled={loading}
-                      >
-                        {loading ? 'Saving...' : (editingExpense ? 'Update Expense' : 'Add Expense')}
-                      </button>
-                      <button
-                        type="button"
-                        className="btn btn-secondary"
-                        onClick={handleCancel}
-                      >
-                        Cancel
-                      </button>
+                  </div>
+                  <div className="row">
+                    <div className="col-md-6">
+                      <div className="mb-3">
+                        <label className="form-label">Date *</label>
+                        <input
+                          type="date"
+                          className={`form-control ${formik.touched.date && formik.errors.date ? 'is-invalid' : ''}`}
+                          name="date"
+                          value={formik.values.date}
+                          onChange={formik.handleChange}
+                          onBlur={formik.handleBlur}
+                          max={new Date().toISOString().split('T')[0]}
+                        />
+                        {formik.touched.date && formik.errors.date && (
+                          <div className="invalid-feedback">{formik.errors.date}</div>
+                        )}
+                      </div>
                     </div>
-                  </form>
-                </div>
+                    <div className="col-md-6">
+                      <div className="mb-3">
+                        <label className="form-label">Category *</label>
+                        <select
+                          className={`form-select ${formik.touched.category && formik.errors.category ? 'is-invalid' : ''}`}
+                          name="category"
+                          value={formik.values.category}
+                          onChange={formik.handleChange}
+                          onBlur={formik.handleBlur}
+                        >
+                          <option value="">Select Category</option>
+                          {expenseCategories.map(category => (
+                            <option key={category} value={category}>{category}</option>
+                          ))}
+                        </select>
+                        {formik.touched.category && formik.errors.category && (
+                          <div className="invalid-feedback">{formik.errors.category}</div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </form>
+              </div>
+              <div className="modal-footer">
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={handleCancel}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  disabled={loading}
+                  onClick={formik.handleSubmit}
+                >
+                  {loading ? 'Saving...' : (editingExpense ? 'Update Expense' : 'Add Expense')}
+                </button>
               </div>
             </div>
           </div>
-        )}
+        </div>
+        {showModal && <div className="modal-backdrop fade show"></div>}
 
         {/* Expenses Table */}
         <div className="row">
@@ -361,6 +432,16 @@ const ExpensePage = () => {
                         <strong className="text-primary">{formatCurrency(filteredTotal)}</strong>
                       </div>
                     )}
+                    <div className="position-relative" style={{ minWidth: '250px' }}>
+                      <FaSearch className="position-absolute top-50 start-0 translate-middle-y ms-3 text-muted" />
+                      <input
+                        type="text"
+                        className="form-control form-control-sm ps-5"
+                        placeholder="Search expenses..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                      />
+                    </div>
                     <div style={{ minWidth: '200px' }}>
                       <select
                         className="form-select form-select-sm"
@@ -403,16 +484,30 @@ const ExpensePage = () => {
                       </thead>
                       <tbody>
                         {[...filteredExpenses]
-                          .sort((a, b) => new Date(b.date) - new Date(a.date))
+                          .sort((a, b) => new Date(b.date || b.created_at) - new Date(a.date || a.created_at))
                           .map((expense) => (
                           <tr key={expense.id}>
-                            <td>{new Date(expense.date).toLocaleDateString()}</td>
-                            <td>{expense.description}</td>
                             <td>
-                              <span className="badge bg-secondary">{expense.category}</span>
+                              {expense.date || expense.created_at ? 
+                                new Date(expense.date || expense.created_at).toLocaleDateString('en-GB', {
+                                  day: 'numeric',
+                                  month: 'short',
+                                  year: 'numeric'
+                                }) : 
+                                'No Date'
+                              }
+                            </td>
+                            <td>{expense.description || expense.title || 'No Description'}</td>
+                            <td>
+                              <span className={`badge ${getCategoryColor(expense.category)}`}>
+                                {expense.category || 'Uncategorized'}
+                              </span>
                             </td>
                             <td className="text-danger fw-bold">
-                              {formatCurrency(expense.amount)}
+                              {expense.amount && !isNaN(expense.amount) ? 
+                                formatCurrency(parseFloat(expense.amount)) : 
+                                'Rs 0'
+                              }
                             </td>
                             <td>
                               <button

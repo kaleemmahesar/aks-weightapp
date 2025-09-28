@@ -8,6 +8,7 @@ import "../styles/WeightForms.css";
 import "../styles/EnhancedForms.css";
 import { FaBalanceScale } from "react-icons/fa";
 import { saveSecondWeightRecord } from "../redux/slices/recordsSlice";
+import { getCurrentPSTDateTime } from '../utils/dateUtils';
 
 export default function SecondWeightForm({ liveWeight, onSuccess }) {
   const dispatch = useDispatch();
@@ -129,25 +130,12 @@ export default function SecondWeightForm({ liveWeight, onSuccess }) {
         parseFloat(record.total_price) || vehiclePrices[record.vehicle_type] || 0;
 
       try {
-        const formatTo12Hour = (dateString) => {
-          const date = new Date(dateString);
-          return date.toLocaleString("en-US", {
-            timeZone: "Asia/Karachi",
-            month: "2-digit",
-            day: "2-digit",
-            year: "numeric",
-            hour: "numeric",
-            minute: "2-digit",
-            hour12: true
-          });
-        };
-
         const updatedRecord = {
           ...record,
           second_weight: secondWeight,
           net_weight: netWeight,
           total_price: totalPrice,
-          second_weight_time: formatTo12Hour(new Date()),
+          second_weight_time: getCurrentPSTDateTime(),
         };
 
         // Dispatch the Redux action to save second weight

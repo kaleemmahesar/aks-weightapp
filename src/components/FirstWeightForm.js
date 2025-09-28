@@ -8,6 +8,7 @@ import "../styles/EnhancedForms.css";
 import { FaBalanceScale  } from "react-icons/fa";
 import notify from "./notification";
 import { saveFirstWeightRecord } from "../redux/slices/recordsSlice";
+import { getCurrentPSTDateTime } from '../utils/dateUtils';
 import { STANDARD_PRODUCTS, DEFAULT_VEHICLE_TYPE, getVehiclePrices } from "../config/vehicleConfig";
 const FirstWeightForm = ({ liveWeight, onSuccess }) => {
   const dispatch = useDispatch();
@@ -150,18 +151,7 @@ const FirstWeightForm = ({ liveWeight, onSuccess }) => {
       console.log("New Record to save:", newRecord);
 
       try {
-        const formatTo12Hour = (dateString) => {
-  const date = new Date(dateString); 
-  return date.toLocaleString("en-US", {
-    timeZone: "Asia/Karachi",
-    month: "2-digit",
-    day: "2-digit",
-    year: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-    hour12: true,
-  });
-};
+
 
 
 
@@ -181,7 +171,7 @@ const FirstWeightForm = ({ liveWeight, onSuccess }) => {
             vehicle_type: record.type,
             product: record.product,
             first_weight: record.weight,
-            first_weight_time: formatTo12Hour(new Date().toISOString()),
+            first_weight_time: getCurrentPSTDateTime(),
             driver_name: record.driver,
             second_weight: null,
             net_weight: null,

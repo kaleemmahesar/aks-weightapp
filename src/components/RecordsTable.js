@@ -6,6 +6,7 @@ import "jspdf-autotable";
 import autoTable from "jspdf-autotable";
 import EditRecordModal from "./EditModal";
 import "../styles/Dashboard.css";
+import { formatToPST } from '../utils/dateUtils';
 
 export default function RecordsTable({ records, openPrintModal, vehiclePrices, slipType, onUpdateRecord }) {
     const [search, setSearch] = useState("");
@@ -74,18 +75,7 @@ export default function RecordsTable({ records, openPrintModal, vehiclePrices, s
     const handleNext = () => setCurrentPage((p) => Math.min(p + 1, totalPages));
     const handlePageClick = (page) => setCurrentPage(page);
 
-    const formatTo12Hour = (dateString) => {
-        const date = new Date(dateString);
-        return date.toLocaleString("en-US", {
-            timeZone: "Asia/Karachi",
-            month: "2-digit",
-            day: "numeric",
-            year: "numeric",
-            hour: "numeric",
-            minute: "2-digit",
-            hour12: true
-        });
-    };
+
 
     const openEditModal = (record) => {
         const slipType = record.final_weight === "Yes" ? "final" : "first";
@@ -162,8 +152,8 @@ export default function RecordsTable({ records, openPrintModal, vehiclePrices, s
                                     <td>{r.second_weight ? Number(r.second_weight).toFixed(2) : "-"}</td>
                                     <td>{r.net_weight ? Number(r.net_weight).toFixed(2) : "-"}</td>
                                     <td>{r.total_price ? Number(r.total_price) : "-"}</td>
-                                    <td>{r.first_weight_time ? formatTo12Hour(r.first_weight_time) : "-"}</td>
-                                    <td>{r.second_weight_time ? formatTo12Hour(r.second_weight_time) : "-"}</td>
+                                    <td>{r.first_weight_time ? formatToPST(r.first_weight_time) : "-"}</td>
+                                    <td>{r.second_weight_time ? formatToPST(r.second_weight_time) : "-"}</td>
                                     <td>{r.driver_name ? "Yes" : "No"}</td>
                                     <td>
                                         <button

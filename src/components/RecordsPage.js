@@ -6,6 +6,7 @@ import EditRecordModal from "./EditModal";
 import jsPDF from "jspdf";
 import "jspdf-autotable";
 import autoTable from "jspdf-autotable";
+import { formatToPST } from '../utils/dateUtils';
 import { 
   FaTruck, FaFileInvoice, FaMoneyBill, FaClock, FaUserTie, FaCheck, 
   FaUser,
@@ -13,7 +14,8 @@ import {
   FaMoneyBillWave,
   FaChartLine,
   FaArrowUp,
-  FaArrowDown
+  FaArrowDown,
+  FaUniversity
 } from "react-icons/fa";
 import { setSelectedRecord, fetchRecords } from "../redux/slices/recordsSlice";
 import { fetchExpenses } from "../redux/slices/expenseSlice";
@@ -120,8 +122,8 @@ export default function RecordsPage() {
     // Total expenses (for display purposes)
     const totalExpensesAmount = expenses.reduce((sum, exp) => sum + (parseFloat(exp.amount) || 0), 0);
     
-    // Paid to Owner (expenses with category "Deposit to Owner")
-    const paidToOwner = expenses.reduce((sum, exp) => {
+    // Bank Deposits (expenses with category "Deposit to Owner")
+    const bankDeposits = expenses.reduce((sum, exp) => {
       if (exp.category === 'Deposit to Owner') {
         return sum + (parseFloat(exp.amount) || 0);
       }
@@ -131,8 +133,8 @@ export default function RecordsPage() {
     // Net profit (revenue minus regular business expenses only)
     const netProfit = totalRevenue - regularExpenses;
     
-    // Remaining amount (what's left for the owner after withdrawals)
-    const remainingAmount = netProfit - paidToOwner;
+    // Available cash (what's left for the owner after bank deposits)
+    const availableCash = netProfit - bankDeposits;
     
     // Today's calculations
     const today = new Date().toISOString().split('T')[0];
@@ -197,9 +199,10 @@ export default function RecordsPage() {
     return {
       totalRevenue,
       totalExpensesAmount,
+      regularExpenses,
       netProfit,
-      paidToOwner,
-      remainingAmount,
+      bankDeposits,
+      availableCash,
       todayRevenue,
       todayExpenses,
       todayProfit,
@@ -220,15 +223,7 @@ export default function RecordsPage() {
     }).format(amount);
   };
 
-  const formatTo12Hour = (dateString) => {
-    if (!dateString) return "-";
-    const date = new Date(dateString);
-    return date.toLocaleString("en-US", {
-      timeZone: "Asia/Karachi",
-      month: "2-digit", day: "numeric", year: "numeric",
-      hour: "numeric", minute: "2-digit", hour12: true
-    });
-  };
+
 
   const openPrintModal = (record, type) => {
     // Create a new object with vehicle_id
@@ -272,7 +267,7 @@ const generatePDF = () => {
           return dailyDateStr === todayStr;
         });
         filteredExpenses = expenses.filter(e => e.date === todayStr);
-        dateRange = `Daily Report - ${today.toLocaleDateString()}`;
+        dateRange = `Daily Report - ${today.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}`;
         break;
         
       case 'monthly':
@@ -317,7 +312,7 @@ const generatePDF = () => {
           return customDateStr >= customFromDate && customDateStr <= customToDate;
         });
         filteredExpenses = expenses.filter(e => e.date >= customFromDate && e.date <= customToDate);
-        dateRange = `Custom Report - ${new Date(customFromDate).toLocaleDateString()} to ${new Date(customToDate).toLocaleDateString()}`;
+        dateRange = `Custom Report - ${new Date(customFromDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })} to ${new Date(customToDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}`;
         break;
         
       default:
@@ -508,7 +503,7 @@ const generatePDF = () => {
 
         <div class="report-title">${dateRange}</div>
         <div style="text-align: center; font-size: 10px; margin-bottom: 8px;">
-          ${new Date().toLocaleString()}
+          ${new Date().toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true })}
         </div>
 
         <!-- Financial Summary -->
@@ -529,11 +524,11 @@ const generatePDF = () => {
             </div>
             ${reportDepositsAmount > 0 ? `
               <div class="info-row">
-                <span class="info-label">Deposited to Owner:</span>
+                <span class="info-label">Paid to Boss:</span>
                 <span class="info-value">Rs ${reportDepositsAmount.toLocaleString()}</span>
               </div>
               <div class="info-row">
-                <span class="info-label">Final Balance:</span>
+                <span class="info-label">Remaining Cash:</span>
                 <span class="info-value">Rs ${reportFinalBalance.toLocaleString()}</span>
               </div>
             ` : ''}
@@ -552,11 +547,11 @@ const generatePDF = () => {
             </div>
             ${totalDepositsAmount > 0 ? `
               <div class="info-row">
-                <span class="info-label">Deposited to Owner:</span>
+                <span class="info-label">Paid to Boss:</span>
                 <span class="info-value">Rs ${totalDepositsAmount.toLocaleString()}</span>
               </div>
               <div class="info-row">
-                <span class="info-label">Final Balance:</span>
+                <span class="info-label">Remaining Cash:</span>
                 <span class="info-value">Rs ${totalFinalBalance.toLocaleString()}</span>
               </div>
             ` : ''}
@@ -575,11 +570,11 @@ const generatePDF = () => {
             </div>
             ${reportDepositsAmount > 0 ? `
               <div class="info-row">
-                <span class="info-label">Deposited to Owner:</span>
+                <span class="info-label">Paid to Boss:</span>
                 <span class="info-value">Rs ${reportDepositsAmount.toLocaleString()}</span>
               </div>
               <div class="info-row">
-                <span class="info-label">Final Balance:</span>
+                <span class="info-label">Remaining Cash:</span>
                 <span class="info-value">Rs ${reportFinalBalance.toLocaleString()}</span>
               </div>
             ` : ''}
@@ -604,7 +599,7 @@ const generatePDF = () => {
         <!-- Owner Deposits Details -->
         ${reportDepositsToOwner.length > 0 ? `
           <div class="content-section">
-            <div class="section-title">DEPOSITS TO OWNER</div>
+            <div class="section-title">OWNER DEPOSITS</div>
             ${reportDepositsToOwner.map(deposit => `
               <div class="expense-item">
                 <div class="expense-row">
@@ -856,7 +851,7 @@ const generatePDF = () => {
                   <FaMoneyBill className="fs-4" />
                 </div>
                 <h3 className="mb-1 fw-bold">{formatCurrency(financialStats.totalRevenue)}</h3>
-                <small className="text-white-50">Expenses: {formatCurrency(financialStats.totalExpensesAmount)}</small>
+                <small className="text-white-50">Business Expenses: {formatCurrency(financialStats.regularExpenses)}</small>
                 <div className="mt-2">
                   <small className="text-white-50">Net Profit: </small>
                   <span className="fw-bold text-white">{formatCurrency(financialStats.netProfit)}</span>
@@ -865,22 +860,22 @@ const generatePDF = () => {
             </div>
           </div>
 
-          {/* Owner Financial Status */}
+          {/* Owner Status */}
           <div className="col-lg-4 col-md-12">
-            <div className="card border-0 shadow-lg h-100" style={{background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)'}}>
+            <div className="card border-0 shadow-lg h-100" style={{background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'}}>
               <div className="card-body p-4 text-white">
                 <div className="d-flex justify-content-between align-items-center mb-3">
                   <h6 className="text-white-50 mb-0 fw-normal">Owner Status</h6>
                   <FaUserTie className="fs-4" />
                 </div>
                 <div className="mb-2">
-                  <small className="text-white-50">Paid to Owner</small>
-                  <h4 className="mb-1 fw-bold">{formatCurrency(financialStats.paidToOwner)}</h4>
+                  <small className="text-white-50">Paid to Boss</small>
+                  <h4 className="mb-1 fw-bold">{formatCurrency(financialStats.bankDeposits)}</h4>
                 </div>
                 <div className="mt-3">
-                  <small className="text-white-50">Remaining Amount</small>
-                  <h4 className={`mb-0 fw-bold ${financialStats.remainingAmount >= 0 ? "text-white" : "text-warning"}`}>
-                    {formatCurrency(financialStats.remainingAmount)}</h4>
+                  <small className="text-white-50">Remaining Cash</small>
+                  <h4 className={`mb-0 fw-bold ${financialStats.availableCash >= 0 ? "text-white" : "text-warning"}`}>
+                    {formatCurrency(financialStats.availableCash)}</h4>
                 </div>
               </div>
             </div>
@@ -986,7 +981,7 @@ const generatePDF = () => {
     <div className="col-6 mt-3">
       <div>
         <FaClock className="me-1" />
-        <span>{formatTo12Hour(record.first_weight_time)}</span>
+        <span>{formatToPST(record.first_weight_time)}</span>
         <small className="d-block text-muted">First Weight Time</small>
       </div>
     </div>
@@ -996,7 +991,7 @@ const generatePDF = () => {
       <div className="col-6 mt-3">
         <div>
           <FaClock className="me-1" />
-          <span>{formatTo12Hour(record.second_weight_time)}</span>
+          <span>{formatToPST(record.second_weight_time)}</span>
           <small className="d-block text-muted">Second Weight Time</small>
         </div>
       </div>

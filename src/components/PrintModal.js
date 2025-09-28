@@ -2,11 +2,14 @@ import React from "react";
 import { useSelector } from "react-redux";
 import { FaBalanceScale  } from "react-icons";
 import logo from '../assets/scale.png';
+import { formatToPST } from '../utils/dateUtils';
 const PrintModal = ({ show, slipType, onClose }) => {
   const { selectedRecord: record } = useSelector(state => state.records || {});
   // console.log('PrintModal - vehicle_type:', record?.vehicle_type, 'record:', record);
   
   if (!show || !record) return null; // Completely unmount when hidden
+
+
 
   function kgToMundsString(inputKg) {
   const n = Number(inputKg) || 0;
@@ -94,8 +97,8 @@ const PrintModal = ({ show, slipType, onClose }) => {
   <body>
     <div class="slip-container">
       <div class="row"><span>Party Name: ${record.party_name || "N/A"}</span></div>
-      <div class="row"><span>Serial No: ${record.vehicle_id || "N/A"}</span><span>Time: ${record.first_weight_time || "N/A"}</span><span>${record.first_weight || "0.00"} Kg</span></div>
-      <div class="row"><span>Vehicle No: ${record.vehicle_number || "N/A"}</span><span>Time: ${record.second_weight_time || "N/A"}</span><span>${record.second_weight || "0.00"} Kg</span></div>
+      <div class="row"><span>Serial No: ${record.vehicle_id || "N/A"}</span><span>Time: ${formatToPST(record.first_weight_time)}</span><span>${record.first_weight || "0.00"} Kg</span></div>
+        <div class="row"><span>Vehicle No: ${record.vehicle_number || "N/A"}</span><span>Time: ${formatToPST(record.second_weight_time)}</span><span>${record.second_weight || "0.00"} Kg</span></div>
       <div class="row"><span>Product: ${record.product || "N/A"}</span><span>${record.net_weight || "0.00"} Kg</span></div>
       <div class="center-row">Net Weight: ${sign}${munds} Munds ${remKg} Kg</div>
     </div>
@@ -219,7 +222,7 @@ const PrintModal = ({ show, slipType, onClose }) => {
               </div>
               <div class="info-row">
                 <span class="info-label" style="font-size:${isSmallVehicle ? '8px' : '11px'};">پہلے وزن کا وقت:</span>
-                <span class="info-value" style="font-size:${isSmallVehicle ? '8px' : '11px'};">${record.first_weight_time || "N/A"}</span>
+                <span class="info-value" style="font-size:${isSmallVehicle ? '8px' : '11px'};  direction:ltr;">${formatToPST(record.first_weight_time)}</span>
               </div>` : ""}
 
             ${slipType === "final" && record.first_weight ? `
@@ -229,7 +232,7 @@ const PrintModal = ({ show, slipType, onClose }) => {
               </div>
               <div class="info-row">
                 <span class="info-label" style="font-size:${isSmallVehicle ? '8px' : '11px'};">وقت:</span>
-                <span class="info-value" style="font-size:${isSmallVehicle ? '8px' : '11px'};">${record.first_weight_time || "N/A"}</span>
+                <span class="info-value" style="font-size:${isSmallVehicle ? '8px' : '11px'};">${formatToPST(record.first_weight_time)}</span>
               </div>` : ""}
 
             ${slipType !== "first" && record.second_weight ? `
@@ -240,7 +243,7 @@ const PrintModal = ({ show, slipType, onClose }) => {
               ${slipType !== "final" ? `
                 <div class="info-row">
                   <span class="info-label" style="font-size:${isSmallVehicle ? '8px' : '11px'};">دوسرے وزن کا وقت:</span>
-                  <span class="info-value" style="font-size:${isSmallVehicle ? '8px' : '11px'};">${record.second_weight_time || "N/A"}</span>
+                  <span class="info-value" style="font-size:${isSmallVehicle ? '8px' : '11px'}; direction:ltr;">${formatToPST(record.second_weight_time)}</span>
                 </div>` : ""}` : ""}
 
             ${slipType !== "first" && record.net_weight ? `
@@ -268,7 +271,7 @@ const PrintModal = ({ show, slipType, onClose }) => {
 
           ${!isSmallVehicle ? `
           <div class="footer">
-            <div>تاریخ: ${new Date().toLocaleDateString()} | وقت: ${new Date().toLocaleTimeString()}</div>
+            <div>تاریخ: ${new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })} | وقت: ${new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}</div>
             <div class="eng">Software by <span style="display:inline-block;padding:2px 8px;font-weight:bold;border:1px solid #000;border-radius:6px;background:#f0f0f0">AKS</span> Solutions 0333-7227847</div>
           </div>
           ` : ''}
@@ -400,7 +403,7 @@ const PrintModal = ({ show, slipType, onClose }) => {
 
                   <p>
                     <strong>First Weight Time:</strong>{" "}
-                    {record.first_weight_time}
+                    {formatToPST(record.first_weight_time)}
                   </p>
                 </>
               )}
@@ -418,7 +421,7 @@ const PrintModal = ({ show, slipType, onClose }) => {
                   {slipType !== "final" && (
                     <p>
                       <strong>Second Weight Time:</strong>{" "}
-                      {record.second_weight_time}
+                      {formatToPST(record.second_weight_time)}
                     </p>
                   )}
                 </>
@@ -435,7 +438,7 @@ const PrintModal = ({ show, slipType, onClose }) => {
                   </p>
                   <p>
                     <strong>Current Weight Time:</strong>{" "}
-                    {record.first_weight_time}
+                    {formatToPST(record.first_weight_time)}
                   </p>
                 </>
               )}

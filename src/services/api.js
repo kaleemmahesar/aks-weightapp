@@ -122,6 +122,67 @@ const api = {
     } catch (error) {
       throw error;
     }
+  },
+
+  // Expenses
+  getExpenses: async () => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/index.php?action=getExpenses`);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  addExpense: async (expenseData) => {
+    try {
+      const response = await axios.post(
+        `${API_BASE_URL}/index.php?action=addExpense`,
+        expenseData,
+        {
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  updateExpense: async (expenseData) => {
+    try {
+      const response = await axios.post(
+        `${API_BASE_URL}/index.php?action=updateExpense`,
+        expenseData,
+        {
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  deleteExpense: async (expenseId) => {
+    try {
+      const response = await axios.post(
+        `${API_BASE_URL}/index.php?action=deleteExpense`,
+        { id: expenseId },
+        {
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
   }
 };
 
