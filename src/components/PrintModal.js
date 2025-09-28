@@ -133,7 +133,7 @@ const PrintModal = ({ show, slipType, onClose }) => {
       <link href="https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu&display=swap" rel="stylesheet">
       <title>وزن سلپ</title>
       <style>
-        @page { margin: 0; size: ${isSmallVehicle ? '60mm 160mm' : '80mm 220mm'}; }
+        @page { margin: 0; size: ${isSmallVehicle ? '80mm 160mm' : '80mm 220mm'}; }
         html,body { margin:0; padding:0; }
         body {
           font-family: 'Noto Nastaliq Urdu', 'Noto Naskh Arabic', serif;
@@ -157,7 +157,7 @@ const PrintModal = ({ show, slipType, onClose }) => {
         }
         */
 
-        .slip-container { width:${isSmallVehicle ? '55mm' : '70mm'}; margin:0 auto; border:1px solid #000; padding:${isSmallVehicle ? '4px' : '6px'}; background:#fff; box-sizing:border-box; }
+        .slip-container { width:${isSmallVehicle ? '70mm' : '70mm'}; margin:0 auto; border:1px solid #000; padding:${isSmallVehicle ? '4px' : '6px'}; background:#fff; box-sizing:border-box; }
         .header { text-align:center; border-bottom:1px solid #000; padding-bottom:${isSmallVehicle ? '2px' : '6px'}; margin-bottom:${isSmallVehicle ? '3px' : '8px'}; }
         .company-name { font-size:${isSmallVehicle ? '11px' : '18px'}; font-weight:bold; }
         .company-details { font-size:${isSmallVehicle ? '8px' : '10px'}; margin:1px 0; }

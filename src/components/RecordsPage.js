@@ -52,6 +52,8 @@ export default function RecordsPage() {
     }
   }, [dispatch, records.length, expenses.length]);
 
+
+
   const filteredRecords = records.filter((r) => {
   // ✅ Search filter
   const matchesSearch = search
@@ -107,6 +109,13 @@ export default function RecordsPage() {
   const grandTotal = filteredRecords.reduce((sum, r) => sum + (parseFloat(r.total_price) || 0), 0);
 
   // Financial calculations for stats cards
+  // Helper function to get expense date (handles both 'date' and 'expense_date' properties)
+  const getExpenseDate = (expense) => {
+    const dateValue = expense.date || expense.expense_date;
+    if (!dateValue) return null;
+    return new Date(dateValue).toISOString().split('T')[0];
+  };
+
   const calculateFinancialStats = () => {
     // Total revenue from all records (not just filtered)
     const totalRevenue = records.reduce((sum, r) => sum + (parseFloat(r.total_price) || 0), 0);
@@ -147,7 +156,8 @@ export default function RecordsPage() {
     }, 0);
     
     const todayExpenses = expenses.reduce((sum, exp) => {
-      if (exp.date === today) {
+      const expenseDate = getExpenseDate(exp);
+      if (expenseDate === today) {
         return sum + (parseFloat(exp.amount) || 0);
       }
       return sum;
@@ -155,7 +165,8 @@ export default function RecordsPage() {
     
     // Today's regular expenses (excluding deposits to owner)
     const todayRegularExpenses = expenses.reduce((sum, exp) => {
-      if (exp.date === today && exp.category !== 'Deposit to Owner') {
+      const expenseDate = getExpenseDate(exp);
+      if (expenseDate === today && exp.category !== 'Deposit to Owner') {
         return sum + (parseFloat(exp.amount) || 0);
       }
       return sum;
@@ -167,14 +178,23 @@ export default function RecordsPage() {
     const getFilteredExpenses = () => {
       switch (reportType) {
         case 'daily':
-          return expenses.filter(e => e.date === today);
+          return expenses.filter(e => {
+            const expenseDate = getExpenseDate(e);
+            return expenseDate === today;
+          });
         case 'monthly':
           return expenses.filter(e => {
-            const expenseDate = new Date(e.date);
+            const dateValue = e.date || e.expense_date;
+            if (!dateValue) return false;
+            const expenseDate = new Date(dateValue);
             return expenseDate.getMonth() + 1 === selectedMonth && expenseDate.getFullYear() === selectedYear;
           });
         case 'yearly':
-          return expenses.filter(e => new Date(e.date).getFullYear() === selectedYear);
+          return expenses.filter(e => {
+            const dateValue = e.date || e.expense_date;
+            if (!dateValue) return false;
+            return new Date(dateValue).getFullYear() === selectedYear;
+          });
         case 'overall':
           return expenses;
         default:
@@ -266,7 +286,7 @@ const generatePDF = () => {
           const dailyDateStr = recordDate.toISOString().split('T')[0];
           return dailyDateStr === todayStr;
         });
-        filteredExpenses = expenses.filter(e => e.date === todayStr);
+        filteredExpenses = expenses.filter(e => getExpenseDate(e) === todayStr);
         dateRange = `Daily Report - ${today.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}`;
         break;
         
@@ -277,7 +297,9 @@ const generatePDF = () => {
           return recordDate.getMonth() + 1 === selectedMonth && recordDate.getFullYear() === selectedYear;
         });
         filteredExpenses = expenses.filter(e => {
-          const expenseDate = new Date(e.date);
+          const dateValue = e.date || e.expense_date;
+          if (!dateValue) return false;
+          const expenseDate = new Date(dateValue);
           return expenseDate.getMonth() + 1 === selectedMonth && expenseDate.getFullYear() === selectedYear;
         });
         const monthName = new Date(selectedYear, selectedMonth - 1).toLocaleString('default', { month: 'long' });
@@ -290,7 +312,11 @@ const generatePDF = () => {
           if (isNaN(recordDate)) return false;
           return recordDate.getFullYear() === selectedYear;
         });
-        filteredExpenses = expenses.filter(e => new Date(e.date).getFullYear() === selectedYear);
+        filteredExpenses = expenses.filter(e => {
+          const dateValue = e.date || e.expense_date;
+          if (!dateValue) return false;
+          return new Date(dateValue).getFullYear() === selectedYear;
+        });
         dateRange = `Yearly Report - ${selectedYear}`;
         break;
         
@@ -311,7 +337,10 @@ const generatePDF = () => {
           const customDateStr = recordDate.toISOString().split('T')[0];
           return customDateStr >= customFromDate && customDateStr <= customToDate;
         });
-        filteredExpenses = expenses.filter(e => e.date >= customFromDate && e.date <= customToDate);
+        filteredExpenses = expenses.filter(e => {
+          const expenseDate = getExpenseDate(e);
+          return expenseDate && expenseDate >= customFromDate && expenseDate <= customToDate;
+        });
         dateRange = `Custom Report - ${new Date(customFromDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })} to ${new Date(customToDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}`;
         break;
         

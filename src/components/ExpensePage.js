@@ -164,16 +164,24 @@ const ExpensePage = () => {
     }).format(amount);
   };
 
+  // Helper function to get expense date (handles both 'date' and 'expense_date' properties)
+  const getExpenseDate = (expense) => {
+    const dateValue = expense.date || expense.expense_date || expense.created_at;
+    if (!dateValue) return null;
+    return new Date(dateValue).toISOString().split('T')[0];
+  };
+
   // Filter expenses by date range
   const getFilteredExpenses = (days = null) => {
     if (!days) return expenses;
     
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - days);
+    const cutoffDateStr = cutoffDate.toISOString().split('T')[0];
     
     return expenses.filter(expense => {
-      const expenseDate = new Date(expense.date || expense.created_at);
-      return !isNaN(expenseDate.getTime()) && expenseDate >= cutoffDate;
+      const expenseDateStr = getExpenseDate(expense);
+      return expenseDateStr && expenseDateStr >= cutoffDateStr;
     });
   };
 
@@ -184,9 +192,10 @@ const ExpensePage = () => {
     if (days) {
       const cutoffDate = new Date();
       cutoffDate.setDate(cutoffDate.getDate() - days);
+      const cutoffDateStr = cutoffDate.toISOString().split('T')[0];
       baseData = baseData.filter(expense => {
-        const expenseDate = new Date(expense.date || expense.created_at);
-        return !isNaN(expenseDate.getTime()) && expenseDate >= cutoffDate;
+        const expenseDateStr = getExpenseDate(expense);
+        return expenseDateStr && expenseDateStr >= cutoffDateStr;
       });
     }
     
@@ -198,11 +207,11 @@ const ExpensePage = () => {
 
   // Calculate today's filtered expenses
   const getTodayFilteredExpenses = () => {
-    const today = new Date().toDateString();
+    const today = new Date().toISOString().split('T')[0];
     return filteredExpenses
       .filter(expense => {
-        const expenseDate = new Date(expense.date || expense.created_at);
-        return !isNaN(expenseDate.getTime()) && expenseDate.toDateString() === today;
+        const expenseDateStr = getExpenseDate(expense);
+        return expenseDateStr === today;
       })
       .reduce((sum, expense) => {
         const amount = parseFloat(expense.amount);
@@ -302,8 +311,8 @@ const ExpensePage = () => {
              tabIndex="-1" 
              aria-labelledby="expenseModalLabel" 
              aria-hidden={!showModal}>
-          <div className="modal-dialog modal-lg" style={{ margin: 'auto' }}>
-            <div className="modal-content">
+          <div className="modal-dialog modal-xl" style={{ margin: 'auto', maxWidth: '800px' }}>
+            <div className="modal-content" style={{ minHeight: '500px' }}>
               <div className="modal-header">
                 <h5 className="modal-title" id="expenseModalLabel">
                   {editingExpense ? 'Edit Expense' : 'Add New Expense'}
@@ -315,11 +324,11 @@ const ExpensePage = () => {
                   aria-label="Close">
                 </button>
               </div>
-              <div className="modal-body">
+              <div className="modal-body" style={{ padding: '2rem' }}>
                 <form onSubmit={formik.handleSubmit}>
-                  <div className="row">
+                  <div className="row g-4">
                     <div className="col-md-6">
-                      <div className="mb-3">
+                      <div className="mb-4">
                         <label className="form-label">Description *</label>
                         <input
                           type="text"
@@ -336,7 +345,7 @@ const ExpensePage = () => {
                       </div>
                     </div>
                     <div className="col-md-6">
-                      <div className="mb-3">
+                      <div className="mb-4">
                         <label className="form-label">Amount (PKR) *</label>
                         <input
                           type="number"
@@ -355,9 +364,9 @@ const ExpensePage = () => {
                       </div>
                     </div>
                   </div>
-                  <div className="row">
+                  <div className="row g-4">
                     <div className="col-md-6">
-                      <div className="mb-3">
+                      <div className="mb-4">
                         <label className="form-label">Date *</label>
                         <input
                           type="date"
@@ -374,7 +383,7 @@ const ExpensePage = () => {
                       </div>
                     </div>
                     <div className="col-md-6">
-                      <div className="mb-3">
+                      <div className="mb-4">
                         <label className="form-label">Category *</label>
                         <select
                           className={`form-select ${formik.touched.category && formik.errors.category ? 'is-invalid' : ''}`}
@@ -396,17 +405,17 @@ const ExpensePage = () => {
                   </div>
                 </form>
               </div>
-              <div className="modal-footer">
+              <div className="modal-footer" style={{ padding: '1.5rem 2rem' }}>
                 <button
                   type="button"
-                  className="btn btn-secondary"
+                  className="btn btn-secondary btn-lg"
                   onClick={handleCancel}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="btn btn-primary"
+                  className="btn btn-primary btn-lg"
                   disabled={loading}
                   onClick={formik.handleSubmit}
                 >

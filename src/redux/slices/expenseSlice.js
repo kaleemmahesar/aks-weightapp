@@ -67,7 +67,8 @@ const expenseSlice = createSlice({
     calculateTodayExpenses: (state) => {
       const today = new Date().toISOString().split('T')[0];
       state.todayExpenses = state.expenses.reduce((total, expense) => {
-        if (expense.date === today) {
+        const expenseDate = expense.date || expense.expense_date;
+        if (expenseDate && new Date(expenseDate).toISOString().split('T')[0] === today) {
           return total + parseFloat(expense.amount || 0);
         }
         return total;
