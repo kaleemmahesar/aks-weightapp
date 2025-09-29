@@ -59,8 +59,8 @@ const Navbar = ({ onLogout }) => {
               { path: "/dashboard", label: "First Weight", icon: <FaTachometerAlt /> },
               { path: "/second-weight", label: "Second Weight", icon: <FaBalanceScale /> },
               { path: "/final-weight", label: "Final Weight", icon: <FaCheckCircle /> },
-              { path: "/records", label: "Records", icon: <FaTable /> },
-              { path: "/expenses", label: "Expenses", icon: <FaMoneyBillWave /> }
+              { path: "/expenses", label: "Expenses", icon: <FaMoneyBillWave /> },
+              { path: "/records", label: "Records", icon: <FaTable /> }
             ].map((item) => (
               <li className="nav-item" key={item.path}>
                 <NavLink

@@ -29,6 +29,7 @@ const ExpensePage = () => {
     'Deposit to Owner',
     'Chae Pani',
     'Equipment',
+    'Maintenance',
     'Staff Expense',
     'Other',
   ];
@@ -46,17 +47,17 @@ const ExpensePage = () => {
       .required('Category is required'),
     date: Yup.date()
       .required('Date is required')
-      .max(new Date(), 'Date cannot be in the future')
   });
 
   // Formik setup
   const formik = useFormik({
     initialValues: {
-      description: '',
-      amount: '',
-      category: '',
-      date: new Date().toISOString().split('T')[0]
+      description: editingExpense?.description || '',
+      amount: editingExpense?.amount || '',
+      category: editingExpense?.category || '',
+      date: editingExpense?.date ? new Date(editingExpense.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]
     },
+    enableReinitialize: true,
     validationSchema,
     onSubmit: async (values, { resetForm }) => {
       try {
@@ -68,12 +69,20 @@ const ExpensePage = () => {
           await dispatch(addExpense(values)).unwrap();
           notify.success('Expense added successfully!');
         }
+        
+        // Close modal and reset form immediately after successful save
         resetForm();
         setShowModal(false);
+        
         // Refetch expenses to ensure UI shows latest data
-        await dispatch(fetchExpenses());
-        dispatch(calculateTotalExpenses());
-        dispatch(calculateTodayExpenses());
+        try {
+          await dispatch(fetchExpenses());
+          dispatch(calculateTotalExpenses());
+          dispatch(calculateTodayExpenses());
+        } catch (refreshError) {
+          console.warn('Error refreshing expense data:', refreshError);
+          // Don't show error to user as the expense was saved successfully
+        }
       } catch (error) {
         notify.error('Error saving expense: ' + error);
       }
@@ -119,7 +128,8 @@ const ExpensePage = () => {
       'Chae Pani': 'bg-info',
       'Equipment': 'bg-warning text-dark',
       'Staff Expense': 'bg-danger',
-      'Other': 'bg-secondary'
+      'Other': 'bg-secondary',
+      'Maintenance': 'bg-warning text-dark'
     };
     return colorMap[category] || 'bg-secondary';
   };
@@ -127,12 +137,6 @@ const ExpensePage = () => {
   // Handle edit
   const handleEdit = (expense) => {
     setEditingExpense(expense);
-    formik.setValues({
-      description: expense.description,
-      amount: expense.amount,
-      category: expense.category,
-      date: expense.date
-    });
     setShowModal(true);
   };
 
@@ -238,7 +242,10 @@ const ExpensePage = () => {
               </h2>
               <button
                 className="btn btn-primary"
-                onClick={() => setShowModal(true)}
+                onClick={() => {
+                  setEditingExpense(null);
+                  setShowModal(true);
+                }}
               >
                 <FaPlus className="me-2" />
                 Add Expense
@@ -320,10 +327,23 @@ const ExpensePage = () => {
                  handleCancel();
                }
              }}>
-          <div className="modal-dialog modal-xl" style={{ margin: 'auto', maxWidth: '800px' }}>
-            <div className="modal-content" style={{ minHeight: '500px' }}>
-              <div className="modal-header">
-                <h5 className="modal-title" id="expenseModalLabel">
+          <div className="modal-dialog modal-dialog-centered" style={{ 
+            maxWidth: '860px', 
+            width: '90%',
+            margin: '0 auto'
+          }}>
+            <div className="modal-content" style={{ 
+              minHeight: '370px',
+              minWidth: '100%',
+              borderRadius: '12px',
+              boxShadow: '0 10px 30px rgba(0,0,0,0.3)'
+            }}>
+              <div className="modal-header" style={{ 
+                padding: '1rem 2rem',
+                backgroundColor: '#f8f9fa',
+                borderBottom: '1px solid #dee2e6'
+              }}>
+                <h5 className="modal-title fw-bold" id="expenseModalLabel" style={{ fontSize: '1.5rem' }}>
                   {editingExpense ? 'Edit Expense' : 'Add New Expense'}
                 </h5>
                 <button 
@@ -333,7 +353,7 @@ const ExpensePage = () => {
                   aria-label="Close">
                 </button>
               </div>
-              <div className="modal-body" style={{ padding: '2rem' }}>
+              <div className="modal-body" style={{ padding: '1.5rem 2rem' }}>
                 <form onSubmit={formik.handleSubmit}>
                   <div className="row g-4">
                     <div className="col-md-6">
@@ -384,7 +404,6 @@ const ExpensePage = () => {
                           value={formik.values.date}
                           onChange={formik.handleChange}
                           onBlur={formik.handleBlur}
-                          max={new Date().toISOString().split('T')[0]}
                         />
                         {formik.touched.date && formik.errors.date && (
                           <div className="invalid-feedback">{formik.errors.date}</div>
@@ -412,7 +431,7 @@ const ExpensePage = () => {
                       </div>
                     </div>
                   </div>
-                  <div className="modal-footer" style={{ padding: '1.5rem 2rem' }}>
+                  <div className="modal-footer" style={{ padding: '1rem 0' }}>
                     <button
                       type="button"
                       className="btn btn-secondary btn-lg"
