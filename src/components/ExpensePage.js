@@ -62,18 +62,20 @@ const ExpensePage = () => {
       try {
         if (editingExpense) {
           await dispatch(updateExpense({ ...editingExpense, ...values })).unwrap();
-          notify('Expense updated successfully!', 'success');
+          notify.success('Expense updated successfully!');
           setEditingExpense(null);
         } else {
           await dispatch(addExpense(values)).unwrap();
-          notify('Expense added successfully!', 'success');
+          notify.success('Expense added successfully!');
         }
         resetForm();
         setShowModal(false);
+        // Refetch expenses to ensure UI shows latest data
+        await dispatch(fetchExpenses());
         dispatch(calculateTotalExpenses());
         dispatch(calculateTodayExpenses());
       } catch (error) {
-        notify('Error saving expense: ' + error, 'error');
+        notify.error('Error saving expense: ' + error);
       }
     }
   });
@@ -139,11 +141,13 @@ const ExpensePage = () => {
     if (window.confirm('Are you sure you want to delete this expense?')) {
       try {
         await dispatch(deleteExpense(expenseId)).unwrap();
-        notify('Expense deleted successfully!', 'success');
+        notify.success('Expense deleted successfully!');
+        // Refetch expenses to ensure UI shows latest data
+        await dispatch(fetchExpenses());
         dispatch(calculateTotalExpenses());
         dispatch(calculateTodayExpenses());
       } catch (error) {
-        notify('Error deleting expense: ' + error, 'error');
+        notify.error('Error deleting expense: ' + error);
       }
     }
   };
@@ -168,7 +172,7 @@ const ExpensePage = () => {
   const getExpenseDate = (expense) => {
     const dateValue = expense.date || expense.expense_date || expense.created_at;
     if (!dateValue) return null;
-    return new Date(dateValue).toISOString().split('T')[0];
+    return new Date(dateValue);
   };
 
   // Filter expenses by date range
@@ -177,11 +181,10 @@ const ExpensePage = () => {
     
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - days);
-    const cutoffDateStr = cutoffDate.toISOString().split('T')[0];
     
     return expenses.filter(expense => {
-      const expenseDateStr = getExpenseDate(expense);
-      return expenseDateStr && expenseDateStr >= cutoffDateStr;
+      const expenseDate = getExpenseDate(expense);
+      return expenseDate && expenseDate >= cutoffDate;
     });
   };
 
@@ -192,10 +195,9 @@ const ExpensePage = () => {
     if (days) {
       const cutoffDate = new Date();
       cutoffDate.setDate(cutoffDate.getDate() - days);
-      const cutoffDateStr = cutoffDate.toISOString().split('T')[0];
       baseData = baseData.filter(expense => {
-        const expenseDateStr = getExpenseDate(expense);
-        return expenseDateStr && expenseDateStr >= cutoffDateStr;
+        const expenseDate = getExpenseDate(expense);
+        return expenseDate && expenseDate >= cutoffDate;
       });
     }
     
@@ -207,11 +209,15 @@ const ExpensePage = () => {
 
   // Calculate today's filtered expenses
   const getTodayFilteredExpenses = () => {
-    const today = new Date().toISOString().split('T')[0];
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Set to start of day for comparison
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    
     return filteredExpenses
       .filter(expense => {
-        const expenseDateStr = getExpenseDate(expense);
-        return expenseDateStr === today;
+        const expenseDate = getExpenseDate(expense);
+        return expenseDate && expenseDate >= today && expenseDate < tomorrow;
       })
       .reduce((sum, expense) => {
         const amount = parseFloat(expense.amount);
@@ -304,13 +310,16 @@ const ExpensePage = () => {
         {/* Add/Edit Modal */}
         <div className={`modal fade ${showModal ? 'show' : ''}`} 
              style={{ 
-               display: showModal ? 'flex' : 'none',
-               alignItems: 'center',
-               justifyContent: 'center'
+               display: showModal ? 'block' : 'none'
              }}
              tabIndex="-1" 
              aria-labelledby="expenseModalLabel" 
-             aria-hidden={!showModal}>
+             aria-hidden={!showModal}
+             onClick={(e) => {
+               if (e.target === e.currentTarget) {
+                 handleCancel();
+               }
+             }}>
           <div className="modal-dialog modal-xl" style={{ margin: 'auto', maxWidth: '800px' }}>
             <div className="modal-content" style={{ minHeight: '500px' }}>
               <div className="modal-header">
@@ -403,24 +412,23 @@ const ExpensePage = () => {
                       </div>
                     </div>
                   </div>
+                  <div className="modal-footer" style={{ padding: '1.5rem 2rem' }}>
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-lg"
+                      onClick={handleCancel}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      className="btn btn-primary btn-lg"
+                      disabled={loading}
+                    >
+                      {loading ? 'Saving...' : (editingExpense ? 'Update Expense' : 'Add Expense')}
+                    </button>
+                  </div>
                 </form>
-              </div>
-              <div className="modal-footer" style={{ padding: '1.5rem 2rem' }}>
-                <button
-                  type="button"
-                  className="btn btn-secondary btn-lg"
-                  onClick={handleCancel}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="btn btn-primary btn-lg"
-                  disabled={loading}
-                  onClick={formik.handleSubmit}
-                >
-                  {loading ? 'Saving...' : (editingExpense ? 'Update Expense' : 'Add Expense')}
-                </button>
               </div>
             </div>
           </div>
@@ -493,18 +501,24 @@ const ExpensePage = () => {
                       </thead>
                       <tbody>
                         {[...filteredExpenses]
-                          .sort((a, b) => new Date(b.date || b.created_at) - new Date(a.date || a.created_at))
+                          .sort((a, b) => {
+                            const dateA = getExpenseDate(a);
+                            const dateB = getExpenseDate(b);
+                            return dateB - dateA;
+                          })
                           .map((expense) => (
                           <tr key={expense.id}>
                             <td>
-                              {expense.date || expense.created_at ? 
-                                new Date(expense.date || expense.created_at).toLocaleDateString('en-GB', {
-                                  day: 'numeric',
-                                  month: 'short',
-                                  year: 'numeric'
-                                }) : 
-                                'No Date'
-                              }
+                              {(() => {
+                                const expenseDate = getExpenseDate(expense);
+                                return expenseDate ? 
+                                  expenseDate.toLocaleDateString('en-GB', {
+                                    day: 'numeric',
+                                    month: 'short',
+                                    year: 'numeric'
+                                  }) : 
+                                  'No Date';
+                              })()}
                             </td>
                             <td>{expense.description || expense.title || 'No Description'}</td>
                             <td>

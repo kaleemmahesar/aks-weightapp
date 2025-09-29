@@ -174,13 +174,16 @@ export default function RecordsPage() {
     
     const todayProfit = todayRevenue - todayRegularExpenses;
 
+    // Define todayString for use in multiple places
+    const todayString = new Date().toISOString().split('T')[0];
+
     // Filtered stats based on report type (for header display)
     const getFilteredExpenses = () => {
       switch (reportType) {
         case 'daily':
           return expenses.filter(e => {
             const expenseDate = getExpenseDate(e);
-            return expenseDate === today;
+            return expenseDate === todayString;
           });
         case 'monthly':
           return expenses.filter(e => {
@@ -203,18 +206,144 @@ export default function RecordsPage() {
     };
 
     const filteredExpenses = getFilteredExpenses();
-    const filteredRevenue = filteredRecords.reduce((sum, r) => sum + (parseFloat(r.total_price) || 0), 0);
+    
+    // Use today's values for daily reports, otherwise use filtered calculations
+    const filteredRevenue = reportType === 'daily' ? todayRevenue : filteredRecords.reduce((sum, r) => sum + (parseFloat(r.total_price) || 0), 0);
     const filteredExpensesAmount = filteredExpenses.reduce((sum, exp) => sum + (parseFloat(exp.amount) || 0), 0);
     
     // Filtered regular expenses (excluding deposits to owner)
-    const filteredRegularExpenses = filteredExpenses.reduce((sum, exp) => {
+    const filteredRegularExpenses = reportType === 'daily' ? todayRegularExpenses : filteredExpenses.reduce((sum, exp) => {
       if (exp.category !== 'Deposit to Owner') {
         return sum + (parseFloat(exp.amount) || 0);
       }
       return sum;
     }, 0);
     
-    const filteredProfit = filteredRevenue - filteredRegularExpenses;
+    // Use todayProfit for daily reports, otherwise use calculated filteredProfit
+    const filteredProfit = reportType === 'daily' ? todayProfit : filteredRevenue - filteredRegularExpenses;
+    
+    // Filtered deposits to owner - use today's deposits for daily reports
+    const filteredDeposits = reportType === 'daily' ? 
+      expenses.reduce((sum, exp) => {
+        const expenseDate = getExpenseDate(exp);
+        if (expenseDate === todayString && exp.category === 'Deposit to Owner') {
+          return sum + (parseFloat(exp.amount) || 0);
+        }
+        return sum;
+      }, 0) :
+      filteredExpenses.reduce((sum, exp) => {
+        if (exp.category === 'Deposit to Owner') {
+          return sum + (parseFloat(exp.amount) || 0);
+        }
+        return sum;
+      }, 0);
+    
+    // Calculate previous period for comparison
+    const getPreviousPeriodData = () => {
+      let previousRecords = [];
+      let previousExpenses = [];
+      
+      switch (reportType) {
+        case 'daily':
+          // For daily reports, we need cumulative data up to yesterday
+          const yesterday = new Date();
+          yesterday.setDate(yesterday.getDate() - 1);
+          const yesterdayStr = yesterday.toISOString().split('T')[0];
+          
+          // Get all records and expenses up to and including yesterday
+          previousRecords = records.filter(r => {
+            const recordDate = new Date(r.date || r.first_weight_time);
+            return recordDate.toISOString().split('T')[0] <= yesterdayStr;
+          });
+          
+          previousExpenses = expenses.filter(e => {
+            const expenseDate = getExpenseDate(e);
+            return expenseDate <= yesterdayStr;
+          });
+          break;
+          
+        case 'monthly':
+          // Previous month
+          const prevMonth = selectedMonth === 1 ? 12 : selectedMonth - 1;
+          const prevYear = selectedMonth === 1 ? selectedYear - 1 : selectedYear;
+          
+          previousRecords = records.filter(r => {
+            const recordDate = new Date(r.date || r.first_weight_time);
+            return recordDate.getMonth() + 1 === prevMonth && recordDate.getFullYear() === prevYear;
+          });
+          
+          previousExpenses = expenses.filter(e => {
+            const dateValue = e.date || e.expense_date;
+            if (!dateValue) return false;
+            const expenseDate = new Date(dateValue);
+            return expenseDate.getMonth() + 1 === prevMonth && expenseDate.getFullYear() === prevYear;
+          });
+          break;
+          
+        case 'yearly':
+          // Previous year
+          const prevYearValue = selectedYear - 1;
+          
+          previousRecords = records.filter(r => {
+            const recordDate = new Date(r.date || r.first_weight_time);
+            return recordDate.getFullYear() === prevYearValue;
+          });
+          
+          previousExpenses = expenses.filter(e => {
+            const dateValue = e.date || e.expense_date;
+            if (!dateValue) return false;
+            return new Date(dateValue).getFullYear() === prevYearValue;
+          });
+          break;
+          
+        case 'overall':
+          // For overall, we can't really have a "previous" period, so return empty
+          return { revenue: 0, regularExpenses: 0, deposits: 0, availableCash: 0 };
+          
+        default:
+          return { revenue: 0, regularExpenses: 0, deposits: 0, availableCash: 0 };
+      }
+      
+      // Calculate previous period values
+      const prevRevenue = previousRecords.reduce((sum, r) => sum + (parseFloat(r.total_price) || 0), 0);
+      
+      const prevRegularExpenses = previousExpenses.reduce((sum, exp) => {
+        if (exp.category !== 'Deposit to Owner') {
+          return sum + (parseFloat(exp.amount) || 0);
+        }
+        return sum;
+      }, 0);
+      
+      const prevDeposits = previousExpenses.reduce((sum, exp) => {
+        if (exp.category === 'Deposit to Owner') {
+          return sum + (parseFloat(exp.amount) || 0);
+        }
+        return sum;
+      }, 0);
+      
+      const prevProfit = prevRevenue - prevRegularExpenses;
+      const prevAvailableCash = prevProfit - prevDeposits;
+      
+      return {
+        revenue: prevRevenue,
+        regularExpenses: prevRegularExpenses,
+        deposits: prevDeposits,
+        profit: prevProfit,
+        availableCash: prevAvailableCash
+      };
+    };
+    
+    const previousPeriod = getPreviousPeriodData();
+    
+    // Calculate filtered available cash (cumulative for daily reports)
+    let filteredAvailableCash;
+    if (reportType === 'daily') {
+      // For daily reports: previous remaining cash + today's profit - today's deposits
+      filteredAvailableCash = previousPeriod.availableCash + filteredProfit - filteredDeposits;
+    } else {
+      // For other reports: profit minus deposits for the period
+      filteredAvailableCash = filteredProfit - filteredDeposits;
+    }
     
     return {
       totalRevenue,
@@ -228,7 +357,11 @@ export default function RecordsPage() {
       todayProfit,
       filteredRevenue,
       filteredExpensesAmount,
-      filteredProfit
+      filteredRegularExpenses,
+      filteredProfit,
+      filteredDeposits,
+      filteredAvailableCash,
+      previousPeriod
     };
   };
 
@@ -840,71 +973,119 @@ const generatePDF = () => {
 
       {/* Financial Overview Section */}
       <div className="mb-5">
-        <div className="row mb-4">
+        {/* Financial Summary Cards - Clear Layout */}
+        <div className="row g-3 mb-4">
           <div className="col-12">
-            <h4 className="mb-4 fw-bold">
-              <FaChartLine className="me-3 text-primary" />
-              Financial Overview
-            </h4>
-          </div>
-        </div>
-
-        {/* Main Financial Stats - Larger Cards */}
-        <div className="row g-4 mb-4">
-          {/* Daily Stats */}
-          <div className="col-lg-4 col-md-6">
-            <div className="card border-0 shadow-lg h-100" style={{background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'}}>
-              <div className="card-body p-4 text-white">
-                <div className="d-flex justify-content-between align-items-center mb-3">
-                  <h6 className="text-white-50 mb-0 fw-normal">{reportType.charAt(0).toUpperCase() + reportType.slice(1)} Revenue</h6>
-                  <FaArrowUp className="fs-4" />
-                </div>
-                <h3 className="mb-1 fw-bold">{formatCurrency(financialStats.filteredRevenue)}</h3>
-                <small className="text-white-50">Expenses: {formatCurrency(financialStats.filteredExpensesAmount)}</small>
-                <div className="mt-2">
-                  <small className="text-white-50">Profit: </small>
-                  <span className={`fw-bold ${financialStats.filteredProfit >= 0 ? "text-white" : "text-warning"}`}>
-                    {formatCurrency(financialStats.filteredProfit)}
-                  </span>
-                </div>
+            <div className="card border-0 shadow-lg">
+              <div className="card-header bg-primary text-white">
+                <h5 className="mb-0 d-flex align-items-center">
+                  <FaChartLine className="me-2" />
+                  Financial Summary - {reportType.charAt(0).toUpperCase() + reportType.slice(1)} Report
+                </h5>
               </div>
-            </div>
-          </div>
+              <div className="card-body p-4">
+                <div className="row g-4">
+                  
+                  {/* Total Sale */}
+                  <div className="col-lg-2 col-md-4 col-sm-6">
+                    <div className="text-center p-3 border rounded bg-light">
+                      <FaMoneyBillWave className="text-success fs-2 mb-2" />
+                      <h6 className="text-muted mb-1">Total Sale</h6>
+                      <h4 className="text-success fw-bold mb-0">
+                        {formatCurrency(financialStats.filteredRevenue)}
+                      </h4>
+                    </div>
+                  </div>
 
-          {/* Total Revenue & Expenses */}
-          <div className="col-lg-4 col-md-6">
-            <div className="card border-0 shadow-lg h-100" style={{background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)'}}>
-              <div className="card-body p-4 text-white">
-                <div className="d-flex justify-content-between align-items-center mb-3">
-                  <h6 className="text-white-50 mb-0 fw-normal">Total Revenue</h6>
-                  <FaMoneyBill className="fs-4" />
-                </div>
-                <h3 className="mb-1 fw-bold">{formatCurrency(financialStats.totalRevenue)}</h3>
-                <small className="text-white-50">Business Expenses: {formatCurrency(financialStats.regularExpenses)}</small>
-                <div className="mt-2">
-                  <small className="text-white-50">Net Profit: </small>
-                  <span className="fw-bold text-white">{formatCurrency(financialStats.netProfit)}</span>
-                </div>
-              </div>
-            </div>
-          </div>
+                  {/* Expenses */}
+                  <div className="col-lg-2 col-md-4 col-sm-6">
+                    <div className="text-center p-3 border rounded bg-light">
+                      <FaArrowDown className="text-danger fs-2 mb-2" />
+                      <h6 className="text-muted mb-1">Regular Expenses</h6>
+                      <h4 className="text-danger fw-bold mb-0">
+                        {formatCurrency(financialStats.filteredRegularExpenses)}
+                      </h4>
+                    </div>
+                  </div>
 
-          {/* Owner Status */}
-          <div className="col-lg-4 col-md-12">
-            <div className="card border-0 shadow-lg h-100" style={{background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'}}>
-              <div className="card-body p-4 text-white">
-                <div className="d-flex justify-content-between align-items-center mb-3">
-                  <h6 className="text-white-50 mb-0 fw-normal">Owner Status</h6>
-                  <FaUserTie className="fs-4" />
+                  {/* Profit */}
+                  <div className="col-lg-2 col-md-4 col-sm-6">
+                    <div className="text-center p-3 border rounded bg-light">
+                      <FaChartLine className={`${financialStats.filteredProfit >= 0 ? 'text-success' : 'text-danger'} fs-2 mb-2`} />
+                      <h6 className="text-muted mb-1">Profit</h6>
+                      <h4 className={`${financialStats.filteredProfit >= 0 ? 'text-success' : 'text-danger'} fw-bold mb-0`}>
+                        {formatCurrency(financialStats.filteredProfit)}
+                      </h4>
+                    </div>
+                  </div>
+
+                  {/* Paid to Boss */}
+                  <div className="col-lg-2 col-md-4 col-sm-6">
+                    <div className="text-center p-3 border rounded bg-light">
+                      <FaUniversity className="text-info fs-2 mb-2" />
+                      <h6 className="text-muted mb-1">Paid to Boss</h6>
+                      <h4 className="text-info fw-bold mb-0">
+                        {formatCurrency(financialStats.filteredDeposits)}
+                      </h4>
+                    </div>
+                  </div>
+
+                  {/* Remaining Cash */}
+                  <div className="col-lg-2 col-md-4 col-sm-6">
+                    <div className="text-center p-3 border rounded bg-light">
+                      <FaMoneyBill className={`${financialStats.filteredAvailableCash >= 0 ? 'text-primary' : 'text-warning'} fs-2 mb-2`} />
+                      <h6 className="text-muted mb-1">Remaining Cash</h6>
+                      <h4 className={`${financialStats.filteredAvailableCash >= 0 ? 'text-primary' : 'text-warning'} fw-bold mb-1`}>
+                        {formatCurrency(financialStats.filteredAvailableCash)}
+                      </h4>
+                      {reportType !== 'overall' && (
+                        <div className="d-flex align-items-center justify-content-center">
+                          {financialStats.filteredAvailableCash !== financialStats.previousPeriod.availableCash && (
+                            <span className={`badge ${
+                              financialStats.filteredAvailableCash > financialStats.previousPeriod.availableCash 
+                                ? 'bg-success' 
+                                : 'bg-danger'
+                            } ms-1`}>
+                              {financialStats.filteredAvailableCash > financialStats.previousPeriod.availableCash ? '↗' : '↘'}
+                              {Math.abs(financialStats.filteredAvailableCash - financialStats.previousPeriod.availableCash).toLocaleString('en-PK', {
+                                style: 'currency',
+                                currency: 'PKR',
+                                minimumFractionDigits: 0
+                              })}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Summary Text */}
+                  <div className="col-lg-2 col-md-4 col-sm-6">
+                    <div className="text-center p-3 border rounded bg-primary text-white">
+                      <FaUser className="fs-2 mb-2" />
+                      <h6 className="text-white-50 mb-1">Records</h6>
+                      <h4 className="text-white fw-bold mb-0">
+                        {filteredRecords.length}
+                      </h4>
+                    </div>
+                  </div>
+
                 </div>
-                <div className="mb-2">
-                  <small className="text-white-50">Paid to Boss</small>
-                  <h4 className="mb-1 fw-bold">{formatCurrency(financialStats.bankDeposits)}</h4>
-                </div>
-                <div className="mt-3">
-                  <small className="text-white-50">Remaining Cash</small>
-                  <h4 className={`mb-0 fw-bold ${financialStats.availableCash >= 0 ? "text-white" : "text-warning"}`}>
-                    {formatCurrency(financialStats.availableCash)}</h4>
+
+                {/* Calculation Breakdown */}
+                <div className="mt-4 pt-3 border-top">
+                  <div className="row text-center">
+                    <div className="col-12">
+                      <small className="text-muted">
+                         <strong>Calculation:</strong> 
+                         Sale ({formatCurrency(financialStats.filteredRevenue)}) 
+                         - Regular Expenses ({formatCurrency(financialStats.regularExpenses)}) 
+                         = Profit ({formatCurrency(financialStats.filteredProfit)}) 
+                         - Paid to Boss ({formatCurrency(financialStats.bankDeposits)}) 
+                         = Remaining Cash ({formatCurrency(financialStats.availableCash)})
+                       </small>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>

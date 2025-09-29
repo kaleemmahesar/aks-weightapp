@@ -52,6 +52,33 @@ const records = [
   }
 ];
 
+const expenses = [
+  {
+    id: 1,
+    description: 'Office Supplies',
+    amount: 1500,
+    category: 'Regular Expense',
+    date: '2024-01-15',
+    created_at: '2024-01-15T10:30:00Z'
+  },
+  {
+    id: 2,
+    description: 'Fuel Cost',
+    amount: 3000,
+    category: 'Regular Expense',
+    date: '2024-01-14',
+    created_at: '2024-01-14T14:20:00Z'
+  },
+  {
+    id: 3,
+    description: 'Owner Payment',
+    amount: 50000,
+    category: 'Deposit to Owner',
+    date: '2024-01-13',
+    created_at: '2024-01-13T16:45:00Z'
+  }
+];
+
 const settings = {
   vehiclePrices: {
     Truck: 500,
@@ -152,6 +179,56 @@ app.post('/index.php', (req, res) => {
     return;
   }
   
+  if (action === 'addExpense') {
+    const newExpense = {
+      id: Date.now(),
+      ...req.body,
+      created_at: new Date().toISOString()
+    };
+    expenses.push(newExpense);
+    res.status(200).json({
+      success: true,
+      data: newExpense,
+      message: 'Expense added successfully'
+    });
+    return;
+  }
+  
+  if (action === 'updateExpense') {
+    const expenseIndex = expenses.findIndex(e => e.id == req.body.id);
+    if (expenseIndex !== -1) {
+      expenses[expenseIndex] = { ...expenses[expenseIndex], ...req.body };
+      res.status(200).json({
+        success: true,
+        data: expenses[expenseIndex],
+        message: 'Expense updated successfully'
+      });
+    } else {
+      res.status(404).json({
+        success: false,
+        message: 'Expense not found'
+      });
+    }
+    return;
+  }
+  
+  if (action === 'deleteExpense') {
+    const expenseIndex = expenses.findIndex(e => e.id == req.body.id);
+    if (expenseIndex !== -1) {
+      expenses.splice(expenseIndex, 1);
+      res.status(200).json({
+        success: true,
+        message: 'Expense deleted successfully'
+      });
+    } else {
+      res.status(404).json({
+        success: false,
+        message: 'Expense not found'
+      });
+    }
+    return;
+  }
+  
   res.status(404).json({ message: 'Action not found' });
 });
 
@@ -170,6 +247,14 @@ app.get('/index.php', (req, res) => {
     res.status(200).json({
       success: true,
       data: settings
+    });
+    return;
+  }
+  
+  if (action === 'getExpenses') {
+    res.status(200).json({
+      success: true,
+      data: expenses
     });
     return;
   }
