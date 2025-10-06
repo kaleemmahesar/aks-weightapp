@@ -962,7 +962,8 @@ const generatePDF = () => {
       totalEntries,
       totalNetWeight,
       recordCount: murgiRecords.length,
-      dateRange
+      dateRange,
+      rawRecords: murgiRecords // Added raw records for table display
     };
   };
 
@@ -980,6 +981,13 @@ const generatePDF = () => {
     const sortedData = [...murgiReportData.reportData].sort((a, b) => 
       a.partyName.localeCompare(b.partyName)
     );
+
+    // Sort raw records by date
+    const sortedRecords = [...murgiReportData.rawRecords].sort((a, b) => {
+      const dateA = new Date(a.date || a.first_weight_time);
+      const dateB = new Date(b.date || b.first_weight_time);
+      return dateA - dateB;
+    });
 
     const html = `
       <!doctype html>
@@ -1148,6 +1156,37 @@ const generatePDF = () => {
             </div>
           </div>
 
+          <!-- Detailed Records Table -->
+          <div class="content-section">
+            <div class="section-title">MURGI RECORDS</div>
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Date</th>
+                  <th>Vehicle</th>
+                  <th>Party</th>
+                  <th>Net Weight (kg)</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${sortedRecords.map(record => `
+                  <tr>
+                    <td>${record.id}</td>
+                    <td>${record.date ? record.date.substring(5) : (record.first_weight_time ? new Date(record.first_weight_time).toLocaleDateString().substring(0, 5) : '-')}</td>
+                    <td>${record.vehicle_number || '-'}</td>
+                    <td>${record.party_name || '-'}</td>
+                    <td>${parseFloat(record.net_weight || 0).toFixed(2)} kg</td>
+                  </tr>
+                `).join('')}
+                <tr style="font-weight: bold; border-top: 1px solid #000;">
+                  <td colspan="4">Total</td>
+                  <td>${murgiReportData.totalNetWeight.toFixed(2)} kg</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
           <div class="footer">
             <div class="signature-line">Operator: _____________</div>
             <div class="signature-line">Owner: _____________</div>
@@ -1227,7 +1266,7 @@ const generatePDF = () => {
       {showMurgiReport && (
         <div className="modal show d-block" tabIndex="-1" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
           <div className="modal-dialog" style={{ maxWidth: '860px', width: '90%', margin: '0px auto' }}>
-            <div className="modal-content">
+            <div className="modal-content" style={{ minWidth: '100%'}}>
               <div className="modal-header">
                 <h5 className="modal-title">MURGI Product Report</h5>
                 <button type="button" className="btn-close" onClick={closeMurgiReport}></button>
@@ -1327,11 +1366,44 @@ const generatePDF = () => {
                       </div>
                     </div>
                     
-                    {/* Date Range Display */}
+
+                    {/* MURGI Records Table */}
                     <div className="row mb-3">
                       <div className="col-12">
-                        <div className="alert alert-info text-center">
-                          <strong>{murgiReportData.dateRange}</strong>
+                        <div className="card">
+                          <div className="card-header bg-secondary text-white">
+                            <h6 className="mb-0">MURGI Records</h6>
+                          </div>
+                          <div className="card-body p-0">
+                            <div className="table-responsive">
+                              <table className="table table-striped table-hover mb-0">
+                                <thead className="table-dark">
+                                  <tr>
+                                    <th>ID</th>
+                                    <th>Date</th>
+                                    <th>Vehicle</th>
+                                    <th>Party</th>
+                                    <th>Net Weight (kg)</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {murgiReportData.rawRecords.map((record, index) => (
+                                    <tr key={record.id}>
+                                      <td>{record.id}</td>
+                                      <td>{record.date || (record.first_weight_time ? new Date(record.first_weight_time).toLocaleDateString() : '-')}</td>
+                                      <td>{record.vehicle_number} ({record.vehicle_type})</td>
+                                      <td>{record.party_name || '-'}</td>
+                                      <td>{parseFloat(record.net_weight).toFixed(2)} kg</td>
+                                    </tr>
+                                  ))}
+                                  <tr className="table-secondary fw-bold">
+                                    <td colSpan="4">Total</td>
+                                    <td>{murgiReportData.totalNetWeight.toFixed(2)} kg</td>
+                                  </tr>
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </div>
