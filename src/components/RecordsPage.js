@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import PrintModal from "../components/PrintModal";
 import { BiEdit } from "react-icons/bi";
@@ -39,6 +39,10 @@ export default function RecordsPage() {
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [customFromDate, setCustomFromDate] = useState("");
   const [customToDate, setCustomToDate] = useState("");
+  const [showMurgiReport, setShowMurgiReport] = useState(false);
+  const [murgiReportType, setMurgiReportType] = useState("all");
+  const [murgiSelectedMonth, setMurgiSelectedMonth] = useState(new Date().getMonth() + 1);
+  const [murgiSelectedYear, setMurgiSelectedYear] = useState(new Date().getFullYear());
 
   const recordsPerPage = 12;
 
@@ -862,14 +866,487 @@ const generatePDF = () => {
   }
 };
 
+  // Function to generate MURGI report data
+  const generateMurgiReportData = () => {
+    // Filter records where product is "MURGI" (case insensitive)
+    let murgiRecords = records.filter(record => 
+      record.product && record.product.toLowerCase() === 'murgi' || record.product.toLowerCase() === 'murghi'
+    );
+    
+    // Apply date filter based on selected report type
+    const today = new Date();
+    switch (murgiReportType) {
+      case 'daily':
+        const todayStr = today.toISOString().split('T')[0];
+        murgiRecords = murgiRecords.filter(r => {
+          const recordDate = new Date(r.date || r.first_weight_time);
+          if (isNaN(recordDate)) return false;
+          const recordDateStr = recordDate.toISOString().split('T')[0];
+          return recordDateStr === todayStr;
+        });
+        break;
+        
+      case 'monthly':
+        murgiRecords = murgiRecords.filter(r => {
+          const recordDate = new Date(r.date || r.first_weight_time);
+          if (isNaN(recordDate)) return false;
+          return recordDate.getMonth() + 1 === murgiSelectedMonth && recordDate.getFullYear() === murgiSelectedYear;
+        });
+        break;
+        
+      case 'yearly':
+        murgiRecords = murgiRecords.filter(r => {
+          const recordDate = new Date(r.date || r.first_weight_time);
+          if (isNaN(recordDate)) return false;
+          return recordDate.getFullYear() === murgiSelectedYear;
+        });
+        break;
+        
+      default:
+        // 'all' - no date filtering
+        break;
+    }
+    
+    // Group by party name and vehicle type and calculate totals
+    const partyData = {};
+    
+    murgiRecords.forEach(record => {
+      const partyName = record.party_name || 'Unknown Party';
+      const vehicleType = record.vehicle_type || 'Unknown Vehicle';
+      const key = `${partyName}||${vehicleType}`; // Composite key
+      
+      if (!partyData[key]) {
+        partyData[key] = {
+          partyName,
+          vehicleType,
+          entries: 0,
+          netWeight: 0
+        };
+      }
+      
+      partyData[key].entries += 1;
+      partyData[key].netWeight += parseFloat(record.net_weight) || 0;
+    });
+    
+    // Convert to array format for easier rendering
+    const reportData = Object.values(partyData).map(data => ({
+      partyName: data.partyName,
+      vehicleType: data.vehicleType,
+      entries: data.entries,
+      netWeight: data.netWeight
+    }));
+    
+    // Calculate totals
+    const totalEntries = reportData.reduce((sum, item) => sum + item.entries, 0);
+    const totalNetWeight = reportData.reduce((sum, item) => sum + item.netWeight, 0);
+    
+    // Generate date range text for display
+    let dateRange = '';
+    switch (murgiReportType) {
+      case 'daily':
+        dateRange = `Daily Report - ${today.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}`;
+        break;
+      case 'monthly':
+        const monthName = new Date(murgiSelectedYear, murgiSelectedMonth - 1).toLocaleString('default', { month: 'long' });
+        dateRange = `Monthly Report - ${monthName} ${murgiSelectedYear}`;
+        break;
+      case 'yearly':
+        dateRange = `Yearly Report - ${murgiSelectedYear}`;
+        break;
+      default:
+        dateRange = 'All Time Report';
+    }
+    
+    return {
+      reportData,
+      totalEntries,
+      totalNetWeight,
+      recordCount: murgiRecords.length,
+      dateRange
+    };
+  };
 
+  // Function to generate and print MURGI report as PDF
+  const printMurgiReport = () => {
+    if (!murgiReportData) return;
+
+    const win = window.open("", "", "width=800,height=600");
+    if (!win) {
+      alert("Popup blocked! Please allow popups for PDF generation.");
+      return;
+    }
+
+    // Sort report data by party name for consistent ordering
+    const sortedData = [...murgiReportData.reportData].sort((a, b) => 
+      a.partyName.localeCompare(b.partyName)
+    );
+
+    const html = `
+      <!doctype html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <title>MURGI Product Report</title>
+        <style>
+          @page { margin: 0; size: 80mm auto; }
+          html, body { 
+            margin: 0; 
+            padding: 0; 
+            font-family: Tahoma, Verdana, Arial, sans-serif;
+            font-size: 14px;
+            color: #000;
+            line-height: 1.4;
+            letter-spacing: 0.5px;
+          }
+
+          .report-container {
+            width: 70mm;
+            margin: 0 auto;
+            border: 1px solid #000;
+            padding: 6px;
+            background: #fff;
+            box-sizing: border-box;
+          }
+
+          .header {
+            text-align: center;
+            border-bottom: 1px solid #000;
+            padding-bottom: 6px;
+            margin-bottom: 8px;
+          }
+
+          .company-name {
+            font-size: 18px;
+            font-weight: bold;
+          }
+
+          .company-details {
+            font-size: 10px;
+            margin: 1px 0;
+          }
+
+          .report-title {
+            text-align: center;
+            font-size: 12px;
+            font-weight: bold;
+            margin-bottom: 6px;
+          }
+
+          .content-section {
+            margin: 6px 0;
+          }
+
+          .section-title {
+            text-align: center;
+            font-size: 11px;
+            font-weight: bold;
+            border-bottom: 1px solid #000;
+            padding-bottom: 2px;
+            margin-bottom: 6px;
+          }
+
+          .info-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 6px;
+            margin: 4px 0;
+            border-bottom: 1px dotted #999;
+            font-size: 11px;
+            align-items: center;
+          }
+
+          .info-label {
+            font-weight: bold;
+            display: inline-block;
+            min-width: 70px;
+            white-space: normal;
+          }
+
+          .info-value {
+            font-size: 12px;
+            font-weight: bold;
+            display: inline-block;
+            white-space: normal;
+            word-break: break-word;
+          }
+
+          table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 8px 0;
+            font-size: 10px;
+          }
+
+          th, td {
+            text-align: left;
+            padding: 3px 2px;
+            border-bottom: 1px solid #000;
+          }
+
+          th {
+            font-weight: bold;
+            font-size: 11px;
+          }
+
+          .text-center {
+            text-align: center;
+          }
+
+          .text-right {
+            text-align: right;
+          }
+
+          .footer {
+            padding-top: 6px;
+            margin-top: 8px;
+            text-align: center;
+            font-size: 10px;
+            border-top: 1px solid #000;
+          }
+
+          .signature-line {
+            margin: 8px 0;
+            font-size: 10px;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="report-container">
+          <div class="header">
+            <div class="company-name">AWAMI KANTA</div>
+            <div class="company-details">Miro Khan Road, Larkana</div>
+          </div>
+
+          <div class="report-title">MURGI Product Report</div>
+          <div style="text-align: center; font-size: 10px; margin-bottom: 8px;">
+            ${new Date().toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true })}
+          </div>
+
+          <!-- Report Duration -->
+          <div class="content-section">
+            <div class="section-title">REPORT DURATION</div>
+            <div class="info-row">
+              <span class="info-label">Period:</span>
+              <span class="info-value">${murgiReportData.dateRange}</span>
+            </div>
+          </div>
+
+          <!-- Summary Section -->
+          <div class="content-section">
+            <div class="section-title">SUMMARY</div>
+            <div class="info-row">
+              <span class="info-label">Total Records:</span>
+              <span class="info-value">${murgiReportData.recordCount}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Total Entries:</span>
+              <span class="info-value">${murgiReportData.totalEntries}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Total Net Weight:</span>
+              <span class="info-value">${murgiReportData.totalNetWeight.toFixed(2)} kg</span>
+            </div>
+          </div>
+
+          <div class="footer">
+            <div class="signature-line">Operator: _____________</div>
+            <div class="signature-line">Owner: _____________</div>
+            <div style="margin-top: 8px; font-size: 8px;">
+              Software by <span style="display:inline-block;padding:2px 8px;font-weight:bold;border:1px solid #000;border-radius:6px;background:#f0f0f0">AKS</span> Solutions
+            </div>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    win.document.write(html);
+    win.document.close();
+
+    // Wait for content to load then print
+    const waitForResourcesAndPrint = async () => {
+      try {
+        // Wait for fonts to load
+        if (win.document.fonts && win.document.fonts.ready) {
+          await win.document.fonts.ready;
+        }
+      } catch (e) {
+        // ignore font loading errors
+      }
+
+      // Small delay to let layout settle
+      setTimeout(() => {
+        try { 
+          win.focus(); 
+          win.print(); 
+        } catch (e) { 
+          console.log('Print error:', e);
+        }
+        try { 
+          win.close(); 
+        } catch (e) {}
+      }, 100);
+    };
+
+    // Start the print process
+    if (win.document.readyState === 'complete') {
+      waitForResourcesAndPrint();
+    } else {
+      win.onload = waitForResourcesAndPrint;
+      setTimeout(() => {
+        if (!win.closed) waitForResourcesAndPrint();
+      }, 1000);
+    }
+  };
+
+  // Function to generate and display MURGI report
+  const handleMurgiReport = () => {
+    setShowMurgiReport(true);
+  };
+
+  // Function to close MURGI report
+  const closeMurgiReport = () => {
+    setShowMurgiReport(false);
+  };
 
   const handlePrev = () => setCurrentPage(p => Math.max(p - 1, 1));
   const handleNext = () => setCurrentPage(p => Math.min(p + 1, totalPages));
 
+  // Get MURGI report data if needed - recalculate when filters change
+  const murgiReportData = useMemo(() => {
+    if (showMurgiReport) {
+      return generateMurgiReportData();
+    }
+    return null;
+  }, [showMurgiReport, murgiReportType, murgiSelectedMonth, murgiSelectedYear, records]);
+
   return (
     <div className="dashboard-container">
     <div className="container-fluid py-4">
+      {/* MURGI Report Modal */}
+      {showMurgiReport && (
+        <div className="modal show d-block" tabIndex="-1" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+          <div className="modal-dialog" style={{ maxWidth: '860px', width: '90%', margin: '0px auto' }}>
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title">MURGI Product Report</h5>
+                <button type="button" className="btn-close" onClick={closeMurgiReport}></button>
+              </div>
+              <div className="modal-body" style={{ width: '100%' }}>
+                {/* Report Type Selection */}
+                <div className="row mb-3">
+                  <div className="col-md-3">
+                    <label className="form-label">Report Type</label>
+                    <select 
+                      className="form-select" 
+                      value={murgiReportType} 
+                      onChange={e => setMurgiReportType(e.target.value)}
+                    >
+                      <option value="all">All Time</option>
+                      <option value="daily">Daily Report</option>
+                      <option value="monthly">Monthly Report</option>
+                      <option value="yearly">Yearly Report</option>
+                    </select>
+                  </div>
+                  
+                  {murgiReportType === 'monthly' && (
+                    <>
+                      <div className="col-md-3">
+                        <label className="form-label">Month</label>
+                        <select 
+                          className="form-select" 
+                          value={murgiSelectedMonth} 
+                          onChange={e => setMurgiSelectedMonth(parseInt(e.target.value))}
+                        >
+                          {Array.from({length: 12}, (_, i) => (
+                            <option key={i+1} value={i+1}>
+                              {new Date(0, i).toLocaleString('default', { month: 'long' })}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="col-md-3">
+                        <label className="form-label">Year</label>
+                        <select 
+                          className="form-select" 
+                          value={murgiSelectedYear} 
+                          onChange={e => setMurgiSelectedYear(parseInt(e.target.value))}
+                        >
+                          {Array.from({length: 5}, (_, i) => {
+                            const year = new Date().getFullYear() - i;
+                            return <option key={year} value={year}>{year}</option>
+                          })}
+                        </select>
+                      </div>
+                    </>
+                  )}
+                  
+                  {murgiReportType === 'yearly' && (
+                    <div className="col-md-3">
+                      <label className="form-label">Year</label>
+                      <select 
+                        className="form-select" 
+                        value={murgiSelectedYear} 
+                        onChange={e => setMurgiSelectedYear(parseInt(e.target.value))}
+                      >
+                        {Array.from({length: 5}, (_, i) => {
+                          const year = new Date().getFullYear() - i;
+                          return <option key={year} value={year}>{year}</option>
+                        })}
+                      </select>
+                    </div>
+                  )}
+                </div>
+                
+                {murgiReportData && (
+                  <div>
+                    <div className="row mb-3">
+                      <div className="col-md-4">
+                        <div className="card bg-primary text-white">
+                          <div className="card-body text-center">
+                            <h6>Total Records</h6>
+                            <h3>{murgiReportData.recordCount}</h3>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="col-md-4">
+                        <div className="card bg-success text-white">
+                          <div className="card-body text-center">
+                            <h6>Total Entries</h6>
+                            <h3>{murgiReportData.totalEntries}</h3>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="col-md-4">
+                        <div className="card bg-info text-white">
+                          <div className="card-body text-center">
+                            <h6>Total Net Weight</h6>
+                            <h3>{murgiReportData.totalNetWeight.toFixed(2)} kg</h3>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Date Range Display */}
+                    <div className="row mb-3">
+                      <div className="col-12">
+                        <div className="alert alert-info text-center">
+                          <strong>{murgiReportData.dateRange}</strong>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-primary" onClick={printMurgiReport}>Print Report</button>
+                <button type="button" className="btn btn-secondary" onClick={closeMurgiReport}>Close</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="weight-form-card mb-4">
         <div className="weight-form-header" style={{ background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)" }}>
@@ -962,10 +1439,16 @@ const generatePDF = () => {
             
             <div className="col-md-3">
               <label className="form-label text-muted fw-semibold">&nbsp;</label>
-              <button className="btn btn-success w-100 d-block" onClick={generatePDF}>
-                <FaFileInvoice className="me-2" />
-                Generate Report
-              </button>
+              <div className="d-grid gap-2">
+                <button className="btn btn-success w-100 d-block" onClick={generatePDF}>
+                  <FaFileInvoice className="me-2" />
+                  Generate Report
+                </button>
+                <button className="btn btn-info w-100 d-block" onClick={handleMurgiReport}>
+                  <FaFileInvoice className="me-2" />
+                  MURGI Report
+                </button>
+              </div>
             </div>
           </div>
         </div>
