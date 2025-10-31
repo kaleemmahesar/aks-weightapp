@@ -1,108 +1,167 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import PrintModal from "../components/PrintModal";
-import { BiEdit } from "react-icons/bi";
 import EditRecordModal from "./EditModal";
-import jsPDF from "jspdf";
-import "jspdf-autotable";
-import autoTable from "jspdf-autotable";
-import { formatToPST } from '../utils/dateUtils';
-import { 
-  FaTruck, FaFileInvoice, FaMoneyBill, FaClock, FaUserTie, FaCheck, 
-  FaUser,
-  FaHashtag,
-  FaMoneyBillWave,
-  FaChartLine,
-  FaArrowUp,
-  FaArrowDown,
-  FaUniversity
-} from "react-icons/fa";
+import { FaFileInvoice } from "react-icons/fa";
 import { setSelectedRecord, fetchRecords } from "../redux/slices/recordsSlice";
 import { fetchExpenses } from "../redux/slices/expenseSlice";
+import RecordsFilters from "./RecordsFilters";
+import FinancialSummary from "./FinancialSummary";
+import RecordsGrid from "./RecordsGrid";
+import Pagination from "./Pagination";
+import ReportGenerator from "./ReportGenerator";
 
 export default function RecordsPage() {
   const dispatch = useDispatch();
   const { records = [], selectedRecord: reduxSelectedRecord } = useSelector(state => state.records || {});
   const { expenses = [] } = useSelector(state => state.expenses || {});
   
+  // Initialize state with localStorage values or defaults
+  const getInitialState = (key, defaultValue) => {
+    const saved = localStorage.getItem(`recordsPage_${key}`);
+    if (saved !== null) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        return defaultValue;
+      }
+    }
+    return defaultValue;
+  };
+  
   const [showPrintModal, setShowPrintModal] = useState(false);
   const [slipType, setSlipType] = useState("first");
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(() => getInitialState('search', ""));
   const [currentPage, setCurrentPage] = useState(1);
-  const [fromDate, setFromDate] = useState("");
-  const [toDate, setToDate] = useState("");
   const [editModalShow, setEditModalShow] = useState(false);
   const [editRecord, setEditRecord] = useState(null);
   const [editSlipType, setEditSlipType] = useState("first");
-  const [reportType, setReportType] = useState("daily");
-  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
-  const [customFromDate, setCustomFromDate] = useState("");
-  const [customToDate, setCustomToDate] = useState("");
-  const [showMurgiReport, setShowMurgiReport] = useState(false);
-  const [murgiReportType, setMurgiReportType] = useState("all");
-  const [murgiSelectedMonth, setMurgiSelectedMonth] = useState(new Date().getMonth() + 1);
-  const [murgiSelectedYear, setMurgiSelectedYear] = useState(new Date().getFullYear());
+  const [reportType, setReportType] = useState(() => getInitialState('reportType', "daily"));
+  const [selectedMonth, setSelectedMonth] = useState(() => getInitialState('selectedMonth', new Date().getMonth() + 1));
+  const [selectedYear, setSelectedYear] = useState(() => getInitialState('selectedYear', new Date().getFullYear()));
+  const [customFromDate, setCustomFromDate] = useState(() => getInitialState('customFromDate', ""));
+  const [customToDate, setCustomToDate] = useState(() => getInitialState('customToDate', ""));
+  const [partyFilter, setPartyFilter] = useState(() => getInitialState('partyFilter', ""));
+  const [productFilter, setProductFilter] = useState(() => getInitialState('productFilter', ""));
+  const [vehicleTypeFilter, setVehicleTypeFilter] = useState(() => getInitialState('vehicleTypeFilter', ""));
+  const [loading, setLoading] = useState(true);
+
+  // Save filter state to localStorage whenever filters change
+  useEffect(() => {
+    localStorage.setItem('recordsPage_search', JSON.stringify(search));
+  }, [search]);
+  
+  useEffect(() => {
+    localStorage.setItem('recordsPage_reportType', JSON.stringify(reportType));
+  }, [reportType]);
+  
+  useEffect(() => {
+    localStorage.setItem('recordsPage_selectedMonth', JSON.stringify(selectedMonth));
+  }, [selectedMonth]);
+  
+  useEffect(() => {
+    localStorage.setItem('recordsPage_selectedYear', JSON.stringify(selectedYear));
+  }, [selectedYear]);
+  
+  useEffect(() => {
+    localStorage.setItem('recordsPage_customFromDate', JSON.stringify(customFromDate));
+  }, [customFromDate]);
+  
+  useEffect(() => {
+    localStorage.setItem('recordsPage_customToDate', JSON.stringify(customToDate));
+  }, [customToDate]);
+  
+  useEffect(() => {
+    localStorage.setItem('recordsPage_partyFilter', JSON.stringify(partyFilter));
+  }, [partyFilter]);
+  
+  useEffect(() => {
+    localStorage.setItem('recordsPage_productFilter', JSON.stringify(productFilter));
+  }, [productFilter]);
+  
+  useEffect(() => {
+    localStorage.setItem('recordsPage_vehicleTypeFilter', JSON.stringify(vehicleTypeFilter));
+  }, [vehicleTypeFilter]);
 
   const recordsPerPage = 12;
 
   // Fetch records and expenses when component mounts
   useEffect(() => {
-    if (records.length === 0) {
-      dispatch(fetchRecords());
-    }
-    if (expenses.length === 0) {
-      dispatch(fetchExpenses());
-    }
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        if (records.length === 0) {
+          await dispatch(fetchRecords());
+        }
+        if (expenses.length === 0) {
+          await dispatch(fetchExpenses());
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchData();
   }, [dispatch, records.length, expenses.length]);
 
-
+  // Get unique values for filter dropdowns
+  const uniqueParties = [...new Set(records.map(r => r.party_name).filter(Boolean))];
+  const uniqueProducts = [...new Set(records.map(r => r.product).filter(Boolean))];
+  const uniqueVehicleTypes = [...new Set(records.map(r => r.vehicle_type).filter(Boolean))];
 
   const filteredRecords = records.filter((r) => {
-  // ✅ Search filter
-  const matchesSearch = search
-    ? r.vehicle_number.toLowerCase().includes(search.toLowerCase()) ||
-      r.vehicle_type.toLowerCase().includes(search.toLowerCase()) ||
-      r.product?.toLowerCase().includes(search.toLowerCase()) ||
-      r.party_name?.toLowerCase().includes(search.toLowerCase()) ||
-      r.id.toString().includes(search)
-    : true;
+    // ✅ Search filter
+    const matchesSearch = search
+      ? r.vehicle_number.toLowerCase().includes(search.toLowerCase()) ||
+        r.vehicle_type.toLowerCase().includes(search.toLowerCase()) ||
+        r.product?.toLowerCase().includes(search.toLowerCase()) ||
+        r.party_name?.toLowerCase().includes(search.toLowerCase()) ||
+        r.id.toString().includes(search)
+      : true;
 
-  // ✅ Report type filter
-  const matchesReportType = (() => {
-    const today = new Date();
-    const recordDate = new Date(r.date || r.first_weight_time);
-    
-    if (isNaN(recordDate)) return false;
+    // ✅ Party filter
+    const matchesParty = partyFilter ? r.party_name === partyFilter : true;
 
-    switch (reportType) {
-      case 'daily':
-        const todayStr = today.toISOString().split('T')[0];
-        const dailyRecordDateStr = recordDate.toISOString().split('T')[0];
-        return dailyRecordDateStr === todayStr;
-        
-      case 'monthly':
-        return recordDate.getMonth() + 1 === selectedMonth && recordDate.getFullYear() === selectedYear;
-        
-      case 'yearly':
-        return recordDate.getFullYear() === selectedYear;
-        
-      case 'overall':
-        return true;
-        
-      case 'custom':
-        if (!customFromDate || !customToDate) return true;
-        const customRecordDateStr = recordDate.toISOString().split('T')[0];
-        return customRecordDateStr >= customFromDate && customRecordDateStr <= customToDate;
-        
-      default:
-        return true;
-    }
-  })();
+    // ✅ Product filter
+    const matchesProduct = productFilter ? r.product === productFilter : true;
 
-  return matchesSearch && matchesReportType;
-});
+    // ✅ Vehicle type filter
+    const matchesVehicleType = vehicleTypeFilter ? r.vehicle_type === vehicleTypeFilter : true;
 
+    // ✅ Report type filter
+    const matchesReportType = (() => {
+      const today = new Date();
+      const recordDate = new Date(r.date || r.first_weight_time);
+      
+      if (isNaN(recordDate)) return false;
+
+      switch (reportType) {
+        case 'daily':
+          const todayStr = today.toISOString().split('T')[0];
+          const dailyRecordDateStr = recordDate.toISOString().split('T')[0];
+          return dailyRecordDateStr === todayStr;
+          
+        case 'monthly':
+          return recordDate.getMonth() + 1 === selectedMonth && recordDate.getFullYear() === selectedYear;
+          
+        case 'yearly':
+          return recordDate.getFullYear() === selectedYear;
+          
+        case 'overall':
+          return true;
+          
+        case 'custom':
+          if (!customFromDate || !customToDate) return true;
+          const customRecordDateStr = recordDate.toISOString().split('T')[0];
+          return customRecordDateStr >= customFromDate && customRecordDateStr <= customToDate;
+          
+        default:
+          return true;
+      }
+    })();
+
+    return matchesSearch && matchesParty && matchesProduct && matchesVehicleType && matchesReportType;
+  });
 
   const totalPages = Math.ceil(filteredRecords.length / recordsPerPage);
   const paginatedRecords = filteredRecords.slice(
@@ -365,7 +424,8 @@ export default function RecordsPage() {
       filteredProfit,
       filteredDeposits,
       filteredAvailableCash,
-      previousPeriod
+      previousPeriod,
+      filteredRecordsLength: filteredRecords.length
     };
   };
 
@@ -379,8 +439,6 @@ export default function RecordsPage() {
       minimumFractionDigits: 0
     }).format(amount);
   };
-
-
 
   const openPrintModal = (record, type) => {
     // Create a new object with vehicle_id
@@ -396,8 +454,6 @@ export default function RecordsPage() {
     dispatch(setSelectedRecord(null));
   };
 
-
-
   const openEditModal = (record) => {
     const type = record.final_weight === "Yes" ? "final" : "first";
     setEditRecord(record);
@@ -406,798 +462,277 @@ export default function RecordsPage() {
     dispatch(setSelectedRecord(record));
   };
 
-const generatePDF = () => {
-  // Get filtered data based on report type
-  const getFilteredData = () => {
-    const today = new Date();
-    let filteredRecords = records;
-    let filteredExpenses = expenses;
-    let dateRange = '';
+  const handlePrev = () => setCurrentPage(p => Math.max(p - 1, 1));
+  const handleNext = () => setCurrentPage(p => Math.min(p + 1, totalPages));
 
-    switch (reportType) {
-      case 'daily':
-        const todayStr = today.toISOString().split('T')[0];
-        filteredRecords = records.filter(r => {
-          const recordDate = new Date(r.date || r.first_weight_time);
-          if (isNaN(recordDate)) return false;
-          const dailyDateStr = recordDate.toISOString().split('T')[0];
-          return dailyDateStr === todayStr;
-        });
-        filteredExpenses = expenses.filter(e => getExpenseDate(e) === todayStr);
-        dateRange = `Daily Report - ${today.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}`;
-        break;
-        
-      case 'monthly':
-        filteredRecords = records.filter(r => {
-          const recordDate = new Date(r.date || r.first_weight_time);
-          if (isNaN(recordDate)) return false;
-          return recordDate.getMonth() + 1 === selectedMonth && recordDate.getFullYear() === selectedYear;
-        });
-        filteredExpenses = expenses.filter(e => {
-          const dateValue = e.date || e.expense_date;
-          if (!dateValue) return false;
-          const expenseDate = new Date(dateValue);
-          return expenseDate.getMonth() + 1 === selectedMonth && expenseDate.getFullYear() === selectedYear;
-        });
-        const monthName = new Date(selectedYear, selectedMonth - 1).toLocaleString('default', { month: 'long' });
-        dateRange = `Monthly Report - ${monthName} ${selectedYear}`;
-        break;
-        
-      case 'yearly':
-        filteredRecords = records.filter(r => {
-          const recordDate = new Date(r.date || r.first_weight_time);
-          if (isNaN(recordDate)) return false;
-          return recordDate.getFullYear() === selectedYear;
-        });
-        filteredExpenses = expenses.filter(e => {
-          const dateValue = e.date || e.expense_date;
-          if (!dateValue) return false;
-          return new Date(dateValue).getFullYear() === selectedYear;
-        });
-        dateRange = `Yearly Report - ${selectedYear}`;
-        break;
-        
-      case 'overall':
-        filteredRecords = records;
-        filteredExpenses = expenses;
-        dateRange = 'Overall Report - All Time';
-        break;
-        
-      case 'custom':
-        if (!customFromDate || !customToDate) {
-          alert('Please select both from and to dates for custom range');
-          return;
-        }
-        filteredRecords = records.filter(r => {
-          const recordDate = new Date(r.date || r.first_weight_time);
-          if (isNaN(recordDate)) return false;
-          const customDateStr = recordDate.toISOString().split('T')[0];
-          return customDateStr >= customFromDate && customDateStr <= customToDate;
-        });
-        filteredExpenses = expenses.filter(e => {
-          const expenseDate = getExpenseDate(e);
-          return expenseDate && expenseDate >= customFromDate && expenseDate <= customToDate;
-        });
-        dateRange = `Custom Report - ${new Date(customFromDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })} to ${new Date(customToDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}`;
-        break;
-        
-      default:
-        filteredRecords = records;
-        filteredExpenses = expenses;
-        dateRange = 'Report';
-    }
-
-    return { filteredRecords, filteredExpenses, dateRange };
+  // Function to clear all filters
+  const clearAllFilters = () => {
+    setSearch("");
+    setPartyFilter("");
+    setProductFilter("");
+    setVehicleTypeFilter("");
+    setReportType("daily");
+    setSelectedMonth(new Date().getMonth() + 1);
+    setSelectedYear(new Date().getFullYear());
+    setCustomFromDate("");
+    setCustomToDate("");
+    setCurrentPage(1);
   };
 
-  const { filteredRecords, filteredExpenses, dateRange } = getFilteredData();
+  // Function to generate customer PDF (without financial info)
+  const generateCustomerPDF = () => {
+    // Calculate total net weight and records count from filtered records
+    const totalNetWeight = filteredRecords.reduce((sum, r) => sum + (parseFloat(r.net_weight) || 0), 0);
+    const totalMunds = totalNetWeight / 40; // 1 Mund = 40 kg
+    const totalRecords = filteredRecords.length;
 
-  // Calculate financial metrics
-  const reportRevenue = filteredRecords.reduce((sum, r) => sum + (parseFloat(r.total_price) || 0), 0);
-  
-  // Separate regular expenses from deposits to owner
-  const reportRegularExpenses = filteredExpenses.filter(e => e.category !== "Deposit to Owner");
-  const reportDepositsToOwner = filteredExpenses.filter(e => e.category === "Deposit to Owner");
-  
-  const reportExpensesAmount = reportRegularExpenses.reduce((sum, e) => sum + (parseFloat(e.amount) || 0), 0);
-  const reportDepositsAmount = reportDepositsToOwner.reduce((sum, e) => sum + (parseFloat(e.amount) || 0), 0);
-  const reportNetProfit = reportRevenue - reportExpensesAmount;
-  const reportFinalBalance = reportNetProfit - reportDepositsAmount;
-  
-  // Calculate cumulative totals (all time)
-  const totalRevenue = records.reduce((sum, r) => sum + (parseFloat(r.total_price) || 0), 0);
-  const totalRegularExpenses = expenses.filter(e => e.category !== "Deposit to Owner");
-  const totalDepositsToOwner = expenses.filter(e => e.category === "Deposit to Owner");
-  
-  const totalExpensesAmount = totalRegularExpenses.reduce((sum, e) => sum + (parseFloat(e.amount) || 0), 0);
-  const totalDepositsAmount = totalDepositsToOwner.reduce((sum, e) => sum + (parseFloat(e.amount) || 0), 0);
-  const totalNetProfit = totalRevenue - totalExpensesAmount;
-  const totalFinalBalance = totalNetProfit - totalDepositsAmount;
-
-  // Create HTML content similar to PrintModal.js
-  const win = window.open("", "", "width=800,height=600");
-  if (!win) {
-    alert("Popup blocked! Please allow popups for PDF generation.");
-    return;
-  }
-
-  const html = `
-    <!doctype html>
-    <html>
-    <head>
-      <meta charset="utf-8">
-      <title>${dateRange}</title>
-      <style>
-        @page { margin: 0; size: 80mm auto; }
-        html, body { 
-          margin: 0; 
-          padding: 0; 
-          font-family: Tahoma, Verdana, Arial, sans-serif;
-          font-size: 14px;
-          color: #000;
-          line-height: 1.4;
-          letter-spacing: 0.5px;
-        }
-
-        .report-container {
-          width: 70mm;
-          margin: 0 auto;
-          border: 1px solid #000;
-          padding: 6px;
-          background: #fff;
-          box-sizing: border-box;
-        }
-
-        .header {
-          text-align: center;
-          border-bottom: 1px solid #000;
-          padding-bottom: 6px;
-          margin-bottom: 8px;
-        }
-
-        .company-name {
-          font-size: 18px;
-          font-weight: bold;
-        }
-
-        .company-details {
-          font-size: 10px;
-          margin: 1px 0;
-        }
-
-        .report-title {
-          text-align: center;
-          font-size: 12px;
-          font-weight: bold;
-          margin-bottom: 6px;
-        }
-
-        .content-section {
-          margin: 6px 0;
-        }
-
-        .section-title {
-          text-align: center;
-          font-size: 11px;
-          font-weight: bold;
-          border-bottom: 1px solid #000;
-          padding-bottom: 2px;
-          margin-bottom: 6px;
-        }
-
-        .info-row {
-          display: flex;
-          justify-content: space-between;
-          gap: 6px;
-          margin: 4px 0;
-          border-bottom: 1px dotted #999;
-          font-size: 11px;
-          align-items: center;
-        }
-
-        .info-label {
-          font-weight: bold;
-          display: inline-block;
-          min-width: 70px;
-          white-space: normal;
-        }
-
-        .info-value {
-          font-size: 12px;
-          font-weight: bold;
-          display: inline-block;
-          white-space: normal;
-          word-break: break-word;
-        }
-
-        .expense-item, .revenue-item {
-          border-bottom: 1px dotted #ccc;
-          padding: 2px 0;
-          margin: 1px 0;
-        }
-
-        .expense-item:last-child, .revenue-item:last-child {
-          border-bottom: none;
-        }
-
-        .expense-row {
-          display: flex;
-          justify-content: space-between;
-          gap: 4px;
-          margin: 2px 0;
-          font-size: 9px;
-          align-items: center;
-          line-height: 1.2;
-        }
-
-        .expense-label {
-          font-weight: normal;
-          display: inline-block;
-          min-width: 60px;
-          white-space: normal;
-          font-size: 9px;
-        }
-
-        .expense-value {
-          font-size: 10px;
-          font-weight: bold;
-          display: inline-block;
-          white-space: normal;
-          word-break: break-word;
-        }
-
-        .footer {
-          padding-top: 6px;
-          margin-top: 8px;
-          text-align: center;
-          font-size: 10px;
-          border-top: 1px solid #000;
-        }
-
-        .signature-line {
-          margin: 8px 0;
-          font-size: 10px;
-        }
-      </style>
-    </head>
-    <body>
-      <div class="report-container">
-        <div class="header">
-          <div class="company-name">AWAMI KANTA</div>
-          <div class="company-details">Miro Khan Road, Larkana</div>
-        </div>
-
-        <div class="report-title">${dateRange}</div>
-        <div style="text-align: center; font-size: 10px; margin-bottom: 8px;">
-          ${new Date().toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true })}
-        </div>
-
-        <!-- Financial Summary -->
-        <div class="content-section">
-          <div class="section-title">FINANCIAL SUMMARY</div>
-          ${reportType === 'daily' ? `
-            <div class="info-row">
-              <span class="info-label">Today Revenue:</span>
-              <span class="info-value">Rs ${reportRevenue.toLocaleString()}</span>
-            </div>
-            <div class="info-row">
-              <span class="info-label">Today Expenses:</span>
-              <span class="info-value">Rs ${reportExpensesAmount.toLocaleString()}</span>
-            </div>
-            <div class="info-row">
-              <span class="info-label">Today Net Profit:</span>
-              <span class="info-value">Rs ${reportNetProfit.toLocaleString()}</span>
-            </div>
-            ${reportDepositsAmount > 0 ? `
-              <div class="info-row">
-                <span class="info-label">Paid to Boss:</span>
-                <span class="info-value">Rs ${reportDepositsAmount.toLocaleString()}</span>
-              </div>
-              <div class="info-row">
-                <span class="info-label">Remaining Cash:</span>
-                <span class="info-value">Rs ${reportFinalBalance.toLocaleString()}</span>
-              </div>
-            ` : ''}
-          ` : reportType === 'overall' ? `
-            <div class="info-row">
-              <span class="info-label">Total Revenue:</span>
-              <span class="info-value">Rs ${totalRevenue.toLocaleString()}</span>
-            </div>
-            <div class="info-row">
-              <span class="info-label">Total Expenses:</span>
-              <span class="info-value">Rs ${totalExpensesAmount.toLocaleString()}</span>
-            </div>
-            <div class="info-row">
-              <span class="info-label">Net Profit:</span>
-              <span class="info-value">Rs ${totalNetProfit.toLocaleString()}</span>
-            </div>
-            ${totalDepositsAmount > 0 ? `
-              <div class="info-row">
-                <span class="info-label">Paid to Boss:</span>
-                <span class="info-value">Rs ${totalDepositsAmount.toLocaleString()}</span>
-              </div>
-              <div class="info-row">
-                <span class="info-label">Remaining Cash:</span>
-                <span class="info-value">Rs ${totalFinalBalance.toLocaleString()}</span>
-              </div>
-            ` : ''}
-          ` : `
-            <div class="info-row">
-              <span class="info-label">${reportType.charAt(0).toUpperCase() + reportType.slice(1)} Revenue:</span>
-              <span class="info-value">Rs ${reportRevenue.toLocaleString()}</span>
-            </div>
-            <div class="info-row">
-              <span class="info-label">${reportType.charAt(0).toUpperCase() + reportType.slice(1)} Expenses:</span>
-              <span class="info-value">Rs ${reportExpensesAmount.toLocaleString()}</span>
-            </div>
-            <div class="info-row">
-              <span class="info-label">${reportType.charAt(0).toUpperCase() + reportType.slice(1)} Net Profit:</span>
-              <span class="info-value">Rs ${reportNetProfit.toLocaleString()}</span>
-            </div>
-            ${reportDepositsAmount > 0 ? `
-              <div class="info-row">
-                <span class="info-label">Paid to Boss:</span>
-                <span class="info-value">Rs ${reportDepositsAmount.toLocaleString()}</span>
-              </div>
-              <div class="info-row">
-                <span class="info-label">Remaining Cash:</span>
-                <span class="info-value">Rs ${reportFinalBalance.toLocaleString()}</span>
-              </div>
-            ` : ''}
-          `}
-        </div>
-
-        <!-- Expense Details -->
-        ${reportRegularExpenses.length > 0 ? `
-          <div class="content-section">
-            <div class="section-title">EXPENSE DETAILS</div>
-            ${reportRegularExpenses.map(expense => `
-              <div class="expense-item">
-                <div class="expense-row">
-                  <span class="expense-label">${expense.date ? expense.date.substring(5) : '-'} - ${expense.category || '-'}</span>
-                  <span class="expense-value">Rs ${(parseFloat(expense.amount) || 0).toLocaleString()}</span>
-                </div>
-              </div>
-            `).join('')}
-          </div>
-        ` : ''}
-
-        <!-- Owner Deposits Details -->
-        ${reportDepositsToOwner.length > 0 ? `
-          <div class="content-section">
-            <div class="section-title">OWNER DEPOSITS</div>
-            ${reportDepositsToOwner.map(deposit => `
-              <div class="expense-item">
-                <div class="expense-row">
-                  <span class="expense-label">${deposit.date ? deposit.date.substring(5) : '-'} - Deposited</span>
-                  <span class="expense-value">Rs ${(parseFloat(deposit.amount) || 0).toLocaleString()}</span>
-                </div>
-              </div>
-            `).join('')}
-          </div>
-        ` : ''}
-
-        <!-- Revenue Details (Only for Overall reports) -->
-        ${reportType === 'overall' && filteredRecords.length > 0 ? `
-          <div class="content-section">
-            <div class="section-title">REVENUE DETAILS</div>
-            ${filteredRecords.map(record => `
-              <div class="revenue-item">
-                <div class="expense-row">
-                  <span class="expense-label">${record.date ? record.date.substring(5) : '-'} - ${record.vehicle_number || '-'}</span>
-                  <span class="expense-value">Rs ${(parseFloat(record.total_price) || 0).toLocaleString()}</span>
-                </div>
-              </div>
-            `).join('')}
-          </div>
-        ` : ''}
-
-        <!-- Cash Management (Only for Overall reports) -->
-        ${reportType === 'overall' ? `
-          <div class="content-section">
-            <div class="section-title">CASH MANAGEMENT</div>
-            <div class="info-row">
-              <span class="info-label">Opening Balance:</span>
-              <span class="info-value">Rs 0</span>
-            </div>
-            <div class="info-row">
-              <span class="info-label">Total Revenue:</span>
-              <span class="info-value">Rs ${totalRevenue.toLocaleString()}</span>
-            </div>
-            <div class="info-row">
-              <span class="info-label">Total Expenses:</span>
-              <span class="info-value">Rs ${totalExpensesAmount.toLocaleString()}</span>
-            </div>
-            <div class="info-row">
-              <span class="info-label">Remaining Cash:</span>
-              <span class="info-value">Rs ${totalFinalBalance.toLocaleString()}</span>
-            </div>
-          </div>
-        ` : ''}
-
-        <div class="footer">
-          <div class="signature-line">Operator: _____________</div>
-          <div class="signature-line">Owner: _____________</div>
-          <div style="margin-top: 8px; font-size: 8px;">
-            Software by <span style="display:inline-block;padding:2px 8px;font-weight:bold;border:1px solid #000;border-radius:6px;background:#f0f0f0">AKS</span> Solutions
-          </div>
-        </div>
-      </div>
-    </body>
-    </html>
-  `;
-
-  win.document.write(html);
-  win.document.close();
-
-  // Wait for content to load then print
-  const waitForResourcesAndPrint = async () => {
-    try {
-      // Wait for fonts to load
-      if (win.document.fonts && win.document.fonts.ready) {
-        await win.document.fonts.ready;
-      }
-    } catch (e) {
-      // ignore font loading errors
-    }
-
-    // Small delay to let layout settle
-    setTimeout(() => {
-      try { 
-        win.focus(); 
-        win.print(); 
-      } catch (e) { 
-        console.log('Print error:', e);
-      }
-      try { 
-        win.close(); 
-      } catch (e) {}
-    }, 100);
-  };
-
-  // Start the print process
-  if (win.document.readyState === 'complete') {
-    waitForResourcesAndPrint();
-  } else {
-    win.onload = waitForResourcesAndPrint;
-    setTimeout(() => {
-      if (!win.closed) waitForResourcesAndPrint();
-    }, 1000);
-  }
-};
-
-  // Function to generate MURGI report data
-  const generateMurgiReportData = () => {
-    // Filter records where product is "MURGI" (case insensitive)
-    let murgiRecords = records.filter(record => 
-      record.product && record.product.toLowerCase() === 'murgi' || record.product.toLowerCase() === 'murghi'
-    );
-    
-    // Apply date filter based on selected report type
-    const today = new Date();
-    switch (murgiReportType) {
-      case 'daily':
-        const todayStr = today.toISOString().split('T')[0];
-        murgiRecords = murgiRecords.filter(r => {
-          const recordDate = new Date(r.date || r.first_weight_time);
-          if (isNaN(recordDate)) return false;
-          const recordDateStr = recordDate.toISOString().split('T')[0];
-          return recordDateStr === todayStr;
-        });
-        break;
-        
-      case 'monthly':
-        murgiRecords = murgiRecords.filter(r => {
-          const recordDate = new Date(r.date || r.first_weight_time);
-          if (isNaN(recordDate)) return false;
-          return recordDate.getMonth() + 1 === murgiSelectedMonth && recordDate.getFullYear() === murgiSelectedYear;
-        });
-        break;
-        
-      case 'yearly':
-        murgiRecords = murgiRecords.filter(r => {
-          const recordDate = new Date(r.date || r.first_weight_time);
-          if (isNaN(recordDate)) return false;
-          return recordDate.getFullYear() === murgiSelectedYear;
-        });
-        break;
-        
-      default:
-        // 'all' - no date filtering
-        break;
-    }
-    
-    // Group by party name and vehicle type and calculate totals
-    const partyData = {};
-    
-    murgiRecords.forEach(record => {
-      const partyName = record.party_name || 'Unknown Party';
-      const vehicleType = record.vehicle_type || 'Unknown Vehicle';
-      const key = `${partyName}||${vehicleType}`; // Composite key
-      
-      if (!partyData[key]) {
-        partyData[key] = {
-          partyName,
-          vehicleType,
-          entries: 0,
-          netWeight: 0
-        };
-      }
-      
-      partyData[key].entries += 1;
-      partyData[key].netWeight += parseFloat(record.net_weight) || 0;
-    });
-    
-    // Convert to array format for easier rendering
-    const reportData = Object.values(partyData).map(data => ({
-      partyName: data.partyName,
-      vehicleType: data.vehicleType,
-      entries: data.entries,
-      netWeight: data.netWeight
-    }));
-    
-    // Calculate totals
-    const totalEntries = reportData.reduce((sum, item) => sum + item.entries, 0);
-    const totalNetWeight = reportData.reduce((sum, item) => sum + item.netWeight, 0);
-    
-    // Generate date range text for display
-    let dateRange = '';
-    switch (murgiReportType) {
-      case 'daily':
-        dateRange = `Daily Report - ${today.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}`;
-        break;
-      case 'monthly':
-        const monthName = new Date(murgiSelectedYear, murgiSelectedMonth - 1).toLocaleString('default', { month: 'long' });
-        dateRange = `Monthly Report - ${monthName} ${murgiSelectedYear}`;
-        break;
-      case 'yearly':
-        dateRange = `Yearly Report - ${murgiSelectedYear}`;
-        break;
-      default:
-        dateRange = 'All Time Report';
-    }
-    
-    return {
-      reportData,
-      totalEntries,
-      totalNetWeight,
-      recordCount: murgiRecords.length,
-      dateRange,
-      rawRecords: murgiRecords // Added raw records for table display
-    };
-  };
-
-  // Function to generate and print MURGI report as PDF
-  const printMurgiReport = () => {
-    if (!murgiReportData) return;
-
+    // Create HTML content for customer report (no financial info)
     const win = window.open("", "", "width=800,height=600");
     if (!win) {
       alert("Popup blocked! Please allow popups for PDF generation.");
       return;
     }
 
-    // Sort report data by party name for consistent ordering
-    const sortedData = [...murgiReportData.reportData].sort((a, b) => 
-      a.partyName.localeCompare(b.partyName)
-    );
+    // Build filter information string
+    const filterInfo = [];
+    if (partyFilter) filterInfo.push(`Party: ${partyFilter}`);
+    if (productFilter) filterInfo.push(`Product: ${productFilter}`);
+    if (vehicleTypeFilter) filterInfo.push(`Vehicle Type: ${vehicleTypeFilter}`);
+    if (search) filterInfo.push(`Search Term: ${search}`);
+    
+    // Add report type information
+    let dateRange = '';
+    switch (reportType) {
+      case 'daily':
+        const today = new Date();
+        dateRange = `Daily Report - ${today.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}`;
+        break;
+      case 'monthly':
+        const monthName = new Date(selectedYear, selectedMonth - 1).toLocaleString('default', { month: 'long' });
+        dateRange = `Monthly Report - ${monthName} ${selectedYear}`;
+        break;
+      case 'yearly':
+        dateRange = `Yearly Report - ${selectedYear}`;
+        break;
+      case 'overall':
+        dateRange = 'Overall Report - All Time';
+        break;
+      case 'custom':
+        if (customFromDate && customToDate) {
+          dateRange = `Custom Report - ${new Date(customFromDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })} to ${new Date(customToDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}`;
+        } else {
+          dateRange = 'Custom Report';
+        }
+        break;
+      default:
+        dateRange = 'Report';
+    }
+    
+    const filterString = filterInfo.length > 0 ? filterInfo.join(', ') : 'No additional filters applied';
 
-    // Sort raw records by date
-    const sortedRecords = [...murgiReportData.rawRecords].sort((a, b) => {
-      const dateA = new Date(a.date || a.first_weight_time);
-      const dateB = new Date(b.date || b.first_weight_time);
-      return dateA - dateB;
-    });
+    const html = `<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Customer Report - ${dateRange}</title>
+  <style>
+    @page { margin: 0; size: 80mm auto; }
+    html, body { 
+      margin: 0; 
+      padding: 0; 
+      font-family: Tahoma, Verdana, Arial, sans-serif;
+      font-size: 14px;
+      color: #000;
+      line-height: 1.4;
+      letter-spacing: 0.5px;
+    }
 
-    const html = `
-      <!doctype html>
-      <html>
-      <head>
-        <meta charset="utf-8">
-        <title>MURGI Product Report</title>
-        <style>
-          @page { margin: 0; size: 80mm auto; }
-          html, body { 
-            margin: 0; 
-            padding: 0; 
-            font-family: Tahoma, Verdana, Arial, sans-serif;
-            font-size: 14px;
-            color: #000;
-            line-height: 1.4;
-            letter-spacing: 0.5px;
-          }
+    .report-container {
+      width: 70mm;
+      margin: 0 auto;
+      border: 1px solid #000;
+      padding: 6px;
+      background: #fff;
+      box-sizing: border-box;
+    }
 
-          .report-container {
-            width: 70mm;
-            margin: 0 auto;
-            border: 1px solid #000;
-            padding: 6px;
-            background: #fff;
-            box-sizing: border-box;
-          }
+    .header {
+      text-align: center;
+      border-bottom: 1px solid #000;
+      padding-bottom: 6px;
+      margin-bottom: 8px;
+    }
 
-          .header {
-            text-align: center;
-            border-bottom: 1px solid #000;
-            padding-bottom: 6px;
-            margin-bottom: 8px;
-          }
+    .company-name {
+      font-size: 18px;
+      font-weight: bold;
+    }
 
-          .company-name {
-            font-size: 18px;
-            font-weight: bold;
-          }
+    .company-details {
+      font-size: 10px;
+      margin: 1px 0;
+    }
 
-          .company-details {
-            font-size: 10px;
-            margin: 1px 0;
-          }
+    .report-title {
+      text-align: center;
+      font-size: 12px;
+      font-weight: bold;
+      margin-bottom: 6px;
+    }
 
-          .report-title {
-            text-align: center;
-            font-size: 12px;
-            font-weight: bold;
-            margin-bottom: 6px;
-          }
+    .content-section {
+      margin: 6px 0;
+    }
 
-          .content-section {
-            margin: 6px 0;
-          }
+    .section-title {
+      text-align: center;
+      font-size: 11px;
+      font-weight: bold;
+      border-bottom: 1px solid #000;
+      padding-bottom: 2px;
+      margin-bottom: 6px;
+    }
 
-          .section-title {
-            text-align: center;
-            font-size: 11px;
-            font-weight: bold;
-            border-bottom: 1px solid #000;
-            padding-bottom: 2px;
-            margin-bottom: 6px;
-          }
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 6px;
+      margin: 4px 0;
+      border-bottom: 1px dotted #999;
+      font-size: 11px;
+      align-items: center;
+    }
 
-          .info-row {
-            display: flex;
-            justify-content: space-between;
-            gap: 6px;
-            margin: 4px 0;
-            border-bottom: 1px dotted #999;
-            font-size: 11px;
-            align-items: center;
-          }
+    .info-label {
+      font-weight: bold;
+      display: inline-block;
+      min-width: 70px;
+      white-space: normal;
+    }
 
-          .info-label {
-            font-weight: bold;
-            display: inline-block;
-            min-width: 70px;
-            white-space: normal;
-          }
+    .info-value {
+      font-size: 12px;
+      font-weight: bold;
+      display: inline-block;
+      white-space: normal;
+      word-break: break-word;
+    }
 
-          .info-value {
-            font-size: 12px;
-            font-weight: bold;
-            display: inline-block;
-            white-space: normal;
-            word-break: break-word;
-          }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 8px 0;
+      font-size: 10px;
+    }
 
-          table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 8px 0;
-            font-size: 10px;
-          }
+    th, td {
+      text-align: left;
+      padding: 3px 2px;
+      border-bottom: 1px solid #000;
+    }
 
-          th, td {
-            text-align: left;
-            padding: 3px 2px;
-            border-bottom: 1px solid #000;
-          }
+    th {
+      font-weight: bold;
+      font-size: 11px;
+    }
 
-          th {
-            font-weight: bold;
-            font-size: 11px;
-          }
+    .text-center {
+      text-align: center;
+    }
 
-          .text-center {
-            text-align: center;
-          }
+    .text-right {
+      text-align: right;
+    }
 
-          .text-right {
-            text-align: right;
-          }
+    .footer {
+      padding-top: 6px;
+      margin-top: 8px;
+      text-align: center;
+      font-size: 10px;
+      border-top: 1px solid #000;
+    }
 
-          .footer {
-            padding-top: 6px;
-            margin-top: 8px;
-            text-align: center;
-            font-size: 10px;
-            border-top: 1px solid #000;
-          }
+    .signature-line {
+      margin: 8px 0;
+      font-size: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="report-container">
+    <div class="header">
+      <div class="company-name">AWAMI KANTA</div>
+      <div class="company-details">Miro Khan Road, Larkana</div>
+    </div>
 
-          .signature-line {
-            margin: 8px 0;
-            font-size: 10px;
-          }
-        </style>
-      </head>
-      <body>
-        <div class="report-container">
-          <div class="header">
-            <div class="company-name">AWAMI KANTA</div>
-            <div class="company-details">Miro Khan Road, Larkana</div>
-          </div>
+    <div class="report-title">${dateRange}</div>
+    <div style="text-align: center; font-size: 10px; margin-bottom: 8px;">
+      ${new Date().toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true })}
+    </div>
 
-          <div class="report-title">MURGI Product Report</div>
-          <div style="text-align: center; font-size: 10px; margin-bottom: 8px;">
-            ${new Date().toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true })}
-          </div>
+    <!-- Filter Information -->
+    <div class="content-section">
+      <div class="section-title">FILTERS APPLIED</div>
+      <div style="font-size: 10px; padding: 4px 0;">
+        ${filterString}
+      </div>
+    </div>
 
-          <!-- Report Duration -->
-          <div class="content-section">
-            <div class="section-title">REPORT DURATION</div>
-            <div class="info-row">
-              <span class="info-label">Period:</span>
-              <span class="info-value">${murgiReportData.dateRange}</span>
-            </div>
-          </div>
+    <!-- Financial Summary -->
+    <div class="content-section">
+      <div class="section-title">SUMMARY</div>
+      <div class="info-row">
+        <span class="info-label">Total Records:</span>
+        <span class="info-value">${totalRecords}</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Total Munds:</span>
+        <span class="info-value">${totalMunds.toFixed(2)} Munds</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Total Net Weight:</span>
+        <span class="info-value">${totalNetWeight.toFixed(2)} kg</span>
+      </div>
+    </div>
 
-          <!-- Summary Section -->
-          <div class="content-section">
-            <div class="section-title">SUMMARY</div>
-            <div class="info-row">
-              <span class="info-label">Total Records:</span>
-              <span class="info-value">${murgiReportData.recordCount}</span>
-            </div>
-            <div class="info-row">
-              <span class="info-label">Total Entries:</span>
-              <span class="info-value">${murgiReportData.totalEntries}</span>
-            </div>
-            <div class="info-row">
-              <span class="info-label">Total Net Weight:</span>
-              <span class="info-value">${murgiReportData.totalNetWeight.toFixed(2)} kg</span>
-            </div>
-          </div>
+    <!-- Records Table -->
+    <div class="content-section">
+      <div class="section-title">RECORDS</div>
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Vehicle</th>
+            <th>Party</th>
+            <th>Munds</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${filteredRecords.map(record => {
+            const netWeight = parseFloat(record.net_weight) || 0;
+            const munds = netWeight / 40; // 1 Mund = 40 kg
+            return `
+            <tr>
+              <td>${record.id}</td>
+              <td>${record.vehicle_number || '-'}</td>
+              <td>${record.party_name || '-'}</td>
+              <td>${munds.toFixed(2)} Munds</td>
+            </tr>
+          `}).join('')}
+        </tbody>
+      </table>
+    </div>
 
-          <!-- Detailed Records Table -->
-          <div class="content-section">
-            <div class="section-title">MURGI RECORDS</div>
-            <table>
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>Date</th>
-                  <th>Vehicle</th>
-                  <th>Party</th>
-                  <th>Net Weight (kg)</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${sortedRecords.map(record => `
-                  <tr>
-                    <td>${record.id}</td>
-                    <td>${record.date ? record.date.substring(5) : (record.first_weight_time ? new Date(record.first_weight_time).toLocaleDateString().substring(0, 5) : '-')}</td>
-                    <td>${record.vehicle_number || '-'}</td>
-                    <td>${record.party_name || '-'}</td>
-                    <td>${parseFloat(record.net_weight || 0).toFixed(2)} kg</td>
-                  </tr>
-                `).join('')}
-                <tr style="font-weight: bold; border-top: 1px solid #000;">
-                  <td colspan="4">Total</td>
-                  <td>${murgiReportData.totalNetWeight.toFixed(2)} kg</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
-          <div class="footer">
-            <div class="signature-line">Operator: _____________</div>
-            <div class="signature-line">Owner: _____________</div>
-            <div style="margin-top: 8px; font-size: 8px;">
-              Software by <span style="display:inline-block;padding:2px 8px;font-weight:bold;border:1px solid #000;border-radius:6px;background:#f0f0f0">AKS</span> Solutions
-            </div>
-          </div>
-        </div>
-      </body>
-      </html>
-    `;
+    <div class="footer">
+      <div class="signature-line">Operator: _____________</div>
+      <div class="signature-line">Customer: _____________</div>
+      <div style="margin-top: 8px; font-size: 8px;">
+        Software by <span style="display:inline-block;padding:2px 8px;font-weight:bold;border:1px solid #000;border-radius:6px;background:#f0f0f0">AKS</span> Solutions
+      </div>
+    </div>
+  </div>
+</body>
+</html>`;
 
     win.document.write(html);
     win.document.close();
@@ -1238,588 +773,117 @@ const generatePDF = () => {
     }
   };
 
-  // Function to generate and display MURGI report
-  const handleMurgiReport = () => {
-    setShowMurgiReport(true);
-  };
-
-  // Function to close MURGI report
-  const closeMurgiReport = () => {
-    setShowMurgiReport(false);
-  };
-
-  const handlePrev = () => setCurrentPage(p => Math.max(p - 1, 1));
-  const handleNext = () => setCurrentPage(p => Math.min(p + 1, totalPages));
-
-  // Get MURGI report data if needed - recalculate when filters change
-  const murgiReportData = useMemo(() => {
-    if (showMurgiReport) {
-      return generateMurgiReportData();
-    }
-    return null;
-  }, [showMurgiReport, murgiReportType, murgiSelectedMonth, murgiSelectedYear, records]);
+  // Show loading indicator while fetching data
+  if (loading) {
+    return (
+      <div className="dashboard-container">
+        <div className="container-fluid py-4">
+          <div className="d-flex justify-content-center align-items-center" style={{ height: '100vh' }}>
+            <div className="text-center">
+              <div className="spinner-border text-primary" role="status">
+                <span className="visually-hidden">Loading...</span>
+              </div>
+              <p className="mt-2">Loading records and expenses...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="dashboard-container">
-    <div className="container-fluid py-4">
-      {/* MURGI Report Modal */}
-      {showMurgiReport && (
-        <div className="modal show d-block" tabIndex="-1" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-          <div className="modal-dialog" style={{ maxWidth: '860px', width: '90%', margin: '0px auto' }}>
-            <div className="modal-content" style={{ minWidth: '100%'}}>
-              <div className="modal-header">
-                <h5 className="modal-title">MURGI Product Report</h5>
-                <button type="button" className="btn-close" onClick={closeMurgiReport}></button>
-              </div>
-              <div className="modal-body" style={{ width: '100%' }}>
-                {/* Report Type Selection */}
-                <div className="row mb-3">
-                  <div className="col-md-3">
-                    <label className="form-label">Report Type</label>
-                    <select 
-                      className="form-select" 
-                      value={murgiReportType} 
-                      onChange={e => setMurgiReportType(e.target.value)}
-                    >
-                      <option value="all">All Time</option>
-                      <option value="daily">Daily Report</option>
-                      <option value="monthly">Monthly Report</option>
-                      <option value="yearly">Yearly Report</option>
-                    </select>
-                  </div>
-                  
-                  {murgiReportType === 'monthly' && (
-                    <>
-                      <div className="col-md-3">
-                        <label className="form-label">Month</label>
-                        <select 
-                          className="form-select" 
-                          value={murgiSelectedMonth} 
-                          onChange={e => setMurgiSelectedMonth(parseInt(e.target.value))}
-                        >
-                          {Array.from({length: 12}, (_, i) => (
-                            <option key={i+1} value={i+1}>
-                              {new Date(0, i).toLocaleString('default', { month: 'long' })}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      <div className="col-md-3">
-                        <label className="form-label">Year</label>
-                        <select 
-                          className="form-select" 
-                          value={murgiSelectedYear} 
-                          onChange={e => setMurgiSelectedYear(parseInt(e.target.value))}
-                        >
-                          {Array.from({length: 5}, (_, i) => {
-                            const year = new Date().getFullYear() - i;
-                            return <option key={year} value={year}>{year}</option>
-                          })}
-                        </select>
-                      </div>
-                    </>
-                  )}
-                  
-                  {murgiReportType === 'yearly' && (
-                    <div className="col-md-3">
-                      <label className="form-label">Year</label>
-                      <select 
-                        className="form-select" 
-                        value={murgiSelectedYear} 
-                        onChange={e => setMurgiSelectedYear(parseInt(e.target.value))}
-                      >
-                        {Array.from({length: 5}, (_, i) => {
-                          const year = new Date().getFullYear() - i;
-                          return <option key={year} value={year}>{year}</option>
-                        })}
-                      </select>
-                    </div>
-                  )}
-                </div>
-                
-                {murgiReportData && (
-                  <div>
-                    <div className="row mb-3">
-                      <div className="col-md-4">
-                        <div className="card bg-primary text-white">
-                          <div className="card-body text-center">
-                            <h6>Total Records</h6>
-                            <h3>{murgiReportData.recordCount}</h3>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="col-md-4">
-                        <div className="card bg-success text-white">
-                          <div className="card-body text-center">
-                            <h6>Total Entries</h6>
-                            <h3>{murgiReportData.totalEntries}</h3>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="col-md-4">
-                        <div className="card bg-info text-white">
-                          <div className="card-body text-center">
-                            <h6>Total Net Weight</h6>
-                            <h3>{murgiReportData.totalNetWeight.toFixed(2)} kg</h3>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    
-
-                    {/* MURGI Records Table */}
-                    <div className="row mb-3">
-                      <div className="col-12">
-                        <div className="card">
-                          <div className="card-header bg-secondary text-white">
-                            <h6 className="mb-0">MURGI Records</h6>
-                          </div>
-                          <div className="card-body p-0">
-                            <div className="table-responsive">
-                              <table className="table table-striped table-hover mb-0">
-                                <thead className="table-dark">
-                                  <tr>
-                                    <th>ID</th>
-                                    <th>Date</th>
-                                    <th>Vehicle</th>
-                                    <th>Party</th>
-                                    <th>Net Weight (kg)</th>
-                                  </tr>
-                                </thead>
-                                <tbody>
-                                  {murgiReportData.rawRecords.map((record, index) => (
-                                    <tr key={record.id}>
-                                      <td>{record.id}</td>
-                                      <td>{record.date || (record.first_weight_time ? new Date(record.first_weight_time).toLocaleDateString() : '-')}</td>
-                                      <td>{record.vehicle_number} ({record.vehicle_type})</td>
-                                      <td>{record.party_name || '-'}</td>
-                                      <td>{parseFloat(record.net_weight).toFixed(2)} kg</td>
-                                    </tr>
-                                  ))}
-                                  <tr className="table-secondary fw-bold">
-                                    <td colSpan="4">Total</td>
-                                    <td>{murgiReportData.totalNetWeight.toFixed(2)} kg</td>
-                                  </tr>
-                                </tbody>
-                              </table>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-              <div className="modal-footer">
-                <button type="button" className="btn btn-primary" onClick={printMurgiReport}>Print Report</button>
-                <button type="button" className="btn btn-secondary" onClick={closeMurgiReport}>Close</button>
-              </div>
+      <div className="container-fluid py-4">
+        {/* Header */}
+        <div className="weight-form-card mb-4">
+          <div className="weight-form-header" style={{ background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)" }}>
+            <div className="weight-form-header-content d-flex align-items-center justify-content-between">
+              <h4 className="text-white mb-0">Records Management System</h4>
+              <b className="text-white-50">{filteredRecords.length} records | Total: PKR {grandTotal.toLocaleString()}</b>
             </div>
           </div>
-        </div>
-      )}
-
-      {/* Header */}
-      <div className="weight-form-card mb-4">
-        <div className="weight-form-header" style={{ background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)" }}>
-          <div className="weight-form-header-content d-flex align-items-center justify-content-between">
-            <h4 className="text-white mb-0">Records Management System</h4>
-            <b className="text-white-50">{filteredRecords.length} records | Total: PKR {grandTotal.toLocaleString()}</b>
-          </div>
-        </div>
-        <div className="weight-form-body">
-          {/* Search and Report Generation Section */}
-          <div className="row g-3">
-            <div className="col-md-9">
-              <div className="row g-3">
-                <div className="col-md-4">
-                  <label className="form-label text-muted fw-semibold">Search Records</label>
-                  <input type="text" className="form-control" placeholder="Search..." value={search} onChange={e => { setSearch(e.target.value); setCurrentPage(1); }} />
-                </div>
-                <div className="col-md-3">
-                  <label className="form-label text-muted fw-semibold">Report Type</label>
-                  <select 
-                    className="form-select" 
-                    value={reportType} 
-                    onChange={e => setReportType(e.target.value)}
-                  >
-                    <option value="daily">Daily Report</option>
-                    <option value="monthly">Monthly Report</option>
-                    <option value="yearly">Yearly Report</option>
-                    <option value="overall">Overall Report</option>
-                    <option value="custom">Custom Range</option>
-                  </select>
-                </div>
-                
-                {reportType === 'monthly' && (
-                  <div className="col-md-2">
-                    <label className="form-label text-muted fw-semibold">Month</label>
-                    <select 
-                      className="form-select" 
-                      value={selectedMonth} 
-                      onChange={e => setSelectedMonth(parseInt(e.target.value))}
-                    >
-                      {Array.from({length: 12}, (_, i) => (
-                        <option key={i+1} value={i+1}>
-                          {new Date(0, i).toLocaleString('default', { month: 'long' })}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-                
-                {(reportType === 'monthly' || reportType === 'yearly') && (
-                  <div className="col-md-3">
-                    <label className="form-label text-muted fw-semibold">Year</label>
-                    <select 
-                      className="form-select" 
-                      value={selectedYear} 
-                      onChange={e => setSelectedYear(parseInt(e.target.value))}
-                    >
-                      {Array.from({length: 5}, (_, i) => {
-                        const year = new Date().getFullYear() - i;
-                        return <option key={year} value={year}>{year}</option>
-                      })}
-                    </select>
-                  </div>
-                )}
-                
-                {reportType === 'custom' && (
-                  <>
-                    <div className="col-md-2">
-                      <label className="form-label text-muted fw-semibold">From Date</label>
-                      <input 
-                        type="date" 
-                        className="form-control" 
-                        value={customFromDate} 
-                        onChange={e => setCustomFromDate(e.target.value)}
-                      />
-                    </div>
-                    <div className="col-md-3">
-                      <label className="form-label text-muted fw-semibold">To Date</label>
-                      <input 
-                        type="date" 
-                        className="form-control" 
-                        value={customToDate} 
-                        onChange={e => setCustomToDate(e.target.value)}
-                      />
-                    </div>
-                  </>
-                )}
-              </div>
-            </div>
-            
-            <div className="col-md-3">
-              <label className="form-label text-muted fw-semibold">&nbsp;</label>
-              <div className="d-grid gap-2">
-                <button className="btn btn-success w-100 d-block" onClick={generatePDF}>
-                  <FaFileInvoice className="me-2" />
-                  Generate Report
-                </button>
-                <button className="btn btn-info w-100 d-block" onClick={handleMurgiReport}>
-                  <FaFileInvoice className="me-2" />
-                  MURGI Report
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Financial Overview Section */}
-      <div className="mb-5">
-        {/* Financial Summary Cards - Clear Layout */}
-        <div className="row g-3 mb-4">
-          <div className="col-12">
-            <div className="card border-0 shadow-lg">
-              <div className="card-header bg-primary text-white">
-                <h5 className="mb-0 d-flex align-items-center">
-                  <FaChartLine className="me-2" />
-                  Financial Summary - {reportType.charAt(0).toUpperCase() + reportType.slice(1)} Report
-                </h5>
-              </div>
-              <div className="card-body p-4">
-                <div className="row g-4">
-                  
-                  {/* Total Sale */}
-                  <div className="col-lg-2 col-md-4 col-sm-6">
-                    <div className="text-center p-3 border rounded bg-light">
-                      <FaMoneyBillWave className="text-success fs-2 mb-2" />
-                      <h6 className="text-muted mb-1">Total Sale</h6>
-                      <h4 className="text-success fw-bold mb-0">
-                        {formatCurrency(financialStats.filteredRevenue)}
-                      </h4>
-                    </div>
-                  </div>
-
-                  {/* Expenses */}
-                  <div className="col-lg-2 col-md-4 col-sm-6">
-                    <div className="text-center p-3 border rounded bg-light">
-                      <FaArrowDown className="text-danger fs-2 mb-2" />
-                      <h6 className="text-muted mb-1">Regular Expenses</h6>
-                      <h4 className="text-danger fw-bold mb-0">
-                        {formatCurrency(financialStats.filteredRegularExpenses)}
-                      </h4>
-                    </div>
-                  </div>
-
-                  {/* Profit */}
-                  <div className="col-lg-2 col-md-4 col-sm-6">
-                    <div className="text-center p-3 border rounded bg-light">
-                      <FaChartLine className={`${financialStats.filteredProfit >= 0 ? 'text-success' : 'text-danger'} fs-2 mb-2`} />
-                      <h6 className="text-muted mb-1">Profit</h6>
-                      <h4 className={`${financialStats.filteredProfit >= 0 ? 'text-success' : 'text-danger'} fw-bold mb-0`}>
-                        {formatCurrency(financialStats.filteredProfit)}
-                      </h4>
-                    </div>
-                  </div>
-
-                  {/* Paid to Boss */}
-                  <div className="col-lg-2 col-md-4 col-sm-6">
-                    <div className="text-center p-3 border rounded bg-light">
-                      <FaUniversity className="text-info fs-2 mb-2" />
-                      <h6 className="text-muted mb-1">Paid to Boss</h6>
-                      <h4 className="text-info fw-bold mb-0">
-                        {formatCurrency(financialStats.filteredDeposits)}
-                      </h4>
-                    </div>
-                  </div>
-
-                  {/* Remaining Cash */}
-                  <div className="col-lg-2 col-md-4 col-sm-6">
-                    <div className="text-center p-3 border rounded bg-light">
-                      <FaMoneyBill className={`${financialStats.filteredAvailableCash >= 0 ? 'text-primary' : 'text-warning'} fs-2 mb-2`} />
-                      <h6 className="text-muted mb-1">Remaining Cash</h6>
-                      <h4 className={`${financialStats.filteredAvailableCash >= 0 ? 'text-primary' : 'text-warning'} fw-bold mb-1`}>
-                        {formatCurrency(financialStats.filteredAvailableCash)}
-                      </h4>
-                      {reportType !== 'overall' && (
-                        <div className="d-flex align-items-center justify-content-center">
-                          {financialStats.filteredAvailableCash !== financialStats.previousPeriod.availableCash && (
-                            <span className={`badge ${
-                              financialStats.filteredAvailableCash > financialStats.previousPeriod.availableCash 
-                                ? 'bg-success' 
-                                : 'bg-danger'
-                            } ms-1`}>
-                              {financialStats.filteredAvailableCash > financialStats.previousPeriod.availableCash ? '↗' : '↘'}
-                              {Math.abs(financialStats.filteredAvailableCash - financialStats.previousPeriod.availableCash).toLocaleString('en-PK', {
-                                style: 'currency',
-                                currency: 'PKR',
-                                minimumFractionDigits: 0
-                              })}
-                            </span>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Summary Text */}
-                  <div className="col-lg-2 col-md-4 col-sm-6">
-                    <div className="text-center p-3 border rounded bg-primary text-white">
-                      <FaUser className="fs-2 mb-2" />
-                      <h6 className="text-white-50 mb-1">Records</h6>
-                      <h4 className="text-white fw-bold mb-0">
-                        {filteredRecords.length}
-                      </h4>
-                    </div>
-                  </div>
-
-                </div>
-
-                {/* Calculation Breakdown */}
-                <div className="mt-4 pt-3 border-top">
-                  <div className="row text-center">
-                    <div className="col-12">
-                      <small className="text-muted">
-                         <strong>Calculation:</strong> 
-                         Sale ({formatCurrency(financialStats.filteredRevenue)}) 
-                         - Regular Expenses ({formatCurrency(financialStats.regularExpenses)}) 
-                         = Profit ({formatCurrency(financialStats.filteredProfit)}) 
-                         - Paid to Boss ({formatCurrency(financialStats.bankDeposits)}) 
-                         = Remaining Cash ({formatCurrency(financialStats.availableCash)})
-                       </small>
-                    </div>
-                  </div>
+          <div className="weight-form-body">
+            {/* Search and Report Generation Section */}
+            <div className="row g-3">
+              <RecordsFilters
+                search={search}
+                setSearch={setSearch}
+                reportType={reportType}
+                setReportType={setReportType}
+                selectedMonth={selectedMonth}
+                setSelectedMonth={setSelectedMonth}
+                selectedYear={selectedYear}
+                setSelectedYear={setSelectedYear}
+                customFromDate={customFromDate}
+                setCustomFromDate={setCustomFromDate}
+                customToDate={customToDate}
+                setCustomToDate={setCustomToDate}
+                setCurrentPage={setCurrentPage}
+                partyFilter={partyFilter}
+                setPartyFilter={setPartyFilter}
+                productFilter={productFilter}
+                setProductFilter={setProductFilter}
+                vehicleTypeFilter={vehicleTypeFilter}
+                setVehicleTypeFilter={setVehicleTypeFilter}
+                uniqueParties={uniqueParties}
+                uniqueProducts={uniqueProducts}
+                uniqueVehicleTypes={uniqueVehicleTypes}
+                onClearFilters={clearAllFilters}
+              />
+              <div className="col-md-3">
+                <label className="form-label text-muted fw-semibold">&nbsp;</label>
+                <div className="d-grid gap-2">
+                  <ReportGenerator
+                    records={records}
+                    expenses={expenses}
+                    reportType={reportType}
+                    selectedMonth={selectedMonth}
+                    selectedYear={selectedYear}
+                    customFromDate={customFromDate}
+                    customToDate={customToDate}
+                    filteredRecords={filteredRecords} // Pass filtered records
+                    partyFilter={partyFilter}
+                    productFilter={productFilter}
+                    vehicleTypeFilter={vehicleTypeFilter}
+                    search={search}
+                  />
+                  <button className="btn btn-primary w-100 d-block" onClick={generateCustomerPDF}>
+                    <FaFileInvoice className="me-2" />
+                    Generate Customer Report
+                  </button>
                 </div>
               </div>
             </div>
           </div>
         </div>
+
+        {/* Financial Overview Section */}
+        <FinancialSummary 
+          financialStats={financialStats} 
+          reportType={reportType} 
+          formatCurrency={formatCurrency} 
+        />
+
+        {/* Records Grid */}
+        <RecordsGrid 
+          paginatedRecords={paginatedRecords} 
+          openEditModal={openEditModal} 
+          openPrintModal={openPrintModal} 
+        />
+
+        {/* Pagination & Grand Total */}
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          handlePrev={handlePrev}
+          handleNext={handleNext}
+          grandTotal={grandTotal}
+          filteredRecordsLength={filteredRecords.length}
+        />
+
+        {reduxSelectedRecord && <PrintModal show={showPrintModal} slipType={slipType} onClose={closePrintModal} />}
+        {editModalShow && editRecord && <EditRecordModal show={editModalShow} onClose={() => setEditModalShow(false)} record={editRecord} slipType={editSlipType} />}
       </div>
-
-      {/* Records Grid */}
-      {paginatedRecords.length === 0 ? (
-        <div className="text-center py-5">
-          <h4 className="text-muted mb-2">No Records Found</h4>
-        </div>
-      ) : (
-        <div className="row g-3">
-          {paginatedRecords.map(record => (
-            <div key={record.id} className="col-xl-3 col-lg-4 col-md-6 col-sm-12">
-              <div className="card border-0 shadow-sm hover-shadow" style={{ minHeight: '320px' }}>
-                <div className="card-header bg-light d-flex justify-content-between align-items-center">
-                  <div><h6 className="mb-0 text-primary"><FaTruck className="me-2" />{record.vehicle_number}</h6></div>
-                  <div className="d-flex gap-1">
-                    <button className="btn btn-sm btn-outline-secondary" onClick={() => openEditModal(record)}><BiEdit size={16} /></button>
-                    {record.final_weight === "Yes" ? (
-                      <button className="btn btn-sm btn-success" onClick={() => openPrintModal(record, "final")}>Final <FaFileInvoice className="ms-1" /></button>
-                    ) : (
-                      <>
-                        <button className="btn btn-sm btn-outline-primary" onClick={() => openPrintModal(record, "first")}>First <FaFileInvoice className="ms-1" /></button>
-                        {record.second_weight && <button className="btn btn-sm btn-outline-info" onClick={() => openPrintModal(record, "second")}>Second <FaFileInvoice className="ms-1" /></button>}
-                      </>
-                    )}
-                  </div>
-                </div>
-
-                <div className="card-body">
-  <div className="row g-2 small">
-
-    {/* Record ID */}
-    <div className="col-6">
-      <div>
-        <FaHashtag className="me-1 text-secondary" />
-        <span className="fw-semibold">{record.id}</span>
-        <small className="d-block text-muted">ID</small>
-      </div>
-    </div>
-
-    {/* Party Name */}
-    <div className="col-6">
-      <div>
-        <FaUser className="me-1 text-secondary" />
-        <span className="fw-semibold">{record.party_name || '-'}</span>
-        <small className="d-block text-muted">Party</small>
-      </div>
-    </div>
-
-    {/* Vehicle Type */}
-    <div className="col-6 mt-3">
-      <div>
-        <div className="fw-semibold">{record.vehicle_type}</div>
-        <small className="text-muted">Type</small>
-      </div>
-    </div>
-
-    {/* Product */}
-    <div className="col-6 mt-3">
-      <div>
-        <div className="fw-semibold">{record.product}</div>
-        <small className="text-muted">Product</small>
-      </div>
-    </div>
-
-    {/* First Weight */}
-    <div className="col-6 mt-3">
-      <div>
-        <div className="fw-semibold">{Number(record.first_weight).toFixed(1)} kg</div>
-        <small className="text-muted">First Weight</small>
-      </div>
-    </div>
-
-    {/* Second Weight */}
-    <div className="col-6 mt-3">
-      <div>
-        <div className="fw-semibold">{record.second_weight ? Number(record.second_weight).toFixed(1) + ' kg' : '-'}</div>
-        <small className="text-muted">Second Weight</small>
-      </div>
-    </div>
-
-    {/* Net Weight */}
-    <div className="col-6 mt-3">
-      <div>
-        <div className="fw-semibold">{record.net_weight ? Number(record.net_weight).toFixed(1) + ' kg' : '-'}</div>
-        <small className="text-muted">Net Weight</small>
-      </div>
-    </div>
-
-    {/* Total Price */}
-    <div className="col-6 mt-3">
-      <div>
-        <strong className="text-success">PKR {record.total_price ? Number(record.total_price).toLocaleString() : '0'}</strong>
-        <small className="text-muted d-block">Total Price</small>
-      </div>
-    </div>
-
-    {/* First Weight Time */}
-    <div className="col-6 mt-3">
-      <div>
-        <FaClock className="me-1" />
-        <span>{formatToPST(record.first_weight_time)}</span>
-        <small className="d-block text-muted">First Weight Time</small>
-      </div>
-    </div>
-
-    {/* Second Weight Time */}
-    {record.second_weight_time && (
-      <div className="col-6 mt-3">
-        <div>
-          <FaClock className="me-1" />
-          <span>{formatToPST(record.second_weight_time)}</span>
-          <small className="d-block text-muted">Second Weight Time</small>
-        </div>
-      </div>
-    )}
-
-  </div>
-</div>
-
-
-
-
-                <div className="card-footer bg-light small text-muted">
-  <div className="row g-1">
-    <div className="col-12 d-flex flex-wrap justify-content-start justify-content-md-end">
-      <span className={`badge ${record.driver_name ? 'bg-info' : 'bg-secondary'} me-1 mb-1`}>
-        <FaUserTie className="me-1" />
-        {record.driver_name ? 'With Driver' : 'No Driver'}
-      </span>
-      {record.final_weight === "Yes" && (
-        <span className="badge bg-success mb-1">
-          <FaCheck className="me-1" />
-          Final
-        </span>
-      )}
-    </div>
-  </div>
-</div>
-
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Pagination & Grand Total */}
-      {filteredRecords.length > 0 && (
-        <div className="row mt-4 align-items-center">
-          <div className="col-md-4 mb-3 mb-md-0">
-            <div className="text-center p-3 bg-success text-white rounded shadow">
-              Grand Total: PKR {grandTotal.toLocaleString()} | {filteredRecords.length} records
-            </div>
-          </div>
-          <div className="col-md-8 d-flex justify-content-center justify-content-md-end">
-            <nav>
-              <ul className="pagination mb-0">
-                <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
-                  <button className="page-link" onClick={handlePrev}>Previous</button>
-                </li>
-                <li className="page-item active">
-                  <span className="page-link bg-primary border-primary text-white">Page {currentPage} of {totalPages}</span>
-                </li>
-                <li className={`page-item ${currentPage === totalPages ? 'disabled' : ''}`}>
-                  <button className="page-link" onClick={handleNext}>Next</button>
-                </li>
-              </ul>
-            </nav>
-          </div>
-        </div>
-      )}
-
-      {reduxSelectedRecord && <PrintModal show={showPrintModal} slipType={slipType} onClose={closePrintModal} />}
-       {editModalShow && editRecord && <EditRecordModal show={editModalShow} onClose={() => setEditModalShow(false)} record={editRecord} slipType={editSlipType} />}
-    </div>
     </div>
   );
 }

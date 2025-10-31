@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { FaEdit, FaPrint } from "react-icons/fa";
 import { IoPrint } from "react-icons/io5";
 import jsPDF from "jspdf";
@@ -9,11 +9,8 @@ import "../styles/Dashboard.css";
 import { formatToPST } from '../utils/dateUtils';
 
 export default function RecordsTable({ records, openPrintModal, vehiclePrices, slipType, onUpdateRecord }) {
-    const [search, setSearch] = useState("");
     const [currentPage, setCurrentPage] = useState(1);
     const recordsPerPage = 20;
-    const [fromDate, setFromDate] = useState("");
-    const [toDate, setToDate] = useState("");
     const [editModalShow, setEditModalShow] = useState(false);
     const [editRecord, setEditRecord] = useState(null);
     const [editSlipType, setEditSlipType] = useState("first");
@@ -23,59 +20,90 @@ export default function RecordsTable({ records, openPrintModal, vehiclePrices, s
         return sum + price;
     }, 0);
 
-    const filteredRecords = useMemo(() => {
-        if (!search) return records;
-        return records.filter(
-            (r) =>
-                r.vehicle_number.toLowerCase().includes(search.toLowerCase()) ||
-                r.vehicle_type.toLowerCase().includes(search.toLowerCase()) ||
-                r.product?.toLowerCase().includes(search.toLowerCase()) ||
-                r.party_name?.toLowerCase().includes(search.toLowerCase()) ||
-                r.id.toString().includes(search)
-        );
-    }, [search, records]);
+    // Calculate total net weight
+    const totalNetWeight = records.reduce((sum, r) => {
+        const weight = parseFloat(r.net_weight) || 0;
+        return sum + weight;
+    }, 0);
 
-    const totalPages = Math.ceil(filteredRecords.length / recordsPerPage);
-    const paginatedRecords = filteredRecords.slice(
+    const totalPages = Math.ceil(records.length / recordsPerPage);
+    const paginatedRecords = records.slice(
         (currentPage - 1) * recordsPerPage,
         currentPage * recordsPerPage
     );
 
     const generatePDF = () => {
-        const doc = new jsPDF();
-        doc.setFont("Outfit");
-        doc.setFontSize(16);
-        doc.text("Awami Computerized Kanta", 14, 20);
+        const doc = new jsPDF('p', 'mm', 'a4');
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const pageHeight = doc.internal.pageSize.getHeight();
+        
+        // Add header
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(20);
+        doc.text("AWAMI COMPUTERIZED KANTA", pageWidth / 2, 20, { align: "center" });
+        
+        doc.setFont("helvetica", "normal");
         doc.setFontSize(12);
-        doc.text(`From: ${fromDate || "Start"}  To: ${toDate || "End"}`, 14, 28);
-
+        doc.text("Miro Khan Road, Larkana", pageWidth / 2, 28, { align: "center" });
+        doc.text("Contact: 0333-8722847", pageWidth / 2, 34, { align: "center" });
+        
+        // Add report info
+        const reportDate = new Date().toLocaleDateString('en-GB');
+        const reportTime = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+        doc.setFontSize(10);
+        doc.text(`Report Generated: ${reportDate} at ${reportTime}`, pageWidth - 20, 45, { align: "right" });
+        
+        // Add table
         autoTable(doc, {
-            startY: 30,
-            head: [["Vehicle", "Party", "Type", "Product", "First Weight", "Second Weight", "Net Weight", "Price"]],
-            body: filteredRecords.map(r => [
+            startY: 50,
+            head: [["ID", "Vehicle", "Party", "Type", "Product", "First Weight", "Second Weight", "Net Weight", "Price"]],
+            body: records.map(r => [
+                r.id,
                 r.vehicle_number,
                 r.party_name || '-',
                 r.vehicle_type,
                 r.product,
-                r.first_weight,
-                r.second_weight || "-",
-                r.net_weight || "-",
-                r.total_price || "-"
+                r.first_weight ? Number(r.first_weight).toFixed(2) : "-",
+                r.second_weight ? Number(r.second_weight).toFixed(2) : "-",
+                r.net_weight ? Number(r.net_weight).toFixed(2) : "-",
+                r.total_price ? `PKR ${Number(r.total_price).toLocaleString()}` : "-"
             ]),
-            styles: { font: "Outfit", fontSize: 9 }
+            styles: { fontSize: 8, cellPadding: 2 },
+            headStyles: { fillColor: [102, 126, 234], textColor: [255, 255, 255] },
+            alternateRowStyles: { fillColor: [245, 245, 245] },
+            columnStyles: {
+                0: { cellWidth: 15 },
+                1: { cellWidth: 25 },
+                2: { cellWidth: 30 },
+                3: { cellWidth: 20 },
+                4: { cellWidth: 25 },
+                5: { cellWidth: 25 },
+                6: { cellWidth: 25 },
+                7: { cellWidth: 25 },
+                8: { cellWidth: 30 }
+            }
         });
 
-        const finalY = doc.lastAutoTable.finalY || 36;
-        doc.text(`Total Revenue: PKR ${grandTotal.toFixed(2)}`, 14, finalY + 10);
-
-        doc.save("weighbridge_report.pdf");
+        // Add summary
+        const finalY = doc.lastAutoTable.finalY || 50;
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(12);
+        doc.text(`Total Records: ${records.length}`, 20, finalY + 10);
+        doc.text(`Total Net Weight: ${totalNetWeight.toFixed(2)} kg`, 20, finalY + 18);
+        doc.text(`Total Revenue: PKR ${grandTotal.toLocaleString()}`, 20, finalY + 26);
+        
+        // Add footer
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(10);
+        doc.text("Software by AKS Solutions", pageWidth / 2, pageHeight - 10, { align: "center" });
+        
+        // Save the PDF
+        doc.save(`weighbridge_report_${new Date().toISOString().slice(0, 10)}.pdf`);
     };
 
     const handlePrev = () => setCurrentPage((p) => Math.max(p - 1, 1));
     const handleNext = () => setCurrentPage((p) => Math.min(p + 1, totalPages));
     const handlePageClick = (page) => setCurrentPage(page);
-
-
 
     const openEditModal = (record) => {
         const slipType = record.final_weight === "Yes" ? "final" : "first";
@@ -94,42 +122,22 @@ export default function RecordsTable({ records, openPrintModal, vehiclePrices, s
                 <span style={{ fontSize: "1.25rem", fontWeight: "600" }}>
                     Records Management
                 </span>
-                <input
-                    type="text"
-                    className="records-search"
-                    placeholder="Search vehicle/party/type/product..."
-                    value={search}
-                    onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
-                />
-            </div>
-
-            <div className="row px-3 mt-4 mb-2">
-                <div className="col-md-3">
-                    <input type="date" className="form-control" value={fromDate} onChange={e => setFromDate(e.target.value)} />
-                </div>
-                <div className="col-md-3">
-                    <input type="date" className="form-control" value={toDate} onChange={e => setToDate(e.target.value)} />
-                </div>
-                <div className="col-md-3">
-                    <button className="btn btn-primary" onClick={generatePDF}>Generate PDF Report</button>
-                </div>
             </div>
 
             <div className="card-body table-responsive">
                 <table className="modern-table table table-hover" style={{ marginBottom: '0' }}>
                     <thead>
                         <tr>
-                            <th>Serial No:</th>
+                            <th>No:</th>
                             <th>Vehicle</th>
                             <th>Party</th>
                             <th>Type</th>
-                            <th>First Weight</th>
-                            <th>Second Weight</th>
+                            <th>F.Weight</th>
+                            <th>S.Weight</th>
                             <th>Net Weight</th>
                             <th>Total Price</th>
-                            <th>First Time</th>
-                            <th>Second Time</th>
-                            <th>Driver</th>
+                            <th>F.Time</th>
+                            <th>S.Time</th>
                             <th>Edit</th>
                             <th>Print Slip</th>
                         </tr>
@@ -143,7 +151,7 @@ export default function RecordsTable({ records, openPrintModal, vehiclePrices, s
                             </tr>
                         ) : (
                             paginatedRecords.map((r, index) => (
-                                <tr key={index}>
+                                <tr key={r.id}>
                                     <td>{r.id}</td>
                                     <td>{r.vehicle_number}</td>
                                     <td>{r.party_name || '-'}</td>
@@ -151,10 +159,9 @@ export default function RecordsTable({ records, openPrintModal, vehiclePrices, s
                                     <td>{r.first_weight ? Number(r.first_weight).toFixed(2) : "-"}</td>
                                     <td>{r.second_weight ? Number(r.second_weight).toFixed(2) : "-"}</td>
                                     <td>{r.net_weight ? Number(r.net_weight).toFixed(2) : "-"}</td>
-                                    <td>{r.total_price ? Number(r.total_price) : "-"}</td>
+                                    <td>{r.total_price ? `PKR ${Number(r.total_price).toLocaleString()}` : "-"}</td>
                                     <td>{r.first_weight_time ? formatToPST(r.first_weight_time) : "-"}</td>
                                     <td>{r.second_weight_time ? formatToPST(r.second_weight_time) : "-"}</td>
-                                    <td>{r.driver_name ? "Yes" : "No"}</td>
                                     <td>
                                         <button
                                             className="action-button btn btn-sm btn-info"
@@ -199,8 +206,16 @@ export default function RecordsTable({ records, openPrintModal, vehiclePrices, s
                     </tbody>
                 </table>
 
-                <div className="grand-total-section mt-3">
-                    <strong>Grand Total: PKR {grandTotal.toLocaleString()}</strong>
+                <div className="grand-total-section mt-3 d-flex justify-content-between align-items-center">
+                    <div>
+                        <strong>Total Records: {records.length}</strong>
+                    </div>
+                    <div>
+                        <strong>Total Net Weight: {totalNetWeight.toFixed(2)} kg</strong>
+                    </div>
+                    <div>
+                        <strong>Grand Total: PKR {grandTotal.toLocaleString()}</strong>
+                    </div>
                 </div>
 
                 {/* Pagination */}
