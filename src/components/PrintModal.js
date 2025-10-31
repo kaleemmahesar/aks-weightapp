@@ -120,7 +120,7 @@ const PrintModal = ({ show, slipType, onClose }) => {
 
   // Check if vehicle type is Daalo/Daala or GadahGano for smaller print view
   const vehicleType = (record.vehicle_type || '').toLowerCase();
-  const isSmallVehicle = vehicleType === "daalo" || vehicleType === "daala" || vehicleType === "gadahgano";
+  const isSmallVehicle = vehicleType === "daaloss" || vehicleType === "daalass" || vehicleType === "gadahganoss";
 
   const html = `
     <!doctype html>
