@@ -280,10 +280,13 @@ export default function SecondWeightForm({ liveWeight, onSuccess }) {
         <span className="summary-label">Net Weight:</span>
         <span className="summary-value">
           {formik.values.secondWeight
-            ? formik.values.selectedVehicle.record.first_weight -
-              formik.values.secondWeight
-            : "-"}{" "}
-          KG
+            ? (() => {
+                const netWeight = formik.values.selectedVehicle.record.first_weight - formik.values.secondWeight;
+                const munds = netWeight / 40;
+                const tons = netWeight / 1000;
+                return `${netWeight.toFixed(2)} KG | ${munds.toFixed(2)} Munds | ${tons.toFixed(2)} Tons`;
+              })()
+            : "-"}
         </span>
       </div>
     </div>

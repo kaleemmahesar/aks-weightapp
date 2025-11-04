@@ -58,7 +58,7 @@ export default function Login() {
                     >
                         <img src={logo} alt="Company Logo" style={{ width: "80px", borderRadius: "50%" }} />
                     </div>
-                    <h3 className="fw-bold" style={{ color: "#2c3e50" }}>Awami Computerized Kanta</h3>
+                    <h3 className="fw-bold" style={{ color: "#2c3e50" }}>Al Hussaini Computerised Kanta</h3>
                     <p className="text-muted">Secure Weighbridge Management System</p>
                 </div>
                 
@@ -130,7 +130,7 @@ export default function Login() {
                 </div>
                 
                 <div className="text-center mt-3 text-muted">
-                    © {new Date().getFullYear()} Awami Computerized Kanta
+                    © {new Date().getFullYear()} Al Hussaini Computerised Kanta
                 </div>
             </div>
         </div>

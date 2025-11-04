@@ -8,9 +8,9 @@ import Navbar from "./Navbar";
 function App() {
     const [loggedIn, setLoggedIn] = useState(false);
     const [settings, setSettings] = useState({
-        companyName: "Awami Computerized Kanta",
-        companyAddress: "Miro Khan Road, Larkana",
-        contactNumber: "03420721023",
+        companyName: "Al Hussaini Computerised Kanta",
+        companyAddress: "Near Bhand Chowk, Taulka Sijawal Junejo",
+        contactNumber: "0331 4812277",
         tareWeight: 100
     });
 

@@ -38,7 +38,7 @@ const Navbar = ({ onLogout }) => {
             alignItems: "center"
           }}
         >
-          <FaWeight className="me-2 text-blue-400" /> Awami Kanta
+          <FaWeight className="me-2 text-blue-400" /> Al Hussaini Kanta
         </NavLink>
 
         {/* Mobile Toggle */}

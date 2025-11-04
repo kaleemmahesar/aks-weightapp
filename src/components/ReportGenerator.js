@@ -232,82 +232,92 @@ const ReportGenerator = ({
         <meta charset="utf-8">
         <title>${dateRange}</title>
         <style>
-          @page { margin: 0; size: 80mm auto; }
+          @page { margin: 15mm; size: A4; }
           html, body { 
             margin: 0; 
             padding: 0; 
-            font-family: Tahoma, Verdana, Arial, sans-serif;
-            font-size: 14px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 12px;
             color: #000;
             line-height: 1.4;
-            letter-spacing: 0.5px;
           }
 
           .report-container {
-            width: 70mm;
+            max-width: 210mm;
             margin: 0 auto;
-            border: 1px solid #000;
-            padding: 6px;
+            padding: 15mm;
             background: #fff;
             box-sizing: border-box;
           }
 
           .header {
             text-align: center;
-            border-bottom: 1px solid #000;
-            padding-bottom: 6px;
-            margin-bottom: 8px;
+            border-bottom: 2px solid #000;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
           }
 
           .company-name {
-            font-size: 18px;
+            font-size: 24px;
             font-weight: bold;
+            color: #2c3e50;
           }
 
           .company-details {
-            font-size: 10px;
-            margin: 1px 0;
+            font-size: 14px;
+            margin: 5px 0;
+            color: #34495e;
           }
 
           .report-title {
             text-align: center;
-            font-size: 12px;
+            font-size: 18px;
             font-weight: bold;
-            margin-bottom: 6px;
+            margin: 15px 0;
+            color: #1a5276;
+          }
+
+          .report-date {
+            text-align: center;
+            font-size: 12px;
+            margin-bottom: 15px;
+            color: #7f8c8d;
           }
 
           .content-section {
-            margin: 6px 0;
+            margin: 15px 0;
+            page-break-inside: avoid;
           }
 
           .section-title {
             text-align: center;
-            font-size: 11px;
+            font-size: 16px;
             font-weight: bold;
             border-bottom: 1px solid #000;
-            padding-bottom: 2px;
-            margin-bottom: 6px;
+            padding-bottom: 5px;
+            margin-bottom: 10px;
+            color: #2c3e50;
           }
 
           .info-row {
             display: flex;
             justify-content: space-between;
-            gap: 6px;
-            margin: 4px 0;
+            gap: 10px;
+            margin: 8px 0;
             border-bottom: 1px dotted #999;
-            font-size: 11px;
+            font-size: 13px;
             align-items: center;
           }
 
           .info-label {
             font-weight: bold;
             display: inline-block;
-            min-width: 70px;
+            min-width: 150px;
             white-space: normal;
           }
 
           .info-value {
-            font-size: 12px;
+            font-size: 14px;
             font-weight: bold;
             display: inline-block;
             white-space: normal;
@@ -316,8 +326,8 @@ const ReportGenerator = ({
 
           .expense-item, .revenue-item, .vehicle-item {
             border-bottom: 1px dotted #ccc;
-            padding: 2px 0;
-            margin: 1px 0;
+            padding: 4px 0;
+            margin: 3px 0;
           }
 
           .expense-item:last-child, .revenue-item:last-child, .vehicle-item:last-child {
@@ -327,23 +337,23 @@ const ReportGenerator = ({
           .expense-row {
             display: flex;
             justify-content: space-between;
-            gap: 4px;
-            margin: 2px 0;
-            font-size: 9px;
+            gap: 8px;
+            margin: 3px 0;
+            font-size: 11px;
             align-items: center;
-            line-height: 1.2;
+            line-height: 1.3;
           }
 
           .expense-label {
             font-weight: normal;
             display: inline-block;
-            min-width: 60px;
+            min-width: 120px;
             white-space: normal;
-            font-size: 9px;
+            font-size: 11px;
           }
 
           .expense-value {
-            font-size: 10px;
+            font-size: 12px;
             font-weight: bold;
             display: inline-block;
             white-space: normal;
@@ -353,19 +363,34 @@ const ReportGenerator = ({
           table {
             width: 100%;
             border-collapse: collapse;
-            margin: 8px 0;
-            font-size: 10px;
+            margin: 15px 0;
+            font-size: 11px;
+            page-break-inside: auto;
+          }
+
+          thead { 
+            display: table-header-group; 
+          }
+          
+          tfoot { 
+            display: table-footer-group; 
+          }
+
+          tr {
+            page-break-inside: avoid;
+            page-break-after: auto;
           }
 
           th, td {
             text-align: left;
-            padding: 3px 2px;
-            border-bottom: 1px solid #000;
+            padding: 6px 4px;
+            border: 1px solid #000;
           }
 
           th {
             font-weight: bold;
-            font-size: 11px;
+            font-size: 12px;
+            background-color: #ecf0f1;
           }
 
           .text-center {
@@ -377,35 +402,36 @@ const ReportGenerator = ({
           }
 
           .footer {
-            padding-top: 6px;
-            margin-top: 8px;
+            padding-top: 15px;
+            margin-top: 20px;
             text-align: center;
-            font-size: 10px;
-            border-top: 1px solid #000;
+            font-size: 12px;
+            border-top: 2px solid #000;
+            page-break-inside: avoid;
           }
 
           .signature-line {
-            margin: 8px 0;
-            font-size: 10px;
+            margin: 15px 0;
+            font-size: 12px;
           }
         </style>
       </head>
       <body>
         <div class="report-container">
           <div class="header">
-            <div class="company-name">AWAMI KANTA</div>
-            <div class="company-details">Miro Khan Road, Larkana</div>
+            <div class="company-name">AL HUSSAINI COMPUTERISED KANTA</div>
+            <div class="company-details">Near Bhand Chowk, Taulka Sijawal Junejo | Phone: 0331 4812277</div>
           </div>
 
           <div class="report-title">${dateRange}</div>
-          <div style="text-align: center; font-size: 10px; margin-bottom: 8px;">
-            ${new Date().toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true })}
+          <div class="report-date">
+            Report Generated: ${new Date().toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true })}
           </div>
 
           <!-- Filter Information -->
           <div class="content-section">
             <div class="section-title">FILTERS APPLIED</div>
-            <div style="font-size: 10px; padding: 4px 0;">
+            <div style="font-size: 12px; padding: 8px 0;">
               ${filterString}
             </div>
           </div>
@@ -415,20 +441,20 @@ const ReportGenerator = ({
             <div class="section-title">FINANCIAL SUMMARY</div>
             ${reportType === 'daily' ? `
               <div class="info-row">
-                <span class="info-label">Today Revenue:</span>
+                <span class="info-label">Today's Revenue:</span>
                 <span class="info-value">Rs ${reportRevenue.toLocaleString()}</span>
               </div>
               <div class="info-row">
-                <span class="info-label">Today Expenses:</span>
+                <span class="info-label">Today's Expenses:</span>
                 <span class="info-value">Rs ${reportExpensesAmount.toLocaleString()}</span>
               </div>
               <div class="info-row">
-                <span class="info-label">Today Net Profit:</span>
+                <span class="info-label">Today's Net Profit:</span>
                 <span class="info-value">Rs ${reportNetProfit.toLocaleString()}</span>
               </div>
               ${reportDepositsAmount > 0 ? `
                 <div class="info-row">
-                  <span class="info-label">Paid to Boss:</span>
+                  <span class="info-label">Paid to Owner:</span>
                   <span class="info-value">Rs ${reportDepositsAmount.toLocaleString()}</span>
                 </div>
                 <div class="info-row">
@@ -451,7 +477,7 @@ const ReportGenerator = ({
               </div>
               ${totalDepositsAmount > 0 ? `
                 <div class="info-row">
-                  <span class="info-label">Paid to Boss:</span>
+                  <span class="info-label">Paid to Owner:</span>
                   <span class="info-value">Rs ${totalDepositsAmount.toLocaleString()}</span>
                 </div>
                 <div class="info-row">
@@ -474,7 +500,7 @@ const ReportGenerator = ({
               </div>
               ${reportDepositsAmount > 0 ? `
                 <div class="info-row">
-                  <span class="info-label">Paid to Boss:</span>
+                  <span class="info-label">Paid to Owner:</span>
                   <span class="info-value">Rs ${reportDepositsAmount.toLocaleString()}</span>
                 </div>
                 <div class="info-row">
@@ -507,19 +533,41 @@ const ReportGenerator = ({
               <table>
                 <thead>
                   <tr>
+                    <th>ID</th>
+                    <th>Date</th>
+                    <th>Vehicle</th>
                     <th>Party</th>
+                    <th>Type</th>
+                    <th>Product</th>
+                    <th>F.Weight</th>
+                    <th>S.Weight</th>
                     <th>Net Weight</th>
+                    <th>Net Munds</th>
                     <th>Price</th>
                   </tr>
                 </thead>
                 <tbody>
-                  ${finalFilteredRecords.map(record => `
+                  ${finalFilteredRecords.map(record => {
+                    const netWeight = parseFloat(record.net_weight) || 0;
+                    const netMunds = netWeight / 40; // 1 Mund = 40 kg
+                    const firstWeight = parseFloat(record.first_weight) || 0;
+                    const secondWeight = parseFloat(record.second_weight) || 0;
+                    const recordDate = record.date || record.first_weight_time || '';
+                    return `
                     <tr>
+                      <td>${record.id}</td>
+                      <td>${recordDate}</td>
+                      <td>${record.vehicle_number || '-'}</td>
                       <td>${record.party_name || '-'}</td>
-                      <td>${parseFloat(record.net_weight || 0).toFixed(2)} kg</td>
+                      <td>${record.vehicle_type || '-'}</td>
+                      <td>${record.product || '-'}</td>
+                      <td>${firstWeight.toFixed(2)}</td>
+                      <td>${secondWeight.toFixed(2)}</td>
+                      <td>${netWeight.toFixed(2)} kg</td>
+                      <td>${netMunds.toFixed(2)} Munds</td>
                       <td>Rs ${(parseFloat(record.total_price) || 0).toLocaleString()}</td>
                     </tr>
-                  `).join('')}
+                  `}).join('')}
                 </tbody>
               </table>
             </div>
@@ -532,9 +580,10 @@ const ReportGenerator = ({
               ${reportRegularExpenses.map(expense => `
                 <div class="expense-item">
                   <div class="expense-row">
-                    <span class="expense-label">${expense.date ? expense.date.substring(5) : '-'} - ${expense.category || '-'}</span>
+                    <span class="expense-label">${expense.date ? expense.date : '-'} - ${expense.category || '-'}</span>
                     <span class="expense-value">Rs ${(parseFloat(expense.amount) || 0).toLocaleString()}</span>
                   </div>
+                  ${expense.description ? `<div class="expense-row" style="font-size: 10px; color: #7f8c8d; margin-left: 10px;">${expense.description}</div>` : ''}
                 </div>
               `).join('')}
             </div>
@@ -547,9 +596,10 @@ const ReportGenerator = ({
               ${reportDepositsToOwner.map(deposit => `
                 <div class="expense-item">
                   <div class="expense-row">
-                    <span class="expense-label">${deposit.date ? deposit.date.substring(5) : '-'} - Deposited</span>
+                    <span class="expense-label">${deposit.date ? deposit.date : '-'} - Deposited</span>
                     <span class="expense-value">Rs ${(parseFloat(deposit.amount) || 0).toLocaleString()}</span>
                   </div>
+                  ${deposit.description ? `<div class="expense-row" style="font-size: 10px; color: #7f8c8d; margin-left: 10px;">${deposit.description}</div>` : ''}
                 </div>
               `).join('')}
             </div>
@@ -562,7 +612,7 @@ const ReportGenerator = ({
               ${finalFilteredRecords.map(record => `
                 <div class="revenue-item">
                   <div class="expense-row">
-                    <span class="expense-label">${record.date ? record.date.substring(5) : '-'} - ${record.vehicle_number || '-'}</span>
+                    <span class="expense-label">${record.date ? record.date : '-'} - ${record.vehicle_number || '-'}</span>
                     <span class="expense-value">Rs ${(parseFloat(record.total_price) || 0).toLocaleString()}</span>
                   </div>
                 </div>
@@ -596,8 +646,8 @@ const ReportGenerator = ({
           <div class="footer">
             <div class="signature-line">Operator: _____________</div>
             <div class="signature-line">Owner: _____________</div>
-            <div style="margin-top: 8px; font-size: 8px;">
-              Software by <span style="display:inline-block;padding:2px 8px;font-weight:bold;border:1px solid #000;border-radius:6px;background:#f0f0f0">AKS</span> Solutions
+            <div style="margin-top: 15px; font-size: 10px;">
+              Software by <span style="display:inline-block;padding:4px 10px;font-weight:bold;border:1px solid #000;border-radius:8px;background:#f0f0f0">AKS Solutions</span> - Business Solution by Kaleem Mahesar
             </div>
           </div>
         </div>

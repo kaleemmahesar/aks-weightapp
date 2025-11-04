@@ -54,26 +54,44 @@ export default function OwnerDashboard() {
         .reduce((sum, r) => sum + Number(r.total_price || 0), 0);
 
     const generatePDF = () => {
-        const doc = new jsPDF();
-        doc.setFontSize(16);
-        doc.text("Awami Computerized Kanta", 14, 20);
+        const doc = new jsPDF('p', 'mm', 'a4');
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const pageHeight = doc.internal.pageSize.getHeight();
+        
+        // Add header
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(20);
+        doc.text("AL HUSSAINI COMPUTERISED KANTA", pageWidth / 2, 20, { align: "center" });
+
+        // Add date range and total revenue
         doc.setFontSize(12);
         doc.text(`From: ${fromDate || "Start"}  To: ${toDate || "End"}`, 14, 28);
         doc.text(`Total Revenue: ${totalRevenue} PKR`, 14, 36);
 
+        // Add table
         autoTable(doc, {
             startY: 45,
-            head: [["Vehicle", "Party", "Type", "Product", "First Weight", "Second Weight", "Net Weight", "Price"]],
-            body: filteredRecords.map(r => [
-                r.vehicle_number,
-                r.party_name || '-',
-                r.vehicle_type,
-                r.product,
-                r.first_weight,
-                r.second_weight || "-",
-                r.net_weight || "-",
-                r.total_price
-            ]),
+            head: [["ID", "Date", "Vehicle", "Party", "Type", "Product", "F.Weight", "S.Weight", "Net Weight", "Net Munds", "Price"]],
+            body: filteredRecords.map(r => {
+                const netWeight = parseFloat(r.net_weight) || 0;
+                const netMunds = netWeight / 40; // 1 Mund = 40 kg
+                const firstWeight = parseFloat(r.first_weight) || 0;
+                const secondWeight = parseFloat(r.second_weight) || 0;
+                const recordDate = r.date || r.first_weight_time || '';
+                return [
+                    r.id,
+                    recordDate,
+                    r.vehicle_number,
+                    r.party_name || '-',
+                    r.vehicle_type,
+                    r.product,
+                    firstWeight.toFixed(2),
+                    secondWeight.toFixed(2),
+                    netWeight.toFixed(2),
+                    netMunds.toFixed(2),
+                    r.total_price
+                ];
+            }),
             styles: {
                 fontSize: 10,
                 cellPadding: 3
@@ -81,6 +99,19 @@ export default function OwnerDashboard() {
             headStyles: {
                 fillColor: [102, 126, 234],
                 textColor: 255
+            },
+            columnStyles: {
+                0: { cellWidth: 15 },   // ID
+                1: { cellWidth: 20 },   // Date
+                2: { cellWidth: 25 },   // Vehicle
+                3: { cellWidth: 30 },   // Party
+                4: { cellWidth: 20 },   // Type
+                5: { cellWidth: 25 },   // Product
+                6: { cellWidth: 25 },   // F.Weight
+                7: { cellWidth: 25 },   // S.Weight
+                8: { cellWidth: 25 },   // Net Weight
+                9: { cellWidth: 25 },   // Net Munds
+                10: { cellWidth: 30 }   // Price
             }
         });
 

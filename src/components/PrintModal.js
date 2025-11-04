@@ -3,6 +3,8 @@ import { useSelector } from "react-redux";
 import { FaBalanceScale  } from "react-icons";
 import logo from '../assets/scale.png';
 import { formatToPST } from '../utils/dateUtils';
+import OldPrinterPrint from './OldPrinterPrint'; // Import the new component
+
 const PrintModal = ({ show, slipType, onClose }) => {
   const { selectedRecord: record } = useSelector(state => state.records || {});
   // console.log('PrintModal - vehicle_type:', record?.vehicle_type, 'record:', record);
@@ -53,54 +55,232 @@ const PrintModal = ({ show, slipType, onClose }) => {
     <title>Weighbridge Slip</title>
     <style>
       @media print {
-        @page { size: ${isSmallVehicle ? '140mm 140mm' : '180mm 180mm'}; margin: 0; }
+        @page { 
+          size: 8in 5.5in; 
+          margin: 0; 
+        }
 
         html, body {
-          margin: 0; padding: 0;
-          font-family: Tahoma, Verdana, Arial, sans-serif;
-          font-size: ${isSmallVehicle ? '9px' : '14px'};
-          text-transform: uppercase;
+          margin: 0; 
+          padding: 0;
+          font-family: 'Courier New', Courier, monospace;
+          font-size: 12px;
           color: #000;
-          line-height: ${isSmallVehicle ? '1.2' : '1.4'};
-          letter-spacing: ${isSmallVehicle ? '0.3px' : '0.5px'};
+          line-height: 1.3;
+          width: 8in;
+          height: 5.5in;
         }
 
         .slip-container {
           width: 100%;
+          height: 100%;
           box-sizing: border-box;
-          padding: ${topPadding} ${isSmallVehicle ? '10mm' : '15mm'} 0mm; /* 👈 simulate 10mm margins */
+          padding: 3mm 8mm 3mm 20mm; /* More space from left for sidebar */
           background: #fff;
           page-break-inside: avoid;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
         }
 
-        .row {
+        .center-content {
+          width: 100%;
+          margin: 0 auto;
+          text-align: left;
+        }
+
+        .party-line {
+          font-size: 16px;
+          margin-bottom: 5px;
+          font-weight: bold;
+        }
+
+        .product-line {
+          font-size: 14px;
+          margin-bottom: 10px;
+          font-weight: bold;
+        }
+
+        .weight-line {
           display: flex;
           justify-content: space-between;
-          margin: ${isSmallVehicle ? '1.5mm 15mm 0 10mm' : '2mm 21mm 0 14mm'};
-          font-size: ${isSmallVehicle ? '10px' : '13px'};
-          border-bottom: 1px solid #000;
-          padding-bottom: ${isSmallVehicle ? '0.5mm' : '1mm'};
+          font-size: 12px;
+          margin-bottom: 3px;
+          align-items: center;
         }
 
-        .center-row {
-          text-align: center;
-          font-size: ${isSmallVehicle ? '12px' : '15px'};
+        .vehicle-info {
+          width: 15%;
+        }
+
+        .serial-info {
+          width: 15%;
+        }
+
+        .datetime-info {
+          width: 25%;
+        }
+
+        .weight-info {
+          width: 20%;
+          text-align: right;
+          font-size: 22px;
+          font-weight: bolder;
+        }
+
+        .weight-type {
+          width: 5%;
+          text-align: left;
+          font-size: 16px;
           font-weight: bold;
-          margin: ${isSmallVehicle ? '2mm 0' : '3mm 0'};
-          letter-spacing: ${isSmallVehicle ? '0.5px' : '1px'};
         }
 
-        .footer { display: none; }
+        .net-weight-line {
+          text-align: right;
+          font-size: 16px;
+          font-weight: bold;
+          margin: 5px 0;
+          padding-right: 60px;
+        }
+
+        .result-line {
+          display: flex;
+          justify-content: space-between;
+          font-size: 12px;
+          margin-bottom: 3px;
+        }
+
+        .result-label {
+          width: 30%;
+        }
+
+        .result-value {
+          width: 30%;
+          text-align: right;
+        }
+
+        .footer-line {
+          text-align: center;
+          font-size: 12px;
+          font-weight: bold;
+          color: #0000ff;
+          margin-top: 15px;
+        }
+        
+        .price-line {
+          display: flex;
+          justify-content: flex-end;
+          font-size: 12px;
+          margin-top: 15px;
+          align-items: center;
+          padding-right: 30px;
+        }
+        .price-line.munds {
+          padding-right: 22px;
+          
+        }
+        .price-label {
+          font-weight: bold;
+          margin-right: 12px;
+        }
+        
+        .price-value {
+          font-size: 20px;
+          font-weight: bolder;
+          width: auto;
+          width: 250px;
+          text-align: right;
+        }
+        
+        .munds-line {
+          display: flex;
+          justify-content: flex-end;
+          font-size: 12px;
+          margin-bottom: 3px;
+        }
+        
+        .munds-label {
+          font-weight: normal;
+          margin-right: 10px;
+        }
+        
+        .munds-value {
+          font-size: 22px;
+          font-weight: bolder;
+          width: 60px;
+          text-align: right;
+        }
+        
+        hr {
+          border: none;
+          border-top: 1px solid #000;
+          margin: 15px 0 25px 0;
+        }
       }
     </style>
   </head>
   <body>
     <div class="slip-container">
-      <div class="row"><span>Party Name: ${record.party_name || "N/A"}</span></div>
-      <div class="row"><span>Serial No: ${record.vehicle_id || "N/A"}</span><span>Time: ${formatToPST(record.first_weight_time)}</span><span>${record.first_weight || "0.00"} Kg</span></div>
-        <div class="row"><span>Vehicle No: ${record.vehicle_number || "N/A"}</span><span>Time: ${formatToPST(record.second_weight_time)}</span><span>${record.second_weight || "0.00"} Kg</span></div>
-      <div class="row"><span>Product: ${record.product || "N/A"}</span><span>${record.net_weight || "0.00"} Kg</span></div>
-      <div class="center-row">Net Weight: ${sign}${munds} Munds ${remKg} Kg</div>
+      <div class="center-content">
+        <div class="party-line">
+         ${record.party_name || "N/A"}
+        </div>
+        
+        <div class="product-line">
+          ${record.product || "N/A"}
+        </div>
+        
+        <hr>
+        ${
+          slipType === "first" ? 
+          `<div class="weight-line">
+            <span class="vehicle-info">${record.vehicle_type || "N/A"}</span>
+            <span class="serial-info">${record.vehicle_id || "N/A"}</span>
+            <span class="datetime-info">${formatToPST(record.first_weight_time)}</span>
+            <span class="weight-info">${record.first_weight || "0.00"} KG</span>
+            <span class="weight-type">G</span>
+          </div>
+          <hr>
+          <div class="price-line">
+            <span class="price-label">Price:</span>
+            <span class="price-value">${record.total_price || "0"}</span>
+          </div>` : 
+          `<div class="weight-line">
+            <span class="vehicle-info">${record.vehicle_type || "N/A"}</span>
+            <span class="serial-info">${record.vehicle_id || "N/A"}</span>
+            <span class="datetime-info">${formatToPST(record.first_weight_time)}</span>
+            <span class="weight-info">${record.first_weight || "0.00"} KG</span>
+            <span class="weight-type">G</span>
+          </div>
+          <div class="weight-line">
+            <span class="vehicle-info">${record.vehicle_type || "N/A"}</span>
+            <span class="serial-info">${record.vehicle_id || "N/A"}</span>
+            <span class="datetime-info">${formatToPST(record.second_weight_time)}</span>
+            <span class="weight-info">${record.second_weight || "0.00"} KG</span>
+            <span class="weight-type">T</span>
+          </div>
+          <div class="weight-line">
+            <span class="vehicle-info"></span>
+            <span class="serial-info"></span>
+            <span class="datetime-info"></span>
+            <span class="weight-info">${record.net_weight || "0.00"} KG</span>
+            <span class="weight-type">N</span>
+          </div>`
+        }
+        <hr>
+        
+        ${
+          slipType !== "first" ? 
+          `<div class="price-line munds">
+            <span class="price-label">Munds @40 kg:</span>
+            <span class="price-value">${sign}${munds}-${remKg}</span>
+          </div>
+          <div class="price-line">
+            <span class="price-label">Price:</span>
+            <span class="price-value">${record.total_price || "0"}</span>
+          </div>` : ""
+        }
+      </div>
     </div>
   </body>
   </html>`;
@@ -185,10 +365,10 @@ const PrintModal = ({ show, slipType, onClose }) => {
           <hr style="border: 1px dashed #000; margin: ${isSmallVehicle ? '3px 0 6px' : '5px 0 10px'};" />
           <div class="header">
             ${!isSmallVehicle ? `<img src="${logo}" alt="logo" style="width:30px;height:30px;display:block;margin:0 auto 4px auto" />` : ''}
-            <div class="company-name">عوامی کمپیوٹرائزڈ کانٹا</div>
+            <div class="company-name">الحسینی کمپیوٹرائزڈ کانٹا</div>
             ${!isSmallVehicle ? `
-            <div class="company-details">میرو خان روڈ، لاڑکانہ</div>
-            <div class="company-details">فون: 03420721023</div>
+            <div class="company-details">Near Bhand Chowk, Taulka Sijawal Junejo</div>
+            <div class="company-details">Phone: 0331 4812277</div>
             ` : ''}
             <div class="company-details" style="font-weight:bold;font-size:${isSmallVehicle ? '9px' : '12px'};margin-top:${isSmallVehicle ? '4px' : '6px'};">
               ${slipType === "first" ? "پہلا وزن سلپ" : slipType === "second" ? "دوسرا وزن سلپ" : "حتمی وزن سلپ"}
@@ -254,7 +434,7 @@ const PrintModal = ({ show, slipType, onClose }) => {
                 </div>
                 <div class="weight-row">
   <span>من:</span>
-  <span style="font-size:${isSmallVehicle ? '14px' : '18px'}">
+  <span style="font-size:${isSmallVehicle ? '14px' : '18px'}; white-space: nowrap;">
     ${(({ sign, munds, remKg }) => `${sign}${munds} من ${remKg} کلو`)(kgToMundsString(record.net_weight))}
   </span>
 </div>
@@ -366,8 +546,8 @@ const PrintModal = ({ show, slipType, onClose }) => {
             <div className="modal-body" id="print-area">
               <div className="text-center mb-3">
                 <img src="/logo512.png" alt="Logo" style={{ height: "50px" }} />
-                <h4>Awami Computerized Kanta</h4>
-                <p>Miro Khan Road, Larkana | Phone: 03420721023</p>
+                <h4>Al Hussaini Computerised Kanta</h4>
+                <p>Near Bhand Chowk, Taulka Sijawal Junejo | Phone: 0331 4812277</p>
                 <hr />
               </div>
               <h4 className="text-center">
@@ -462,12 +642,11 @@ const PrintModal = ({ show, slipType, onClose }) => {
               </p>
             </div>
             <div className="modal-footer">
-              <button className="btn btn-primary" onClick={handlePrint}>
+              {/* <button className="btn btn-primary" onClick={handlePrint}>
                 Print
-              </button>
-              {/* <button className="btn btn-warning" onClick={() => handleOldPrinterPrint(slipType)}>
-    Print with Old Printer
-  </button> */}
+              </button> */}
+              {/* Use the new component for old printer printing */}
+              <OldPrinterPrint record={record} slipType={slipType} />
               <button className="btn btn-secondary" onClick={onClose}>
                 Close
               </button>

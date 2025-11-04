@@ -40,12 +40,12 @@ export default function RecordsTable({ records, openPrintModal, vehiclePrices, s
         // Add header
         doc.setFont("helvetica", "bold");
         doc.setFontSize(20);
-        doc.text("AWAMI COMPUTERIZED KANTA", pageWidth / 2, 20, { align: "center" });
+        doc.text("AL HUSSAINI COMPUTERISED KANTA", pageWidth / 2, 20, { align: "center" });
         
         doc.setFont("helvetica", "normal");
         doc.setFontSize(12);
-        doc.text("Miro Khan Road, Larkana", pageWidth / 2, 28, { align: "center" });
-        doc.text("Contact: 0333-8722847", pageWidth / 2, 34, { align: "center" });
+        doc.text("Near Bhand Chowk, Taulka Sijawal Junejo", pageWidth / 2, 28, { align: "center" });
+        doc.text("Contact: 0331 4812277", pageWidth / 2, 34, { align: "center" });
         
         // Add report info
         const reportDate = new Date().toLocaleDateString('en-GB');
@@ -56,31 +56,42 @@ export default function RecordsTable({ records, openPrintModal, vehiclePrices, s
         // Add table
         autoTable(doc, {
             startY: 50,
-            head: [["ID", "Vehicle", "Party", "Type", "Product", "First Weight", "Second Weight", "Net Weight", "Price"]],
-            body: records.map(r => [
-                r.id,
-                r.vehicle_number,
-                r.party_name || '-',
-                r.vehicle_type,
-                r.product,
-                r.first_weight ? Number(r.first_weight).toFixed(2) : "-",
-                r.second_weight ? Number(r.second_weight).toFixed(2) : "-",
-                r.net_weight ? Number(r.net_weight).toFixed(2) : "-",
-                r.total_price ? `PKR ${Number(r.total_price).toLocaleString()}` : "-"
-            ]),
+            head: [["ID", "Date", "Vehicle", "Party", "Type", "Product", "F.Weight", "S.Weight", "Net Weight", "Net Munds", "Price"]],
+            body: records.map(r => {
+                const netWeight = parseFloat(r.net_weight) || 0;
+                const netMunds = netWeight / 40; // 1 Mund = 40 kg
+                const firstWeight = parseFloat(r.first_weight) || 0;
+                const secondWeight = parseFloat(r.second_weight) || 0;
+                const recordDate = r.date || r.first_weight_time || '';
+                return [
+                    r.id,
+                    recordDate,
+                    r.vehicle_number,
+                    r.party_name || '-',
+                    r.vehicle_type,
+                    r.product,
+                    firstWeight.toFixed(2),
+                    secondWeight.toFixed(2),
+                    netWeight.toFixed(2),
+                    netMunds.toFixed(2),
+                    r.total_price ? `PKR ${Number(r.total_price).toLocaleString()}` : "-"
+                ];
+            }),
             styles: { fontSize: 8, cellPadding: 2 },
             headStyles: { fillColor: [102, 126, 234], textColor: [255, 255, 255] },
             alternateRowStyles: { fillColor: [245, 245, 245] },
             columnStyles: {
-                0: { cellWidth: 15 },
-                1: { cellWidth: 25 },
-                2: { cellWidth: 30 },
-                3: { cellWidth: 20 },
-                4: { cellWidth: 25 },
-                5: { cellWidth: 25 },
-                6: { cellWidth: 25 },
-                7: { cellWidth: 25 },
-                8: { cellWidth: 30 }
+                0: { cellWidth: 15 },   // ID
+                1: { cellWidth: 20 },   // Date
+                2: { cellWidth: 25 },   // Vehicle
+                3: { cellWidth: 30 },   // Party
+                4: { cellWidth: 20 },   // Type
+                5: { cellWidth: 25 },   // Product
+                6: { cellWidth: 25 },   // F.Weight
+                7: { cellWidth: 25 },   // S.Weight
+                8: { cellWidth: 25 },   // Net Weight
+                9: { cellWidth: 25 },   // Net Munds
+                10: { cellWidth: 30 }   // Price
             }
         });
 
