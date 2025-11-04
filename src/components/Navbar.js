@@ -6,7 +6,8 @@ import {
   FaTable,
   FaSignOutAlt,
   FaWeight,
-  FaMoneyBillWave
+  FaMoneyBillWave,
+  FaCog // Added settings icon
 } from "react-icons/fa";
 
 const Navbar = ({ onLogout }) => {
@@ -60,7 +61,8 @@ const Navbar = ({ onLogout }) => {
               { path: "/second-weight", label: "Second Weight", icon: <FaBalanceScale /> },
               { path: "/final-weight", label: "Final Weight", icon: <FaCheckCircle /> },
               { path: "/expenses", label: "Expenses", icon: <FaMoneyBillWave /> },
-              { path: "/records", label: "Records", icon: <FaTable /> }
+              { path: "/records", label: "Records", icon: <FaTable /> },
+              { path: "/settings", label: "Settings", icon: <FaCog /> } // Added Settings link
             ].map((item) => (
               <li className="nav-item" key={item.path}>
                 <NavLink

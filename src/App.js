@@ -6,7 +6,7 @@ import OperatorDashboard from "./pages/OperatorDashboard";
 import OwnerDashboard from "./pages/OwnerDashboard";
 import SecondWeightPage from "./pages/SecondWeightPage";
 import FinalWeightPage from "./pages/FinalWeightPage";
-import Settings from "./components/Settings";
+import SettingsPage from "./components/SettingsPage"; // Updated import
 import Navbar from "./components/Navbar";
 import RecordsPage from "./components/RecordsPage";
 import ExpensePage from "./components/ExpensePage";
@@ -140,7 +140,7 @@ function App() {
             path="/settings"
             element={
               <ProtectedRoute loggedIn={loggedIn}>
-                <Settings />
+                <SettingsPage />
               </ProtectedRoute>
             }
           />

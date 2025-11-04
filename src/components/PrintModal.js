@@ -11,9 +11,12 @@ const PrintModal = ({ show, slipType, onClose }) => {
   
   if (!show || !record) return null; // Completely unmount when hidden
 
-  // Define vehicle types that require vehicle number display
-  const vehicleTypesWithVehicleNumber = ['Truck', 'SixWheeler', 'DahWheeler', 'Rocket Double', 'Container', 'Shahzore', 'Datson', 'Mazda'];
-  const shouldShowVehicleNumber = record.vehicle_number && vehicleTypesWithVehicleNumber.includes(record.vehicle_type);
+  // Helper function to format weight without unnecessary decimals
+  const formatWeight = (weight) => {
+    if (weight === null || weight === undefined || weight === "") return "0";
+    const num = Number(weight);
+    return Number.isInteger(num) ? num.toString() : num.toFixed(2);
+  };
 
   function kgToMundsString(inputKg) {
   const n = Number(inputKg) || 0;
@@ -322,6 +325,13 @@ const PrintModal = ({ show, slipType, onClose }) => {
     return;
   }
 
+  // Helper function to format weight without unnecessary decimals
+  const formatWeight = (weight) => {
+    if (weight === null || weight === undefined || weight === "") return "0";
+    const num = Number(weight);
+    return Number.isInteger(num) ? num.toString() : num.toFixed(2);
+  };
+
   // Check if vehicle type is Daalo/Daala or GadahGano for smaller print view
   const vehicleType = (record.vehicle_type || '').toLowerCase();
   const isSmallVehicle = vehicleType === "daaloss" || vehicleType === "daalass" || vehicleType === "gadahganoss";
@@ -422,7 +432,7 @@ const PrintModal = ({ show, slipType, onClose }) => {
             ${slipType !== "final" ? `
               <div class="weight-row">
                 <span>پہلا وزن:</span>
-                <span style="font-size:${isSmallVehicle ? '14px' : '18px'}">${record.first_weight ? Number(record.first_weight).toFixed(2) : "0.00"} کلو</span>
+                <span style="font-size:${isSmallVehicle ? '14px' : '18px'}">${record.first_weight ? formatWeight(record.first_weight) : "0"} کلو</span>
               </div>
               <div class="info-row">
                 <span class="info-label" style="font-size:${isSmallVehicle ? '8px' : '11px'};">پہلے وزن کا وقت:</span>
@@ -432,7 +442,7 @@ const PrintModal = ({ show, slipType, onClose }) => {
             ${slipType === "final" && record.first_weight ? `
               <div class="weight-row">
                 <span>موجودہ وزن:</span>
-                <span style="font-size:${isSmallVehicle ? '14px' : '18px'}">${Number(record.first_weight).toFixed(2)} کلو</span>
+                <span style="font-size:${isSmallVehicle ? '14px' : '18px'}">${formatWeight(record.first_weight)} کلو</span>
               </div>
               <div class="info-row">
                 <span class="info-label" style="font-size:${isSmallVehicle ? '8px' : '11px'};">وقت:</span>
@@ -442,7 +452,7 @@ const PrintModal = ({ show, slipType, onClose }) => {
             ${slipType !== "first" && record.second_weight ? `
               <div class="weight-row">
                 <span>${slipType === "final" ? "خالی وزن:" : "دوسرا وزن:"}</span>
-                <span style="font-size:${isSmallVehicle ? '14px' : '18px'}">${Number(record.second_weight).toFixed(2)} کلو</span>
+                <span style="font-size:${isSmallVehicle ? '14px' : '18px'}">${formatWeight(record.second_weight)} کلو</span>
               </div>
               ${slipType !== "final" ? `
                 <div class="info-row">
@@ -454,7 +464,7 @@ const PrintModal = ({ show, slipType, onClose }) => {
               <div class="net-weight">
                 <div class="weight-row">
                   <span>خالص وزن:</span>
-                  <span style="font-size:${isSmallVehicle ? '14px' : '18px'}">${Number(record.net_weight).toFixed(2)} کلو</span>
+                  <span style="font-size:${isSmallVehicle ? '14px' : '18px'}">${formatWeight(record.net_weight)} کلو</span>
                 </div>
                 <div class="weight-row">
   <span>من:</span>
@@ -602,7 +612,7 @@ const PrintModal = ({ show, slipType, onClose }) => {
                 <>
                   <p>
                     <strong>First Weight:</strong>{" "}
-                    {Number(record.first_weight).toFixed(2)} Kg
+                    {formatWeight(record.first_weight)} Kg
                   </p>
 
                   <p>
@@ -620,7 +630,7 @@ const PrintModal = ({ show, slipType, onClose }) => {
                         ? "Empty Weight:"
                         : "Second Weight:"}
                     </strong>{" "}
-                    {Number(record.second_weight).toFixed(2)} Kg
+                    {formatWeight(record.second_weight)} Kg
                   </p>
                   {slipType !== "final" && (
                     <p>
@@ -638,7 +648,7 @@ const PrintModal = ({ show, slipType, onClose }) => {
                 <>
                   <p>
                     <strong>Current Weight:</strong>{" "}
-                    {Number(record.first_weight).toFixed(2)} kg
+                    {formatWeight(record.first_weight)} kg
                   </p>
                   <p>
                     <strong>Current Weight Time:</strong>{" "}
@@ -651,7 +661,7 @@ const PrintModal = ({ show, slipType, onClose }) => {
               {slipType !== "first" && record.net_weight && (
                 <p>
   <strong>Net Weight:</strong>{" "}
-  {Number(record.net_weight).toFixed(2)} kg &nbsp;
+  {formatWeight(record.net_weight)} kg &nbsp;
   <strong>Munds:</strong>{" "}
   {`${kgToMundsString(record.net_weight).sign}${kgToMundsString(record.net_weight).munds}`}{" "}
   Munds{" "}
@@ -666,9 +676,9 @@ const PrintModal = ({ show, slipType, onClose }) => {
               </p>
             </div>
             <div className="modal-footer">
-              {/* <button className="btn btn-primary" onClick={handlePrint}>
+              <button className="btn btn-primary" onClick={handlePrint}>
                 Print
-              </button> */}
+              </button>
               {/* Use the new component for old printer printing */}
               <OldPrinterPrint record={record} slipType={slipType} />
               <button className="btn btn-secondary" onClick={onClose}>
