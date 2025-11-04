@@ -10,6 +10,9 @@ export default function EditRecordModal({ show, onClose, record, slipType }) {
   const { settings = {} } = useSelector(state => state.settings || {});
   const vehiclePrices = getVehiclePrices(settings.vehiclePrices);
   
+  // Define vehicle types that require vehicle number
+  const vehicleTypesWithVehicleNumber = ['Truck', 'SixWheeler', 'DahWheeler', 'Rocket Double', 'Container', 'Shahzore', 'Datson', 'Mazda'];
+
   // Always call useFormik
   const formik = useFormik({
     enableReinitialize: true,
@@ -17,73 +20,70 @@ export default function EditRecordModal({ show, onClose, record, slipType }) {
       party_name: record?.party_name || "",
       vehicle_number: record?.vehicle_number || "",
       vehicle_type: record?.vehicle_type || "Truck",
+      product: record?.product || "",
       first_weight: record?.first_weight || "",
       second_weight: record?.second_weight || "",
     },
     validationSchema: Yup.object({
-  vehicle_number: Yup.string().required("Required"),
-  vehicle_type: Yup.string().required("Required"),
-  party_name: Yup.string().required("Required"),
-  
-  first_weight: Yup.number()
-    .typeError("Must be a number")
-    .test("first-weight-required", "Required", function(value) {
-      return slipType === "first" || slipType === "final" ? value !== undefined && value !== "" : true;
-    }),
+      vehicle_number: Yup.string().when('vehicle_type', {
+        is: (vehicleType) => vehicleTypesWithVehicleNumber.includes(vehicleType),
+        then: (schema) => schema.required("Required"),
+        otherwise: (schema) => schema
+      }),
+      vehicle_type: Yup.string().required("Required"),
+      party_name: Yup.string().required("Required"),
+      product: Yup.string().required("Required"),
+      
+      first_weight: Yup.number()
+        .typeError("Must be a number")
+        .test("first-weight-required", "Required", function(value) {
+          return slipType === "first" || slipType === "final" ? value !== undefined && value !== "" : true;
+        }),
 
-  second_weight: Yup.number()
-    .typeError("Must be a number")
-    .test("second-weight-required", "Required", function(value) {
-      return slipType === "second" || slipType === "final" ? value !== undefined && value !== "" : true;
+      second_weight: Yup.number()
+        .typeError("Must be a number")
+        .test("second-weight-required", "Required", function(value) {
+          return slipType === "second" || slipType === "final" ? value !== undefined && value !== "" : true;
+        }),
     }),
-}),
 
 
     onSubmit: async (values) => {
       console.log(values)
-    // ✅ Calculate derived fields
-  const net_weight =
-    parseFloat(values.first_weight || 0) - parseFloat(values.second_weight || 0);
-  const total_price = vehiclePrices[values.vehicle_type] || 0;
+      // ✅ Calculate derived fields
+      const net_weight = values.second_weight !== "" && values.first_weight !== "" ?
+        parseFloat(values.first_weight || 0) - parseFloat(values.second_weight || 0) : null;
+      
+      const total_price = vehiclePrices[values.vehicle_type] || 0;
 
-  // ✅ Prepare updated record
-  const updatedRecord = {
-    ...record,
-    ...values,
-    net_weight,
-    total_price,
-    slipTypeUpdated: slipType,
-  };
-  console.log(updateRecord)
-  try {
-    // Dispatch the Redux action to update the record
-    const resultAction = await dispatch(updateRecord({
-      id: updatedRecord.id,
-      party_name: updatedRecord.party_name,
-      vehicleNumber: updatedRecord.vehicle_number,
-      vehicleType: updatedRecord.vehicle_type,
-      product: updatedRecord.product,
-      first_weight: updatedRecord.first_weight,
-      second_weight: updatedRecord.second_weight,
-      net_weight: updatedRecord.net_weight,
-      total_price:updatedRecord.total_price
-    }));
+      try {
+        // Dispatch the Redux action to update the record
+        const resultAction = await dispatch(updateRecord({
+          id: record.id,
+          party_name: values.party_name,
+          vehicleNumber: values.vehicle_number,  // Changed from vehicle_number to vehicleNumber
+          vehicleType: values.vehicle_type,      // Changed from vehicle_type to vehicleType
+          product: values.product,
+          first_weight: values.first_weight !== "" ? parseFloat(values.first_weight) : null,
+          second_weight: values.second_weight !== "" ? parseFloat(values.second_weight) : null,
+          net_weight: net_weight,
+          total_price: total_price
+        }));
 
-    console.log(resultAction)
+        console.log(resultAction)
 
-    if (updateRecord.fulfilled.match(resultAction)) {
-      alert("✅ Record updated successfully!");
+        if (updateRecord.fulfilled.match(resultAction)) {
+          alert("✅ Record updated successfully!");
 
-      // ✅ Close modal
-      onClose();
-    } else {
-      alert("❌ " + (resultAction.error?.message || "Unknown error"));
-    }
-  } catch (err) {
-    console.error("Error updating record:", err);
-    alert("Error updating record. Check console.");
-  }
-
+          // ✅ Close modal
+          onClose();
+        } else {
+          alert("❌ " + (resultAction.error?.message || "Unknown error"));
+        }
+      } catch (err) {
+        console.error("Error updating record:", err);
+        alert("Error updating record. Check console.");
+      }
     }
   });
 
@@ -92,7 +92,7 @@ export default function EditRecordModal({ show, onClose, record, slipType }) {
   const netWeight =
     formik.values.first_weight && formik.values.second_weight
       ? (parseFloat(formik.values.first_weight) - parseFloat(formik.values.second_weight)).toFixed(2)
-      : 0;
+      : "N/A";
 
   const price = vehiclePrices[formik.values.vehicle_type] || 0;
 
@@ -165,7 +165,21 @@ export default function EditRecordModal({ show, onClose, record, slipType }) {
                 </div>
 
                 {/* Product */}
-                
+                <div className="mb-3">
+                  <label>Product</label>
+                  <input
+                    type="text"
+                    name="product"
+                    className={`form-control ${
+                      formik.touched.product && formik.errors.product ? "is-invalid" : ""
+                    }`}
+                    value={formik.values.product}
+                    onChange={formik.handleChange}
+                  />
+                  {formik.touched.product && formik.errors.product && (
+                    <div className="invalid-feedback">{formik.errors.product}</div>
+                  )}
+                </div>
 
                 {/* Conditional weights */}
                 {(slipType === "first" || slipType === "final") && (
@@ -184,6 +198,7 @@ export default function EditRecordModal({ show, onClose, record, slipType }) {
                   </div>
                 )}
 
+                {(slipType === "second" || slipType === "final") && (
                   <div className="mb-3">
                     <label>{slipType === "final" ? "Empty Weight:" : "Second Weight:"}</label>
                     <input
@@ -197,10 +212,9 @@ export default function EditRecordModal({ show, onClose, record, slipType }) {
                       <div className="invalid-feedback">{formik.errors.second_weight}</div>
                     )}
                   </div>
-                
-                {/* Driver Name */}
-                
+                )}
 
+                {/* Driver Name */}
                 {/* Net Weight and Price */}
                 <div className="d-flex justify-content-between mb-3">
                   <p>

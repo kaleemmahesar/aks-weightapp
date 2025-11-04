@@ -111,7 +111,11 @@ const FirstWeightForm = ({ liveWeight, onSuccess }) => {
   };
 
   const validationSchema = Yup.object({
-    vehicleNumber: Yup.string().required("Vehicle number is required"),
+    vehicleNumber: Yup.string().when('vehicleType', {
+      is: (vehicleType) => ['Truck', 'SixWheeler', 'DahWheeler', 'Rocket Double', 'Container', 'Shahzore', 'Datson', 'Mazda'].includes(vehicleType),
+      then: (schema) => schema.required("Vehicle number is required"),
+      otherwise: (schema) => schema
+    }),
     party: Yup.string().required("Party Name is required"),
     vehicleType: Yup.string().notOneOf(["Select"], "Please select a vehicle type"),
     product: Yup.string().required("Vehicle number is required"),

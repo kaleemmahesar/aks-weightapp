@@ -134,7 +134,11 @@ export default function FinalWeightForm({
       finalWithDriver: true,
     },
     validationSchema: Yup.object({
-      finalVehicle: Yup.string().required("Required"),
+      finalVehicle: Yup.string().when('finalVehicleType', {
+        is: (vehicleType) => ['Truck', 'SixWheeler', 'DahWheeler', 'Rocket Double', 'Container', 'Shahzore', 'Datson', 'Mazda'].includes(vehicleType),
+        then: (schema) => schema.required("Required"),
+        otherwise: (schema) => schema
+      }),
       party: Yup.string().required("Required"),
       finalVehicleType: Yup.string().required("Required"),
       finalProduct: Yup.string().required("Required"),

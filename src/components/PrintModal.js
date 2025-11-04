@@ -11,7 +11,9 @@ const PrintModal = ({ show, slipType, onClose }) => {
   
   if (!show || !record) return null; // Completely unmount when hidden
 
-
+  // Define vehicle types that require vehicle number display
+  const vehicleTypesWithVehicleNumber = ['Truck', 'SixWheeler', 'DahWheeler', 'Rocket Double', 'Container', 'Shahzore', 'Datson', 'Mazda'];
+  const shouldShowVehicleNumber = record.vehicle_number && vehicleTypesWithVehicleNumber.includes(record.vehicle_type);
 
   function kgToMundsString(inputKg) {
   const n = Number(inputKg) || 0;
@@ -34,6 +36,17 @@ const PrintModal = ({ show, slipType, onClose }) => {
   const handleOldPrinterPrint = (slipType) => {
   const win = window.open("", "", "width=800,height=600");
   if (!win) return alert("Popup blocked! Please allow popups.");
+
+  // Define vehicle types that require vehicle number display
+  const vehicleTypesWithVehicleNumber = ['Truck', 'SixWheeler', 'DahWheeler', 'Rocket Double', 'Container', 'Shahzore', 'Datson', 'Mazda'];
+  const shouldShowVehicleNumber = record.vehicle_number && vehicleTypesWithVehicleNumber.includes(record.vehicle_type);
+
+  // Helper function to format weight without unnecessary decimals
+  const formatWeight = (weight) => {
+    if (weight === null || weight === undefined || weight === "") return "0";
+    const num = Number(weight);
+    return Number.isInteger(num) ? num.toString() : num.toFixed(2);
+  };
 
   const { sign, munds, remKg } = kgToMundsString(record.net_weight);
 
@@ -98,6 +111,12 @@ const PrintModal = ({ show, slipType, onClose }) => {
         .product-line {
           font-size: 14px;
           margin-bottom: 10px;
+          font-weight: bold;
+        }
+
+        .vehicle-number-line {
+          font-size: 14px;
+          margin-bottom: 5px;
           font-weight: bold;
         }
 
@@ -230,6 +249,11 @@ const PrintModal = ({ show, slipType, onClose }) => {
           ${record.product || "N/A"}
         </div>
         
+        ${shouldShowVehicleNumber ? `
+        <div class="vehicle-number-line">
+          Vehicle: ${record.vehicle_number}
+        </div>` : ''}
+        
         <hr>
         ${
           slipType === "first" ? 
@@ -237,7 +261,7 @@ const PrintModal = ({ show, slipType, onClose }) => {
             <span class="vehicle-info">${record.vehicle_type || "N/A"}</span>
             <span class="serial-info">${record.vehicle_id || "N/A"}</span>
             <span class="datetime-info">${formatToPST(record.first_weight_time)}</span>
-            <span class="weight-info">${record.first_weight || "0.00"} KG</span>
+            <span class="weight-info">${formatWeight(record.first_weight)} KG</span>
             <span class="weight-type">G</span>
           </div>
           <hr>
@@ -249,21 +273,21 @@ const PrintModal = ({ show, slipType, onClose }) => {
             <span class="vehicle-info">${record.vehicle_type || "N/A"}</span>
             <span class="serial-info">${record.vehicle_id || "N/A"}</span>
             <span class="datetime-info">${formatToPST(record.first_weight_time)}</span>
-            <span class="weight-info">${record.first_weight || "0.00"} KG</span>
+            <span class="weight-info">${formatWeight(record.first_weight)} KG</span>
             <span class="weight-type">G</span>
           </div>
           <div class="weight-line">
             <span class="vehicle-info">${record.vehicle_type || "N/A"}</span>
             <span class="serial-info">${record.vehicle_id || "N/A"}</span>
             <span class="datetime-info">${formatToPST(record.second_weight_time)}</span>
-            <span class="weight-info">${record.second_weight || "0.00"} KG</span>
+            <span class="weight-info">${formatWeight(record.second_weight)} KG</span>
             <span class="weight-type">T</span>
           </div>
           <div class="weight-line">
             <span class="vehicle-info"></span>
             <span class="serial-info"></span>
             <span class="datetime-info"></span>
-            <span class="weight-info">${record.net_weight || "0.00"} KG</span>
+            <span class="weight-info">${formatWeight(record.net_weight)} KG</span>
             <span class="weight-type">N</span>
           </div>`
         }

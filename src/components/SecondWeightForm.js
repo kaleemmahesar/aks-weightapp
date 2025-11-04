@@ -197,6 +197,8 @@ export default function SecondWeightForm({ liveWeight, onSuccess }) {
                   formik.setFieldValue("selectedVehicle", option)
                 }
                 isSearchable
+                openMenuOnClick={true}
+                openMenuOnFocus={true}
                 menuPortalTarget={document.body}
                 menuPosition="absolute"
                 menuPlacement="auto"
@@ -212,8 +214,21 @@ export default function SecondWeightForm({ liveWeight, onSuccess }) {
                     minHeight: '58px'
                   })
                 }}
-                placeholder="Select Vehicle to Complete Weighing *"
+                placeholder="Type vehicle name or slip serial to search..."
                 className="enhanced-select"
+                filterOption={(option, inputValue) => {
+                  if (!inputValue) return false; // Don't show options until user types
+                  const record = option.data.record;
+                  if (!record) return false;
+                  
+                  // Check if input matches party name or serial number (ID)
+                  const partyNameMatch = record.party_name && 
+                    record.party_name.toLowerCase().includes(inputValue.toLowerCase());
+                  const serialMatch = record.id && 
+                    record.id.toString().includes(inputValue);
+                  
+                  return partyNameMatch || serialMatch;
+                }}
               />
               {formik.touched.selectedVehicle && formik.errors.selectedVehicle && (
                 <div className="error-message-enhanced">
@@ -260,31 +275,33 @@ export default function SecondWeightForm({ liveWeight, onSuccess }) {
           {/* ✅ Summary Section */}
 {formik.values.selectedVehicle?.record && (
   <div className="row">
-            <div className="col-6">
+            <div className="col-12">
   <div className="weight-summary">
-    <h4 className="summary-title">Weight Summary</h4>
+    <h4 className="summary-title" style={{ fontSize: '2rem' }}>Weight Summary</h4>
     <div className="summary-column">
       <div className="summary-item">
-        <span className="summary-label">First Weight:</span>
-        <span className="summary-value">
+        <span className="summary-label" style={{ fontSize: '1.5rem' }}>First Weight:</span>
+        <span className="summary-value" style={{ fontSize: '2rem', fontWeight: 'bold' }}>
           {formik.values.selectedVehicle.record.first_weight} KG
         </span>
       </div>
       <div className="summary-item">
-        <span className="summary-label">Second Weight:</span>
-        <span className="summary-value">
+        <span className="summary-label" style={{ fontSize: '1.5rem' }}>Second Weight:</span>
+        <span className="summary-value" style={{ fontSize: '2rem', fontWeight: 'bold' }}>
           {formik.values.secondWeight || "-"} KG
         </span>
       </div>
       <div className="summary-item net-weight">
-        <span className="summary-label">Net Weight:</span>
-        <span className="summary-value">
+        <span className="summary-label" style={{ fontSize: '1.5rem' }}>Net Weight:</span>
+        <span className="summary-value" style={{ fontSize: '2rem', fontWeight: 'bold' }}>
           {formik.values.secondWeight
             ? (() => {
                 const netWeight = formik.values.selectedVehicle.record.first_weight - formik.values.secondWeight;
                 const munds = netWeight / 40;
+                const mundsInteger = Math.floor(munds);
+                const kgRemaining = netWeight % 40;
                 const tons = netWeight / 1000;
-                return `${netWeight.toFixed(2)} KG | ${munds.toFixed(2)} Munds | ${tons.toFixed(2)} Tons`;
+                return `${netWeight.toFixed(2)} KG | ${mundsInteger} Munds ${kgRemaining.toFixed(0)} kg | ${tons.toFixed(2)} Tons`;
               })()
             : "-"}
         </span>
