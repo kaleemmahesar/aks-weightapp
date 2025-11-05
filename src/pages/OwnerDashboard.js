@@ -1,8 +1,4 @@
-
 import React, { useState, useEffect } from "react";
-import jsPDF from "jspdf";
-import "jspdf-autotable";
-import autoTable from "jspdf-autotable";
 import axios from "axios";
 import "../styles/Dashboard.css";
 
@@ -53,69 +49,285 @@ export default function OwnerDashboard() {
         .filter(r => r.second_weight)
         .reduce((sum, r) => sum + Number(r.total_price || 0), 0);
 
-    const generatePDF = () => {
-        const doc = new jsPDF('p', 'mm', 'a4');
-        const pageWidth = doc.internal.pageSize.getWidth();
-        const pageHeight = doc.internal.pageSize.getHeight();
+    // Function to format weight without .00 decimals when not needed
+    const formatWeight = (weight) => {
+      if (!weight) return "-";
+      const num = parseFloat(weight);
+      if (isNaN(num)) return "-";
+      
+      // If it's a whole number, don't show decimals
+      if (num % 1 === 0) {
+        return num.toString();
+      } else {
+        // Otherwise, show one decimal place
+        return num.toFixed(1);
+      }
+    };
+
+    // Function to format date as "22/10/25 @ 8:34 pm"
+    const formatDateTimeForDisplay = (dateString) => {
+      if (!dateString) return "-";
+      
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return "-";
+      
+      // Format as "22/10/25 @ 8:34 pm"
+      const day = date.toLocaleString("en-GB", { timeZone: "Asia/Karachi", day: "2-digit" });
+      const month = date.toLocaleString("en-GB", { timeZone: "Asia/Karachi", month: "2-digit" });
+      const year = date.toLocaleString("en-GB", { timeZone: "Asia/Karachi", year: "2-digit" });
+      let hour = date.toLocaleString("en-GB", { timeZone: "Asia/Karachi", hour: "numeric", hour12: false });
+      const minute = date.toLocaleString("en-GB", { timeZone: "Asia/Karachi", minute: "2-digit" });
+      
+      // Convert to 12-hour format
+      let ampm = "am";
+      if (hour >= 12) {
+        ampm = "pm";
+        if (hour > 12) {
+          hour = hour - 12;
+        }
+      }
+      if (hour === 0) {
+        hour = 12;
+      }
+      
+      return `${day}/${month}/${year} @ ${hour}:${minute} ${ampm}`;
+    };
+
+    const generateReport = () => {
+        // Create HTML content for printing
+        const printWindow = window.open("", "", "width=800,height=600");
+        if (!printWindow) {
+            alert("Popup blocked! Please allow popups for report generation.");
+            return;
+        }
+
+        const html = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Weighbridge Report</title>
+            <style>
+                @media print {
+                    @page {
+                        size: A4;
+                        margin: 15mm;
+                    }
+                }
+                
+                body {
+                    font-family: Arial, sans-serif;
+                    font-size: 10px; /* Smaller font size */
+                    line-height: 1.3;
+                    color: #000;
+                    margin: 0;
+                    padding: 15mm;
+                }
+                
+                .header {
+                    text-align: center;
+                    border-bottom: 2px solid #000;
+                    padding-bottom: 8px;
+                    margin-bottom: 12px;
+                }
+                
+                .company-name {
+                    font-size: 20px;
+                    font-weight: bold;
+                    color: #2c3e50;
+                }
+                
+                .report-info {
+                    font-size: 12px;
+                    margin: 6px 0;
+                    color: #34495e;
+                }
+                
+                .report-title {
+                    text-align: center;
+                    font-size: 16px;
+                    font-weight: bold;
+                    margin: 12px 0;
+                    color: #1a5276;
+                }
+                
+                .summary-section {
+                    margin: 12px 0;
+                    page-break-inside: avoid;
+                }
+                
+                .summary-title {
+                    text-align: center;
+                    font-size: 14px;
+                    font-weight: bold;
+                    border-bottom: 1px solid #000;
+                    padding-bottom: 4px;
+                    margin-bottom: 8px;
+                    color: #2c3e50;
+                }
+                
+                .summary-row {
+                    display: flex;
+                    justify-content: space-between;
+                    gap: 8px;
+                    margin: 6px 0;
+                    border-bottom: 1px dotted #999;
+                    font-size: 11px;
+                    align-items: center;
+                }
+                
+                .summary-label {
+                    font-weight: bold;
+                    display: inline-block;
+                    min-width: 120px;
+                    white-space: normal;
+                }
+                
+                .summary-value {
+                    font-size: 12px;
+                    font-weight: bold;
+                    display: inline-block;
+                    white-space: normal;
+                    word-break: break-word;
+                }
+                
+                table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    margin: 12px 0;
+                    font-size: 9px; /* Smaller font size for table */
+                    page-break-inside: auto;
+                }
+                
+                thead { 
+                    display: table-header-group; 
+                }
+                
+                tfoot { 
+                    display: table-footer-group; 
+                }
+                
+                tr {
+                    page-break-inside: avoid;
+                    page-break-after: auto;
+                }
+                
+                th, td {
+                    text-align: left;
+                    padding: 4px 3px;
+                    border: 1px solid #000;
+                }
+                
+                th {
+                    font-weight: bold;
+                    font-size: 10px;
+                    background-color: #ecf0f1;
+                }
+                
+                .text-center {
+                    text-align: center;
+                }
+                
+                .text-right {
+                    text-align: right;
+                }
+                
+                .footer {
+                    padding-top: 12px;
+                    margin-top: 16px;
+                    text-align: center;
+                    font-size: 10px;
+                    border-top: 2px solid #000;
+                    page-break-inside: avoid;
+                }
+                
+                .signature-line {
+                    margin: 12px 0;
+                    font-size: 10px;
+                }
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <div class="company-name">AL HUSSAINI COMPUTERISED KANTA</div>
+                <div class="report-info">Date Range: ${fromDate || "Start"} to ${toDate || "End"}</div>
+            </div>
+            
+            <div class="report-title">WEIGHBRIDGE REPORT</div>
+            
+            <div class="summary-section">
+                <div class="summary-title">FINANCIAL SUMMARY</div>
+                <div class="summary-row">
+                    <span class="summary-label">Total Revenue:</span>
+                    <span class="summary-value">₹${totalRevenue.toLocaleString()}</span>
+                </div>
+                <div class="summary-row">
+                    <span class="summary-label">Total Records:</span>
+                    <span class="summary-value">${filteredRecords.length}</span>
+                </div>
+            </div>
+            
+            <div class="summary-section">
+                <div class="summary-title">RECORDS</div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Date</th>
+                            <th>Vehicle</th>
+                            <th>Type</th>
+                            <th>Product</th>
+                            <th>F.Weight</th>
+                            <th>S.Weight</th>
+                            <th>Net Weight</th>
+                            <th>Net Munds</th>
+                            <th>Price</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${filteredRecords.map(r => {
+                            const netWeight = parseFloat(r.net_weight) || 0;
+                            const netMunds = netWeight / 40; // 1 Mund = 40 kg
+                            const firstWeight = parseFloat(r.first_weight) || 0;
+                            const secondWeight = parseFloat(r.second_weight) || 0;
+                            const recordDate = r.date || r.first_weight_time || '';
+                            return `
+                            <tr>
+                                <td>${r.id}</td>
+                                <td>${recordDate ? formatDateTimeForDisplay(recordDate) : '-'}</td>
+                                <td>${r.vehicle_number}</td>
+                                <td>${r.vehicle_type}</td>
+                                <td>${r.product}</td>
+                                <td>${formatWeight(firstWeight)}</td>
+                                <td>${formatWeight(secondWeight)}</td>
+                                <td>${formatWeight(netWeight)} kg</td>
+                                <td>${netMunds.toFixed(2)} Munds</td>
+                                <td>₹${Number(r.total_price).toLocaleString()}</td>
+                            </tr>
+                        `}).join('')}
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="footer">
+                <div class="signature-line">Owner: _____________</div>
+                <div class="signature-line">Manager: _____________</div>
+                <div style="margin-top: 12px; font-size: 9px;">
+                    Software by <span style="display:inline-block;padding:3px 8px;font-weight:bold;border:1px solid #000;border-radius:6px;background:#f0f0f0">AKS Solutions</span> - Business Solution by Kaleem Mahesar
+                </div>
+            </div>
+        </body>
+        </html>
+        `;
         
-        // Add header
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(20);
-        doc.text("AL HUSSAINI COMPUTERISED KANTA", pageWidth / 2, 20, { align: "center" });
-
-        // Add date range and total revenue
-        doc.setFontSize(12);
-        doc.text(`From: ${fromDate || "Start"}  To: ${toDate || "End"}`, 14, 28);
-        doc.text(`Total Revenue: ${totalRevenue} PKR`, 14, 36);
-
-        // Add table
-        autoTable(doc, {
-            startY: 45,
-            head: [["ID", "Date", "Vehicle", "Party", "Type", "Product", "F.Weight", "S.Weight", "Net Weight", "Net Munds", "Price"]],
-            body: filteredRecords.map(r => {
-                const netWeight = parseFloat(r.net_weight) || 0;
-                const netMunds = netWeight / 40; // 1 Mund = 40 kg
-                const firstWeight = parseFloat(r.first_weight) || 0;
-                const secondWeight = parseFloat(r.second_weight) || 0;
-                const recordDate = r.date || r.first_weight_time || '';
-                return [
-                    r.id,
-                    recordDate,
-                    r.vehicle_number,
-                    r.party_name || '-',
-                    r.vehicle_type,
-                    r.product,
-                    firstWeight.toFixed(2),
-                    secondWeight.toFixed(2),
-                    netWeight.toFixed(2),
-                    netMunds.toFixed(2),
-                    r.total_price
-                ];
-            }),
-            styles: {
-                fontSize: 10,
-                cellPadding: 3
-            },
-            headStyles: {
-                fillColor: [102, 126, 234],
-                textColor: 255
-            },
-            columnStyles: {
-                0: { cellWidth: 15 },   // ID
-                1: { cellWidth: 20 },   // Date
-                2: { cellWidth: 25 },   // Vehicle
-                3: { cellWidth: 30 },   // Party
-                4: { cellWidth: 20 },   // Type
-                5: { cellWidth: 25 },   // Product
-                6: { cellWidth: 25 },   // F.Weight
-                7: { cellWidth: 25 },   // S.Weight
-                8: { cellWidth: 25 },   // Net Weight
-                9: { cellWidth: 25 },   // Net Munds
-                10: { cellWidth: 30 }   // Price
-            }
-        });
-
-        doc.save("weighbridge_report.pdf");
+        printWindow.document.write(html);
+        printWindow.document.close();
+        
+        // Wait for content to load then print
+        setTimeout(() => {
+            printWindow.focus();
+            printWindow.print();
+            printWindow.close();
+        }, 500);
     };
 
     return (
@@ -208,7 +420,7 @@ export default function OwnerDashboard() {
                                         padding: "12px 0",
                                         transition: "all 0.3s ease"
                                     }}
-                                    onClick={generatePDF}
+                                    onClick={generateReport}
                                     onMouseOver={(e) => {
                                         e.target.style.transform = "translateY(-2px)";
                                         e.target.style.boxShadow = "0 8px 20px rgba(231, 76, 60, 0.3)";
@@ -218,8 +430,8 @@ export default function OwnerDashboard() {
                                         e.target.style.boxShadow = "none";
                                     }}
                                 >
-                                    <i className="fas fa-file-pdf me-2"></i>
-                                    Generate PDF
+                                    <i className="fas fa-print me-2"></i>
+                                    Print Report
                                 </button>
                             </div>
                         </div>
@@ -263,10 +475,10 @@ export default function OwnerDashboard() {
                                             <td className="fw-semibold">{r.vehicle_number}</td>
                                             <td>{r.vehicle_type}</td>
                                             <td>{r.product}</td>
-                                            <td>{r.first_weight}</td>
-                                            <td>{r.second_weight || "-"}</td>
-                                            <td className="fw-bold text-primary">{r.net_weight || "-"}</td>
-                                            <td className="fw-bold text-success">PKR {Number(r.total_price).toLocaleString()}</td>
+                                            <td>{formatWeight(r.first_weight)}</td>
+                                            <td>{r.second_weight ? formatWeight(r.second_weight) : "-"}</td>
+                                            <td className="fw-bold text-primary">{r.net_weight ? formatWeight(r.net_weight) : "-"}</td>
+                                            <td className="fw-bold text-success">₹{Number(r.total_price).toLocaleString()}</td>
                                         </tr>
                                     ))
                                 )}

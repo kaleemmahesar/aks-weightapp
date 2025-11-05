@@ -12,6 +12,7 @@ import {
 } from '../redux/slices/expenseSlice';
 import { FaPlus, FaEdit, FaTrash, FaMoneyBillWave, FaCalendarAlt, FaSearch } from 'react-icons/fa';
 import notify from './notification';
+import PaginationControls from './PaginationControls';
 import '../styles/WeightForms.css';
 import '../styles/EnhancedForms.css';
 
@@ -22,6 +23,8 @@ const ExpensePage = () => {
   const [showModal, setShowModal] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState(''); // For filtering by category
   const [searchTerm, setSearchTerm] = useState(''); // For text-based search
+  const [currentPage, setCurrentPage] = useState(1);
+  const [expensesPerPage, setExpensesPerPage] = useState(5); // Default to 5 expenses per page to show pagination
 
   // Expense categories
   const expenseCategories = [
@@ -102,6 +105,13 @@ const ExpensePage = () => {
     }
   }, [expenses, dispatch]);
 
+  // Helper function to get expense date (handles both 'date' and 'expense_date' properties)
+  const getExpenseDate = (expense) => {
+    const dateValue = expense.date || expense.expense_date || expense.created_at;
+    if (!dateValue) return null;
+    return new Date(dateValue);
+  };
+
   // Filter expenses by category and search term
   const filteredExpenses = expenses.filter(expense => {
     // Filter by category if selected
@@ -119,6 +129,28 @@ const ExpensePage = () => {
 
   // Calculate total for filtered expenses
   const filteredTotal = filteredExpenses.reduce((sum, expense) => sum + (parseFloat(expense.amount) || 0), 0);
+
+  // Pagination calculations
+  const totalPages = Math.ceil(filteredExpenses.length / expensesPerPage);
+  const paginatedExpenses = [...filteredExpenses]
+    .sort((a, b) => {
+      const dateA = getExpenseDate(a);
+      const dateB = getExpenseDate(b);
+      return dateB - dateA;
+    })
+    .slice(
+      (currentPage - 1) * expensesPerPage,
+      currentPage * expensesPerPage
+    );
+
+  // Pagination handlers
+  const handlePrev = () => setCurrentPage(prev => Math.max(prev - 1, 1));
+  const handleNext = () => setCurrentPage(prev => Math.min(prev + 1, totalPages));
+  const handlePageClick = (page) => setCurrentPage(page);
+  const handleExpensesPerPageChange = (e) => {
+    setExpensesPerPage(Number(e.target.value));
+    setCurrentPage(1); // Reset to first page when changing expenses per page
+  };
 
   // Get category color
   const getCategoryColor = (category) => {
@@ -170,13 +202,6 @@ const ExpensePage = () => {
       currency: 'PKR',
       minimumFractionDigits: 0
     }).format(amount);
-  };
-
-  // Helper function to get expense date (handles both 'date' and 'expense_date' properties)
-  const getExpenseDate = (expense) => {
-    const dateValue = expense.date || expense.expense_date || expense.created_at;
-    if (!dateValue) return null;
-    return new Date(dateValue);
   };
 
   // Filter expenses by date range
@@ -500,78 +525,92 @@ const ExpensePage = () => {
                       <span className="visually-hidden">Loading...</span>
                     </div>
                   </div>
-                ) : filteredExpenses.length === 0 ? (
-                  <div className="text-center py-4">
-                    <p className="text-muted">
-                      {selectedCategory ? `No expenses found for category "${selectedCategory}".` : 'No expenses recorded yet.'}
-                    </p>
-                  </div>
                 ) : (
-                  <div className="table-responsive">
-                    <table className="table table-striped table-hover">
-                      <thead className="table-dark">
-                        <tr>
-                          <th>Date</th>
-                          <th>Description</th>
-                          <th>Category</th>
-                          <th>Amount</th>
-                          <th>Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {[...filteredExpenses]
-                          .sort((a, b) => {
-                            const dateA = getExpenseDate(a);
-                            const dateB = getExpenseDate(b);
-                            return dateB - dateA;
-                          })
-                          .map((expense) => (
-                          <tr key={expense.id}>
-                            <td>
-                              {(() => {
-                                const expenseDate = getExpenseDate(expense);
-                                return expenseDate ? 
-                                  expenseDate.toLocaleDateString('en-GB', {
-                                    day: 'numeric',
-                                    month: 'short',
-                                    year: 'numeric'
-                                  }) : 
-                                  'No Date';
-                              })()}
-                            </td>
-                            <td>{expense.description || expense.title || 'No Description'}</td>
-                            <td>
-                              <span className={`badge ${getCategoryColor(expense.category)}`}>
-                                {expense.category || 'Uncategorized'}
-                              </span>
-                            </td>
-                            <td className="text-danger fw-bold">
-                              {expense.amount && !isNaN(expense.amount) ? 
-                                formatCurrency(parseFloat(expense.amount)) : 
-                                'Rs 0'
-                              }
-                            </td>
-                            <td>
-                              <button
-                                className="btn btn-sm btn-outline-primary me-2"
-                                onClick={() => handleEdit(expense)}
-                                title="Edit"
-                              >
-                                <FaEdit />
-                              </button>
-                              <button
-                                className="btn btn-sm btn-outline-danger"
-                                onClick={() => handleDelete(expense.id)}
-                                title="Delete"
-                              >
-                                <FaTrash />
-                              </button>
-                            </td>
+                  <>
+                    <div className="table-responsive">
+                      <table className="table table-striped table-hover">
+                        <thead className="table-dark">
+                          <tr>
+                            <th>Date</th>
+                            <th>Description</th>
+                            <th>Category</th>
+                            <th>Amount</th>
+                            <th>Actions</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                        </thead>
+                        <tbody>
+                          {paginatedExpenses.length > 0 ? (
+                            paginatedExpenses.map((expense) => (
+                              <tr key={expense.id}>
+                                <td>
+                                  {(() => {
+                                    const expenseDate = getExpenseDate(expense);
+                                    return expenseDate ? 
+                                      expenseDate.toLocaleDateString('en-GB', {
+                                        day: 'numeric',
+                                        month: 'short',
+                                        year: 'numeric'
+                                      }) : 
+                                      'No Date';
+                                  })()}
+                                </td>
+                                <td>{expense.description || expense.title || 'No Description'}</td>
+                                <td>
+                                  <span className={`badge ${getCategoryColor(expense.category)}`}>
+                                    {expense.category || 'Uncategorized'}
+                                  </span>
+                                </td>
+                                <td className="text-danger fw-bold">
+                                  {expense.amount && !isNaN(expense.amount) ? 
+                                    formatCurrency(parseFloat(expense.amount)) : 
+                                    'Rs 0'
+                                  }
+                                </td>
+                                <td>
+                                  <button
+                                    className="btn btn-sm btn-outline-primary me-2"
+                                    onClick={() => handleEdit(expense)}
+                                    title="Edit"
+                                  >
+                                    <FaEdit />
+                                  </button>
+                                  <button
+                                    className="btn btn-sm btn-outline-danger"
+                                    onClick={() => handleDelete(expense.id)}
+                                    title="Delete"
+                                  >
+                                    <FaTrash />
+                                  </button>
+                                </td>
+                              </tr>
+                            ))
+                          ) : (
+                            <tr>
+                              <td colSpan="5" className="text-center text-muted py-3">
+                                {selectedCategory ? `No expenses found for category "${selectedCategory}".` : 'No expenses recorded yet.'}
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                    
+                    {/* Pagination Controls */}
+                    {totalPages > 1 && (
+                      <PaginationControls
+                        currentPage={currentPage}
+                        totalPages={totalPages}
+                        itemsPerPage={expensesPerPage}
+                        totalItems={filteredExpenses.length}
+                        onPageChange={setCurrentPage}
+                        onItemsPerPageChange={(value) => {
+                          setExpensesPerPage(value);
+                          setCurrentPage(1);
+                        }}
+                        itemsPerPageOptions={[5, 10, 20, 50]}
+                      />
+                    )}
+                  </>
                 )}
               </div>
             </div>

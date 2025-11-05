@@ -325,7 +325,7 @@ const OldPrinterPrint = ({ record, slipType }) => {
 
   return (
     <button className="btn btn-warning" onClick={handlePrint}>
-      Print with Old Printer
+      Print
     </button>
   );
 };

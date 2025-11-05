@@ -1,21 +1,5 @@
 // Common vehicle types and prices configuration for all forms
 export const STANDARD_VEHICLE_PRICES = {
-  "Daalo": 100,
-  "Tractor": 300,
-  "GadahGano": 100,
-  "Mazda": 300,
-  "Datson": 150,
-  "Shahzore": 150,
-  "Chingchi": 100,
-  "Truck": 250,
-  "Trailer": 350,
-  "Container": 400,
-  "Daala": 200,
-  "RocketDouble": 200,
-  "Bike": 50,
-  "Bags" : 100,
-  "DahWheeler": 500,
-  "SixWheeler": 400,
   
 };
 

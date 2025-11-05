@@ -124,6 +124,24 @@ const api = {
     }
   },
 
+  // Delete Vehicle Type
+  deleteVehicleType: async (vehicleType) => {
+    try {
+      const response = await axios.post(
+        `${API_BASE_URL}/index.php?action=deleteVehicleType`,
+        { vehicleType },
+        {
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
   // Expenses
   getExpenses: async () => {
     try {

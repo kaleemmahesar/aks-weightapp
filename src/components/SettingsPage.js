@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { updateSettingsData, fetchSettings } from "../redux/slices/settingsSlice";
+import { updateSettingsData, fetchSettings, deleteVehicleType } from "../redux/slices/settingsSlice";
 import { getVehiclePrices } from "../config/vehicleConfig";
 
 const SettingsPage = () => {
@@ -42,7 +42,7 @@ const SettingsPage = () => {
       [newVehicleType]: parseFloat(newVehiclePrice)
     };
     
-    // Dispatch update to Redux store
+    // Dispatch update to Redux store and backend
     dispatch(updateSettingsData({
       ...settings,
       vehiclePrices: updatedVehiclePrices
@@ -68,7 +68,7 @@ const SettingsPage = () => {
       [editingVehicleType]: parseFloat(editingVehiclePrice)
     };
     
-    // Dispatch update to Redux store
+    // Dispatch update to Redux store and backend
     dispatch(updateSettingsData({
       ...settings,
       vehiclePrices: updatedVehiclePrices
@@ -82,15 +82,8 @@ const SettingsPage = () => {
   // Handle deleting a vehicle type
   const handleDeleteVehicleType = (vehicleType) => {
     if (window.confirm(`Are you sure you want to delete ${vehicleType}?`)) {
-      // Create updated vehicle prices object without the deleted type
-      const updatedVehiclePrices = { ...settings.vehiclePrices };
-      delete updatedVehiclePrices[vehicleType];
-      
-      // Dispatch update to Redux store
-      dispatch(updateSettingsData({
-        ...settings,
-        vehiclePrices: updatedVehiclePrices
-      }));
+      // Dispatch delete to Redux store and backend
+      dispatch(deleteVehicleType(vehicleType));
     }
   };
 
@@ -138,51 +131,7 @@ const SettingsPage = () => {
                   </form>
                 </div>
               </div>
-              
-              <hr />
-              
-              {/* Existing Vehicle Types List */}
-              <div className="row">
-                <div className="col-md-12">
-                  <h5>Existing Vehicle Types</h5>
-                  {Object.keys(vehiclePrices).length === 0 ? (
-                    <p className="text-muted">No custom vehicle types added yet.</p>
-                  ) : (
-                    <div className="row">
-                      {Object.entries(vehiclePrices).map(([type, price]) => (
-                        <div className="col-md-4 mb-3" key={type}>
-                          <div className="card">
-                            <div className="card-body d-flex justify-content-between align-items-center">
-                              <div>
-                                <h6 className="mb-0">{type}</h6>
-                                <p className="mb-0 text-muted">{price.toLocaleString()} PKR</p>
-                              </div>
-                              <div>
-                                <button
-                                  className="btn btn-sm btn-warning me-2"
-                                  onClick={() => {
-                                    setEditingVehicleType(type);
-                                    setEditingVehiclePrice(price.toString());
-                                  }}
-                                >
-                                  Edit
-                                </button>
-                                <button
-                                  className="btn btn-sm btn-danger"
-                                  onClick={() => handleDeleteVehicleType(type)}
-                                >
-                                  Delete
-                                </button>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-              
+
               {/* Edit Vehicle Type Form (shown when editing) */}
               {editingVehicleType && (
                 <>
@@ -231,6 +180,50 @@ const SettingsPage = () => {
                   </div>
                 </>
               )}
+              
+              {/* Existing Vehicle Types List */}
+              <div className="row">
+                <div className="col-md-12">
+                  <h5>Existing Vehicle Types</h5>
+                  {Object.keys(vehiclePrices).length === 0 ? (
+                    <p className="text-muted">No custom vehicle types added yet.</p>
+                  ) : (
+                    <div className="row">
+                      {Object.entries(vehiclePrices).map(([type, price]) => (
+                        <div className="col-md-4 mb-3" key={type}>
+                          <div className="card">
+                            <div className="card-body d-flex justify-content-between align-items-center">
+                              <div>
+                                <h6 className="mb-0">{type}</h6>
+                                <p className="mb-0 text-muted">{price.toLocaleString()} PKR</p>
+                              </div>
+                              <div>
+                                <button
+                                  className="btn btn-sm btn-warning me-2"
+                                  onClick={() => {
+                                    setEditingVehicleType(type);
+                                    setEditingVehiclePrice(price.toString());
+                                  }}
+                                >
+                                  Edit
+                                </button>
+                                <button
+                                  className="btn btn-sm btn-danger"
+                                  onClick={() => handleDeleteVehicleType(type)}
+                                >
+                                  Delete
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+              
+              
             </div>
           </div>
         </div>

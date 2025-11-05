@@ -676,9 +676,9 @@ const PrintModal = ({ show, slipType, onClose }) => {
               </p>
             </div>
             <div className="modal-footer">
-              <button className="btn btn-primary" onClick={handlePrint}>
+              {/* <button className="btn btn-primary" onClick={handlePrint}>
                 Print
-              </button>
+              </button> */}
               {/* Use the new component for old printer printing */}
               <OldPrinterPrint record={record} slipType={slipType} />
               <button className="btn btn-secondary" onClick={onClose}>

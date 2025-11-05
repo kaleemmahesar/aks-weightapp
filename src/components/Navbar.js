@@ -33,7 +33,7 @@ const Navbar = ({ onLogout }) => {
           className="navbar-brand fw-bold text-white"
           to="/dashboard"
           style={{
-            fontSize: "1.6rem",
+            fontSize: "1.25rem",
             letterSpacing: "0.5px",
             display: "flex",
             alignItems: "center"
@@ -74,10 +74,10 @@ const Navbar = ({ onLogout }) => {
                   }
                   style={{
                     borderRadius: "8px",
-                    margin: "0 6px",
+                    margin: "0 3px",
                     color: "#e5e7eb",
-                    fontSize: "1rem",
-                    gap: "8px",
+                    fontSize: ".85rem",
+                    gap: "5px",
                     display: "flex",
                     alignItems: "center",
                     transition: "all 0.3s ease"

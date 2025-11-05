@@ -1,5 +1,7 @@
 import React from "react";
 import { FaFileInvoice } from "react-icons/fa";
+import jsPDF from "jspdf";
+import "jspdf-autotable";
 
 const ReportGenerator = ({ 
   records, 

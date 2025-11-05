@@ -7,7 +7,7 @@ import { setSelectedRecord, fetchRecords } from "../redux/slices/recordsSlice";
 import { fetchExpenses } from "../redux/slices/expenseSlice";
 import RecordsFilters from "./RecordsFilters";
 import FinancialSummary from "./FinancialSummary";
-import RecordsGrid from "./RecordsGrid";
+import RecordsTable from "./RecordsTable";
 import Pagination from "./Pagination";
 import ReportGenerator from "./ReportGenerator";
 
@@ -36,7 +36,7 @@ export default function RecordsPage() {
   const [editModalShow, setEditModalShow] = useState(false);
   const [editRecord, setEditRecord] = useState(null);
   const [editSlipType, setEditSlipType] = useState("first");
-  const [reportType, setReportType] = useState(() => getInitialState('reportType', "daily"));
+  const [reportType, setReportType] = useState("overall");
   const [selectedMonth, setSelectedMonth] = useState(() => getInitialState('selectedMonth', new Date().getMonth() + 1));
   const [selectedYear, setSelectedYear] = useState(() => getInitialState('selectedYear', new Date().getFullYear()));
   const [customFromDate, setCustomFromDate] = useState(() => getInitialState('customFromDate', ""));
@@ -162,12 +162,6 @@ export default function RecordsPage() {
 
     return matchesSearch && matchesParty && matchesProduct && matchesVehicleType && matchesReportType;
   });
-
-  const totalPages = Math.ceil(filteredRecords.length / recordsPerPage);
-  const paginatedRecords = filteredRecords.slice(
-    (currentPage - 1) * recordsPerPage,
-    currentPage * recordsPerPage
-  );
 
   const grandTotal = filteredRecords.reduce((sum, r) => sum + (parseFloat(r.total_price) || 0), 0);
 
@@ -455,15 +449,9 @@ export default function RecordsPage() {
   };
 
   const openEditModal = (record) => {
-    const type = record.final_weight === "Yes" ? "final" : "first";
-    setEditRecord(record);
-    setEditSlipType(type);
     setEditModalShow(true);
     dispatch(setSelectedRecord(record));
   };
-
-  const handlePrev = () => setCurrentPage(p => Math.max(p - 1, 1));
-  const handleNext = () => setCurrentPage(p => Math.min(p + 1, totalPages));
 
   // Function to clear all filters
   const clearAllFilters = () => {
@@ -479,17 +467,17 @@ export default function RecordsPage() {
     setCurrentPage(1);
   };
 
-  // Function to generate customer PDF (without financial info)
-  const generateCustomerPDF = () => {
+  // Function to generate customer report (print version instead of PDF)
+  const generateCustomerReport = () => {
     // Calculate total net weight and records count from filtered records
     const totalNetWeight = filteredRecords.reduce((sum, r) => sum + (parseFloat(r.net_weight) || 0), 0);
     const totalMunds = totalNetWeight / 40; // 1 Mund = 40 kg
     const totalRecords = filteredRecords.length;
 
     // Create HTML content for customer report (no financial info)
-    const win = window.open("", "", "width=800,height=600");
-    if (!win) {
-      alert("Popup blocked! Please allow popups for PDF generation.");
+    const printWindow = window.open("", "", "width=800,height=600");
+    if (!printWindow) {
+      alert("Popup blocked! Please allow popups for report generation.");
       return;
     }
 
@@ -530,20 +518,67 @@ export default function RecordsPage() {
     
     const filterString = filterInfo.length > 0 ? filterInfo.join(', ') : 'No additional filters applied';
 
+    // Function to format weight without .00 decimals when not needed
+    const formatWeight = (weight) => {
+      if (!weight) return "-";
+      const num = parseFloat(weight);
+      if (isNaN(num)) return "-";
+      
+      // If it's a whole number, don't show decimals
+      if (num % 1 === 0) {
+        return num.toString();
+      } else {
+        // Otherwise, show one decimal place
+        return num.toFixed(1);
+      }
+    };
+
+    // Function to format date as "22/10/25 @ 8:34 pm"
+    const formatDateTimeForDisplay = (dateString) => {
+      if (!dateString) return "-";
+      
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return "-";
+      
+      // Format as "22/10/25 @ 8:34 pm"
+      const day = date.toLocaleString("en-GB", { timeZone: "Asia/Karachi", day: "2-digit" });
+      const month = date.toLocaleString("en-GB", { timeZone: "Asia/Karachi", month: "2-digit" });
+      const year = date.toLocaleString("en-GB", { timeZone: "Asia/Karachi", year: "2-digit" });
+      let hour = date.toLocaleString("en-GB", { timeZone: "Asia/Karachi", hour: "numeric", hour12: false });
+      const minute = date.toLocaleString("en-GB", { timeZone: "Asia/Karachi", minute: "2-digit" });
+      
+      // Convert to 12-hour format
+      let ampm = "am";
+      if (hour >= 12) {
+        ampm = "pm";
+        if (hour > 12) {
+          hour = hour - 12;
+        }
+      }
+      if (hour === 0) {
+        hour = 12;
+      }
+      
+      return `${day}/${month}/${year} @ ${hour}:${minute} ${ampm}`;
+    };
+
     const html = `<!doctype html>
 <html>
 <head>
   <meta charset="utf-8">
   <title>Customer Report - ${dateRange}</title>
   <style>
-    @page { margin: 15mm; size: A4; }
+    @media print {
+      @page { margin: 15mm; size: A4; }
+    }
+    
     html, body { 
       margin: 0; 
       padding: 0; 
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      font-size: 12px;
+      font-family: Arial, sans-serif;
+      font-size: 10px; /* Smaller font size */
       color: #000;
-      line-height: 1.4;
+      line-height: 1.3;
     }
 
     .report-container {
@@ -557,71 +592,71 @@ export default function RecordsPage() {
     .header {
       text-align: center;
       border-bottom: 2px solid #000;
-      padding-bottom: 10px;
-      margin-bottom: 15px;
+      padding-bottom: 8px;
+      margin-bottom: 12px;
     }
 
     .company-name {
-      font-size: 24px;
+      font-size: 20px;
       font-weight: bold;
       color: #2c3e50;
     }
 
     .company-details {
-      font-size: 14px;
-      margin: 5px 0;
+      font-size: 12px;
+      margin: 4px 0;
       color: #34495e;
     }
 
     .report-title {
       text-align: center;
-      font-size: 18px;
+      font-size: 16px;
       font-weight: bold;
-      margin: 15px 0;
+      margin: 12px 0;
       color: #1a5276;
     }
 
     .report-date {
       text-align: center;
-      font-size: 12px;
-      margin-bottom: 15px;
+      font-size: 11px;
+      margin-bottom: 12px;
       color: #7f8c8d;
     }
 
     .content-section {
-      margin: 15px 0;
+      margin: 12px 0;
       page-break-inside: avoid;
     }
 
     .section-title {
       text-align: center;
-      font-size: 16px;
+      font-size: 14px;
       font-weight: bold;
       border-bottom: 1px solid #000;
-      padding-bottom: 5px;
-      margin-bottom: 10px;
+      padding-bottom: 4px;
+      margin-bottom: 8px;
       color: #2c3e50;
     }
 
     .info-row {
       display: flex;
       justify-content: space-between;
-      gap: 10px;
-      margin: 8px 0;
+      gap: 8px;
+      margin: 6px 0;
       border-bottom: 1px dotted #999;
-      font-size: 13px;
+      font-size: 11px;
       align-items: center;
     }
 
     .info-label {
       font-weight: bold;
       display: inline-block;
-      min-width: 150px;
+      min-width: 120px;
       white-space: normal;
     }
 
     .info-value {
-      font-size: 14px;
+      font-size: 12px;
       font-weight: bold;
       display: inline-block;
       white-space: normal;
@@ -631,8 +666,8 @@ export default function RecordsPage() {
     table {
       width: 100%;
       border-collapse: collapse;
-      margin: 15px 0;
-      font-size: 11px;
+      margin: 12px 0;
+      font-size: 9px; /* Smaller font size for table */
       page-break-inside: auto;
     }
 
@@ -651,13 +686,13 @@ export default function RecordsPage() {
 
     th, td {
       text-align: left;
-      padding: 6px 4px;
+      padding: 4px 3px;
       border: 1px solid #000;
     }
 
     th {
       font-weight: bold;
-      font-size: 12px;
+      font-size: 10px;
       background-color: #ecf0f1;
     }
 
@@ -670,17 +705,17 @@ export default function RecordsPage() {
     }
 
     .footer {
-      padding-top: 15px;
-      margin-top: 20px;
+      padding-top: 12px;
+      margin-top: 16px;
       text-align: center;
-      font-size: 12px;
+      font-size: 10px;
       border-top: 2px solid #000;
       page-break-inside: avoid;
     }
 
     .signature-line {
-      margin: 15px 0;
-      font-size: 12px;
+      margin: 12px 0;
+      font-size: 10px;
     }
   </style>
 </head>
@@ -693,13 +728,19 @@ export default function RecordsPage() {
 
     <div class="report-title">${dateRange}</div>
     <div class="report-date">
-      Report Generated: ${new Date().toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true })}
+      Report Generated: ${new Date().toLocaleString('en-GB', { 
+        day: '2-digit', 
+        month: '2-digit', 
+        year: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+      })}
     </div>
 
     <!-- Filter Information -->
     <div class="content-section">
       <div class="section-title">FILTERS APPLIED</div>
-      <div style="font-size: 12px; padding: 8px 0;">
+      <div style="font-size: 11px; padding: 6px 0;">
         ${filterString}
       </div>
     </div>
@@ -749,13 +790,13 @@ export default function RecordsPage() {
             return `
             <tr>
               <td>${record.id}</td>
-              <td>${recordDate}</td>
+              <td>${recordDate ? formatDateTimeForDisplay(recordDate) : '-'}</td>
               <td>${record.vehicle_number || '-'}</td>
               <td>${record.party_name || '-'}</td>
               <td>${record.product || '-'}</td>
-              <td>${firstWeight.toFixed(2)}</td>
-              <td>${secondWeight.toFixed(2)}</td>
-              <td>${netWeight.toFixed(2)} kg</td>
+              <td>${formatWeight(firstWeight)}</td>
+              <td>${formatWeight(secondWeight)}</td>
+              <td>${formatWeight(netWeight)} kg</td>
               <td>${netMunds.toFixed(2)} Munds</td>
               <td>Rs ${(parseFloat(record.total_price) || 0).toLocaleString()}</td>
             </tr>
@@ -767,51 +808,23 @@ export default function RecordsPage() {
     <div class="footer">
       <div class="signature-line">Operator: _____________</div>
       <div class="signature-line">Customer: _____________</div>
-      <div style="margin-top: 15px; font-size: 10px;">
-        Software by <span style="display:inline-block;padding:4px 10px;font-weight:bold;border:1px solid #000;border-radius:8px;background:#f0f0f0">AKS Solutions</span> - Business Solution by Kaleem Mahesar
+      <div style="margin-top: 12px; font-size: 9px;">
+        Software by <span style="display:inline-block;padding:3px 8px;font-weight:bold;border:1px solid #000;border-radius:6px;background:#f0f0f0">AKS Solutions</span> - Business Solution by Kaleem Mahesar
       </div>
     </div>
   </div>
 </body>
 </html>`;
 
-    win.document.write(html);
-    win.document.close();
+    printWindow.document.write(html);
+    printWindow.document.close();
 
     // Wait for content to load then print
-    const waitForResourcesAndPrint = async () => {
-      try {
-        // Wait for fonts to load
-        if (win.document.fonts && win.document.fonts.ready) {
-          await win.document.fonts.ready;
-        }
-      } catch (e) {
-        // ignore font loading errors
-      }
-
-      // Small delay to let layout settle
-      setTimeout(() => {
-        try { 
-          win.focus(); 
-          win.print(); 
-        } catch (e) { 
-          console.log('Print error:', e);
-        }
-        try { 
-          win.close(); 
-        } catch (e) {}
-      }, 100);
-    };
-
-    // Start the print process
-    if (win.document.readyState === 'complete') {
-      waitForResourcesAndPrint();
-    } else {
-      win.onload = waitForResourcesAndPrint;
-      setTimeout(() => {
-        if (!win.closed) waitForResourcesAndPrint();
-      }, 1000);
-    }
+    setTimeout(() => {
+      printWindow.focus();
+      printWindow.print();
+      printWindow.close();
+    }, 500);
   };
 
   // Show loading indicator while fetching data
@@ -888,9 +901,9 @@ export default function RecordsPage() {
                     vehicleTypeFilter={vehicleTypeFilter}
                     search={search}
                   />
-                  <button className="btn btn-primary w-100 d-block" onClick={generateCustomerPDF}>
+                  <button className="btn btn-primary w-100 d-block" onClick={generateCustomerReport}>
                     <FaFileInvoice className="me-2" />
-                    Generate Customer Report
+                    Print Customer Report
                   </button>
                 </div>
               </div>
@@ -905,23 +918,20 @@ export default function RecordsPage() {
           formatCurrency={formatCurrency} 
         />
 
-        {/* Records Grid */}
-        <RecordsGrid 
-          paginatedRecords={paginatedRecords} 
-          openEditModal={openEditModal} 
-          openPrintModal={openPrintModal} 
-        />
+        {/* Records Table - Replacing RecordsGrid */}
+        <div className="mt-4">
+          <RecordsTable 
+            records={filteredRecords} 
+            openPrintModal={openPrintModal} 
+            onUpdateRecord={() => dispatch(fetchRecords())}
+            vehiclePrices={[]} // Pass empty array for now
+            slipType="first" // Default slip type
+          />
+        </div>
 
-        {/* Pagination & Grand Total */}
-        <Pagination
-          currentPage={currentPage}
-          totalPages={totalPages}
-          handlePrev={handlePrev}
-          handleNext={handleNext}
-          grandTotal={grandTotal}
-          filteredRecordsLength={filteredRecords.length}
-        />
-
+        {/* Removing the old Pagination component since RecordsTable has its own pagination */}
+        {/* Pagination & Grand Total - This section is now handled by RecordsTable */}
+        
         {reduxSelectedRecord && <PrintModal show={showPrintModal} slipType={slipType} onClose={closePrintModal} />}
         {editModalShow && editRecord && <EditRecordModal show={editModalShow} onClose={() => setEditModalShow(false)} record={editRecord} slipType={editSlipType} />}
       </div>
