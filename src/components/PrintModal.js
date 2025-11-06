@@ -385,7 +385,7 @@ const PrintModal = ({ show, slipType, onClose }) => {
         .net-weight { border:1px solid #000; padding:${isSmallVehicle ? '3px' : '4px'}; font-size:${isSmallVehicle ? '9px' : '14px'}; margin-top:${isSmallVehicle ? '3px' : '4px'}; }
         .warning { border:1px solid #000; padding:${isSmallVehicle ? '3px' : '4px'}; font-size:${isSmallVehicle ? '6px' : '10px'}; text-align:center; font-weight:bold; margin-top:${isSmallVehicle ? '4px' : '6px'}; }
         .footer { padding-top:${isSmallVehicle ? '4px' : '6px'}; margin-top:${isSmallVehicle ? '5px' : '8px'}; text-align:center; font-size:${isSmallVehicle ? '8px' : '10px'}; }
-        .footer .eng { margin-top:${isSmallVehicle ? '5px' : '8px'}; text-align:center; font-family: Arial, sans-serif; direction:ltr; font-size:${isSmallVehicle ? '6px' : '8px'}; letter-spacing:1px; display:block; }
+        .footer .eng { margin-top:${isSmallVehicle ? '5px' : '8px'}; text-align:center; font-family: Courier New, sans-serif; direction:ltr; font-size:${isSmallVehicle ? '6px' : '8px'}; letter-spacing:1px; display:block; }
         .page-break { page-break-after: always; margin:${isSmallVehicle ? '6px 0' : '10px 0'}; }
       </style>
     </head>

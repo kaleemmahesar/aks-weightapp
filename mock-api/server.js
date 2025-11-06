@@ -79,21 +79,9 @@ const expenses = [
   }
 ];
 
+// Empty settings object to simulate empty database
 const settings = {
-  vehiclePrices: {
-    Truck: 500,
-    Trailer: 400,
-    Container: 600,
-    DahWheeler: 500,
-    SixWheeler: 400,
-    Tractor: 300,
-    Mazda: 300,
-    Datson: 150,
-    Shahzore: 150,
-    Daalo: 100,
-    Chingchi: 100,
-    GadahGano: 100
-  }
+  vehiclePrices: {}
 };
 
 app.use(cors());
@@ -224,6 +212,37 @@ app.post('/index.php', (req, res) => {
       res.status(404).json({
         success: false,
         message: 'Expense not found'
+      });
+    }
+    return;
+  }
+  
+  if (action === 'updateSettings') {
+    const updatedSettings = req.body;
+    settings.vehiclePrices = updatedSettings.vehiclePrices || {};
+    
+    res.status(200).json({
+      success: true,
+      data: settings,
+      message: 'Settings updated successfully'
+    });
+    return;
+  }
+  
+  if (action === 'deleteVehicleType') {
+    const { vehicleType } = req.body;
+    if (settings.vehiclePrices.hasOwnProperty(vehicleType)) {
+      delete settings.vehiclePrices[vehicleType];
+      
+      res.status(200).json({
+        success: true,
+        data: settings.vehiclePrices,
+        message: 'Vehicle type deleted successfully'
+      });
+    } else {
+      res.status(404).json({
+        success: false,
+        message: 'Vehicle type not found'
       });
     }
     return;

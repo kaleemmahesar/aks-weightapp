@@ -50,16 +50,28 @@ const formatWeight = (weight) => {
   }
 };
 
-export default function RecordsTable({ records, openPrintModal, vehiclePrices, slipType, onUpdateRecord }) {
+export default function RecordsTable({ records, expenses = [], openPrintModal, vehiclePrices, slipType, onUpdateRecord }) {
     const [currentPage, setCurrentPage] = useState(1);
-    const [recordsPerPage, setRecordsPerPage] = useState(5); // Default to 5 records per page to show pagination
+    const [recordsPerPage, setRecordsPerPage] = useState(12); // Default to 12 records per page
     const [editModalShow, setEditModalShow] = useState(false);
     const [editRecord, setEditRecord] = useState(null);
     const [editSlipType, setEditSlipType] = useState("first");
+    
+    const totalPages = Math.ceil(records.length / recordsPerPage);
+    const paginatedRecords = records.slice(
+        (currentPage - 1) * recordsPerPage,
+        currentPage * recordsPerPage
+    );
 
     const grandTotal = records.reduce((sum, r) => {
         const price = parseFloat(r.total_price) || 0;
         return sum + price;
+    }, 0);
+
+    // Calculate total expenses
+    const totalExpenses = expenses.reduce((sum, expense) => {
+        const amount = parseFloat(expense.amount) || 0;
+        return sum + amount;
     }, 0);
 
     // Calculate total net weight
@@ -67,12 +79,6 @@ export default function RecordsTable({ records, openPrintModal, vehiclePrices, s
         const weight = parseFloat(r.net_weight) || 0;
         return sum + weight;
     }, 0);
-
-    const totalPages = Math.ceil(records.length / recordsPerPage);
-    const paginatedRecords = records.slice(
-        (currentPage - 1) * recordsPerPage,
-        currentPage * recordsPerPage
-    );
 
     // Function to generate printable report
     const generatePrintReport = () => {
@@ -97,7 +103,7 @@ export default function RecordsTable({ records, openPrintModal, vehiclePrices, s
                 }
                 
                 body {
-                    font-family: Arial, sans-serif;
+                    font-family: Courier New, sans-serif;
                     font-size: 10px; /* Smaller font size */
                     line-height: 1.3;
                     color: #000;
@@ -259,15 +265,7 @@ export default function RecordsTable({ records, openPrintModal, vehiclePrices, s
                     <span class="summary-value">${records.length}</span>
                 </div>
                 <div class="summary-row">
-                    <span class="summary-label">Total Munds:</span>
-                    <span class="summary-value">${totalMunds.toFixed(2)} Munds</span>
-                </div>
-                <div class="summary-row">
-                    <span class="summary-label">Total Net Weight:</span>
-                    <span class="summary-value">${totalNetWeight.toFixed(2)} kg</span>
-                </div>
-                <div class="summary-row">
-                    <span class="summary-label">Total Revenue:</span>
+                    <span class="summary-label">Total Sales:</span>
                     <span class="summary-value">PKR ${grandTotal.toLocaleString()}</span>
                 </div>
             </div>
@@ -365,9 +363,6 @@ export default function RecordsTable({ records, openPrintModal, vehiclePrices, s
                     Records Management
                 </span>
                 <div className="d-flex align-items-center">
-                    <small className="text-muted me-3">
-                        {records.length} records | Total: PKR {grandTotal.toLocaleString()}
-                    </small>
                     <button className="btn btn-sm btn-outline-primary" onClick={generatePrintReport}>
                         Print Report
                     </button>
@@ -383,6 +378,7 @@ export default function RecordsTable({ records, openPrintModal, vehiclePrices, s
                             <th className="py-2 px-2">Vehicle</th>
                             <th className="py-2 px-2">Party</th>
                             <th className="py-2 px-2">Type</th>
+                            <th className="py-2 px-2">Product</th>
                             <th className="py-2 px-2">F.Weight</th>
                             <th className="py-2 px-2">S.Weight</th>
                             <th className="py-2 px-2">Net Weight</th>
@@ -395,7 +391,7 @@ export default function RecordsTable({ records, openPrintModal, vehiclePrices, s
                     <tbody>
                         {paginatedRecords.length === 0 ? (
                             <tr>
-                                <td colSpan="11" className="text-center text-muted py-3">
+                                <td colSpan="12" className="text-center text-muted py-3">
                                     No records found
                                 </td>
                             </tr>
@@ -406,6 +402,7 @@ export default function RecordsTable({ records, openPrintModal, vehiclePrices, s
                                     <td className="py-1 px-2">{r.vehicle_number}</td>
                                     <td className="py-1 px-2">{r.party_name || '-'}</td>
                                     <td className="py-1 px-2">{r.vehicle_type}</td>
+                                    <td className="py-1 px-2">{r.product || '-'}</td>
                                     <td className="py-1 px-2">{formatWeight(r.first_weight)}</td>
                                     <td className="py-1 px-2">{formatWeight(r.second_weight)}</td>
                                     <td className="py-1 px-2">{formatWeight(r.net_weight)}</td>
@@ -458,21 +455,36 @@ export default function RecordsTable({ records, openPrintModal, vehiclePrices, s
                     </tbody>
                 </table>
 
-                {/* Compact pagination */}
-                {totalPages > 1 && (
-                  <PaginationControls
-                    currentPage={currentPage}
-                    totalPages={totalPages}
-                    itemsPerPage={recordsPerPage}
-                    totalItems={records.length}
-                    onPageChange={setCurrentPage}
-                    onItemsPerPageChange={(value) => {
-                      setRecordsPerPage(value);
-                      setCurrentPage(1);
-                    }}
-                    itemsPerPageOptions={[5, 10, 20, 50]}
-                  />
-                )}
+                {/* Summary row at the bottom */}
+                <div className="d-flex justify-content-between align-items-center p-3 border-top">
+                    <div>
+                        <span className="fw-bold" style={{ fontSize: '1.15rem' }}>Total Records: </span>
+                        <span style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>{records.length}</span>
+                    </div>
+                    
+                    <div>
+                        <span className="fw-bold" style={{ fontSize: '1.15rem' }}>Total Expenses: </span>
+                        <span style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>PKR {totalExpenses.toLocaleString()}</span>
+                    </div>
+                    <div>
+                        <span className="fw-bold" style={{ fontSize: '1.15rem' }}>Total Sales: </span>
+                        <span style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>PKR {grandTotal.toLocaleString()}</span>
+                    </div>
+                </div>
+
+                {/* Compact pagination - Always show pagination controls */}
+                <PaginationControls
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  itemsPerPage={recordsPerPage}
+                  totalItems={records.length}
+                  onPageChange={setCurrentPage}
+                  onItemsPerPageChange={(value) => {
+                    setRecordsPerPage(value);
+                    setCurrentPage(1);
+                  }}
+                  itemsPerPageOptions={[5, 10, 20, 50]}
+                />
             </div>
 
             {editModalShow && editRecord && (

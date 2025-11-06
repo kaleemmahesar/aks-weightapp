@@ -10,11 +10,15 @@ import notify from "./notification";
 import { saveFirstWeightRecord } from "../redux/slices/recordsSlice";
 import { getCurrentPSTDateTime } from '../utils/dateUtils';
 import { STANDARD_PRODUCTS, DEFAULT_VEHICLE_TYPE, getVehiclePrices } from "../config/vehicleConfig";
+
 const FirstWeightForm = ({ liveWeight, onSuccess }) => {
   const dispatch = useDispatch();
   const { settings = {} } = useSelector(state => state.settings || {});
   const vehiclePrices = getVehiclePrices(settings.vehiclePrices);
   const [totalPrice, setTotalPrice] = React.useState(vehiclePrices[DEFAULT_VEHICLE_TYPE]);
+
+  // Define vehicle types that should have vehicle number set to "000"
+  const zeroVehicleTypes = ["Tractor", "Chingchi", "Daalo", "GadahGano"];
 
   // Custom styles for react-select (matching original form height and styling)
   const customSelectStyles = {
@@ -95,13 +99,28 @@ const FirstWeightForm = ({ liveWeight, onSuccess }) => {
     label: product.label
   }));
 
-  // ✅ When vehicleType changes, update price dynamically
+  // ✅ When vehicleType changes, update price dynamically and set vehicle number for specific types
   const handleVehicleTypeChange = (selectedOption) => {
-    formik.setFieldValue('vehicleType', selectedOption ? selectedOption.value : 'Select');
+    const vehicleType = selectedOption ? selectedOption.value : 'Select';
+    formik.setFieldValue('vehicleType', vehicleType);
+    
     if (selectedOption && selectedOption.value !== 'Select') {
       setTotalPrice(vehiclePrices[selectedOption.value]);
+      
+      // Set vehicle number to "12345" for specific vehicle types
+      if (zeroVehicleTypes.includes(selectedOption.value)) {
+        formik.setFieldValue('vehicleNumber', '12345');
+      } 
+      // Reset vehicle number to empty for other vehicle types if it was previously set to "12345"
+      else if (formik.values.vehicleNumber === '12345') {
+        formik.setFieldValue('vehicleNumber', '');
+      }
     } else {
       setTotalPrice(0);
+      // Reset vehicle number to empty when no vehicle type is selected
+      if (formik.values.vehicleNumber === '12345') {
+        formik.setFieldValue('vehicleNumber', '');
+      }
     }
   };
 
@@ -111,14 +130,10 @@ const FirstWeightForm = ({ liveWeight, onSuccess }) => {
   };
 
   const validationSchema = Yup.object({
-    vehicleNumber: Yup.string().when('vehicleType', {
-      is: (vehicleType) => ['Truck', 'SixWheeler', 'DahWheeler', 'Rocket Double', 'Container', 'Shahzore', 'Datson', 'Mazda'].includes(vehicleType),
-      then: (schema) => schema.required("Vehicle number is required"),
-      otherwise: (schema) => schema
-    }),
+    vehicleNumber: Yup.string().required("Vehicle number is required"),
     party: Yup.string().required("Party Name is required"),
     vehicleType: Yup.string().notOneOf(["Select"], "Please select a vehicle type"),
-    product: Yup.string().required("Vehicle number is required"),
+    product: Yup.string().required("Product name is required"),
     currentWeight: Yup.number()
   .required("Weight is required")
   .min(0, "Weight cannot be negative"),
@@ -155,9 +170,6 @@ const FirstWeightForm = ({ liveWeight, onSuccess }) => {
       console.log("New Record to save:", newRecord);
 
       try {
-
-
-
 
         const resultAction = await dispatch(saveFirstWeightRecord(newRecord));
         

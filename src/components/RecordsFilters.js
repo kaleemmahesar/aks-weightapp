@@ -76,54 +76,60 @@ const RecordsFilters = ({
           />
         </div>
         
-        {/* Party Name Filter */}
+        {/* Party Name Filter - Modified for multiple selection */}
         <div className="col-md-4">
           <label className="form-label text-muted fw-semibold">Party Name</label>
           <Select
             options={partyOptions}
-            value={partyOptions.find(option => option.value === partyFilter) || null}
-            onChange={(selectedOption) => {
-              setPartyFilter(selectedOption ? selectedOption.value : "");
+            value={partyOptions.filter(option => partyFilter.includes(option.value))}
+            onChange={(selectedOptions) => {
+              const selectedValues = selectedOptions ? selectedOptions.map(option => option.value) : [];
+              setPartyFilter(selectedValues);
               setCurrentPage(1);
             }}
-            placeholder="Select party..."
+            placeholder="Select party name(s)..."
             isClearable
+            isMulti
             styles={customStyles}
             menuPortalTarget={document.body}
             menuPosition={'fixed'}
           />
         </div>
         
-        {/* Product Filter */}
+        {/* Product Filter - Modified for multiple selection */}
         <div className="col-md-4">
           <label className="form-label text-muted fw-semibold">Product</label>
           <Select
             options={productOptions}
-            value={productOptions.find(option => option.value === productFilter) || null}
-            onChange={(selectedOption) => {
-              setProductFilter(selectedOption ? selectedOption.value : "");
+            value={productOptions.filter(option => productFilter.includes(option.value))}
+            onChange={(selectedOptions) => {
+              const selectedValues = selectedOptions ? selectedOptions.map(option => option.value) : [];
+              setProductFilter(selectedValues);
               setCurrentPage(1);
             }}
-            placeholder="Select product..."
+            placeholder="Select product(s)..."
             isClearable
+            isMulti
             styles={customStyles}
             menuPortalTarget={document.body}
             menuPosition={'fixed'}
           />
         </div>
         
-        {/* Vehicle Type Filter */}
+        {/* Vehicle Type Filter - Modified for multiple selection */}
         <div className="col-md-4">
           <label className="form-label text-muted fw-semibold">Vehicle Type</label>
           <Select
             options={vehicleTypeOptions}
-            value={vehicleTypeOptions.find(option => option.value === vehicleTypeFilter) || null}
-            onChange={(selectedOption) => {
-              setVehicleTypeFilter(selectedOption ? selectedOption.value : "");
+            value={vehicleTypeOptions.filter(option => vehicleTypeFilter.includes(option.value))}
+            onChange={(selectedOptions) => {
+              const selectedValues = selectedOptions ? selectedOptions.map(option => option.value) : [];
+              setVehicleTypeFilter(selectedValues);
               setCurrentPage(1);
             }}
-            placeholder="Select vehicle type..."
+            placeholder="Select vehicle type(s)..."
             isClearable
+            isMulti
             styles={customStyles}
             menuPortalTarget={document.body}
             menuPosition={'fixed'}

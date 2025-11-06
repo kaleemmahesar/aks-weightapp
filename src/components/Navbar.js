@@ -76,7 +76,7 @@ const Navbar = ({ onLogout }) => {
                     borderRadius: "8px",
                     margin: "0 3px",
                     color: "#e5e7eb",
-                    fontSize: ".85rem",
+                    fontSize: "1rem",
                     gap: "5px",
                     display: "flex",
                     alignItems: "center",

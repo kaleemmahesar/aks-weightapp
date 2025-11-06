@@ -115,7 +115,7 @@ export default function OwnerDashboard() {
                 }
                 
                 body {
-                    font-family: Arial, sans-serif;
+                    font-family: Courier New, sans-serif;
                     font-size: 10px; /* Smaller font size */
                     line-height: 1.3;
                     color: #000;

@@ -33,15 +33,18 @@ function App() {
         dispatch(restoreUserSession(userData));
       } catch (error) {
         console.error("Error restoring user session:", error);
+        localStorage.removeItem("user");
       }
     }
     setLoadingSession(false);
-  }, [dispatch]);
+  }, []); // Empty dependency array to run only once
 
   // ✅ Fetch data once after login & role check
   useEffect(() => {
     if (!loggedIn || dataFetched) return;
-    if (role !== "operator" && role !== "owner") return;
+    if (!role || (role !== "operator" && role !== "owner" && role !== "admin")) return;
+
+    let isMounted = true;
 
     const fetchData = async () => {
       try {
@@ -49,14 +52,20 @@ function App() {
           dispatch(fetchRecords()),
           dispatch(fetchSettings())
         ]);
-        setDataFetched(true);
+        if (isMounted) {
+          setDataFetched(true);
+        }
       } catch (error) {
         console.error('Failed to fetch initial data:', error);
       }
     };
     
     fetchData();
-  }, [loggedIn, role, dataFetched, dispatch]);
+
+    return () => {
+      isMounted = false;
+    };
+  }, [loggedIn, role, dataFetched, dispatch]); // Proper dependencies
 
   const handleLogout = () => {
     dispatch(logout());
@@ -156,6 +165,10 @@ function ProtectedRoute({ loggedIn, role, allowedRole, children }) {
     return <Navigate to="/" replace />;
   }
   if (allowedRole && role !== allowedRole) {
+    // For admin role, allow access to owner routes as well
+    if (allowedRole === "owner" && role === "admin") {
+      return children;
+    }
     return <Navigate to="/" replace />;
   }
   return children;

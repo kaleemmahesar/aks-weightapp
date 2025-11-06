@@ -12,7 +12,7 @@ const FinancialSummary = ({ financialStats, reportType, formatCurrency }) => {
   return (
     <div className="mb-5">
       {/* Financial Summary Cards - Clear Layout */}
-      <div className="row g-3 mb-4">
+      <div className="row g-3 mb-4 d-none">
         <div className="col-12">
           <div className="card border-0 shadow-lg">
             <div className="card-header bg-primary text-white">

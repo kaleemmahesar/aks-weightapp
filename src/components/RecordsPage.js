@@ -5,6 +5,7 @@ import EditRecordModal from "./EditModal";
 import { FaFileInvoice } from "react-icons/fa";
 import { setSelectedRecord, fetchRecords } from "../redux/slices/recordsSlice";
 import { fetchExpenses } from "../redux/slices/expenseSlice";
+import { fetchSettings } from "../redux/slices/settingsSlice";
 import RecordsFilters from "./RecordsFilters";
 import FinancialSummary from "./FinancialSummary";
 import RecordsTable from "./RecordsTable";
@@ -15,13 +16,25 @@ export default function RecordsPage() {
   const dispatch = useDispatch();
   const { records = [], selectedRecord: reduxSelectedRecord } = useSelector(state => state.records || {});
   const { expenses = [] } = useSelector(state => state.expenses || {});
+  const { settings = {} } = useSelector(state => state.settings || {});
   
   // Initialize state with localStorage values or defaults
   const getInitialState = (key, defaultValue) => {
     const saved = localStorage.getItem(`recordsPage_${key}`);
     if (saved !== null) {
       try {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        // Special validation for reportType to ensure it's always a valid value
+        if (key === 'reportType') {
+          const validReportTypes = ['daily', 'monthly', 'yearly', 'overall', 'custom'];
+          const isValid = validReportTypes.includes(parsed);
+          return isValid ? parsed : defaultValue;
+        }
+        // Special handling for filter arrays to ensure they're always arrays
+        if (key === 'vehicleTypeFilter' || key === 'partyFilter' || key === 'productFilter') {
+          return Array.isArray(parsed) ? parsed : defaultValue;
+        }
+        return parsed;
       } catch (e) {
         return defaultValue;
       }
@@ -36,14 +49,14 @@ export default function RecordsPage() {
   const [editModalShow, setEditModalShow] = useState(false);
   const [editRecord, setEditRecord] = useState(null);
   const [editSlipType, setEditSlipType] = useState("first");
-  const [reportType, setReportType] = useState("overall");
+  const [reportType, setReportType] = useState(() => getInitialState('reportType', "overall"));
   const [selectedMonth, setSelectedMonth] = useState(() => getInitialState('selectedMonth', new Date().getMonth() + 1));
   const [selectedYear, setSelectedYear] = useState(() => getInitialState('selectedYear', new Date().getFullYear()));
   const [customFromDate, setCustomFromDate] = useState(() => getInitialState('customFromDate', ""));
   const [customToDate, setCustomToDate] = useState(() => getInitialState('customToDate', ""));
-  const [partyFilter, setPartyFilter] = useState(() => getInitialState('partyFilter', ""));
-  const [productFilter, setProductFilter] = useState(() => getInitialState('productFilter', ""));
-  const [vehicleTypeFilter, setVehicleTypeFilter] = useState(() => getInitialState('vehicleTypeFilter', ""));
+  const [partyFilter, setPartyFilter] = useState(() => getInitialState('partyFilter', []));
+  const [productFilter, setProductFilter] = useState(() => getInitialState('productFilter', []));
+  const [vehicleTypeFilter, setVehicleTypeFilter] = useState(() => getInitialState('vehicleTypeFilter', []));
   const [loading, setLoading] = useState(true);
 
   // Save filter state to localStorage whenever filters change
@@ -90,79 +103,123 @@ export default function RecordsPage() {
     const fetchData = async () => {
       setLoading(true);
       try {
-        if (records.length === 0) {
-          await dispatch(fetchRecords());
-        }
-        if (expenses.length === 0) {
-          await dispatch(fetchExpenses());
-        }
+        // Always fetch records to ensure we have the latest data from the database
+        await dispatch(fetchRecords());
+        await dispatch(fetchExpenses());
+        // Also fetch settings to ensure we have the latest vehicle types
+        dispatch(fetchSettings());
       } finally {
         setLoading(false);
       }
     };
     
     fetchData();
-  }, [dispatch, records.length, expenses.length]);
+  }, [dispatch]);
 
   // Get unique values for filter dropdowns
   const uniqueParties = [...new Set(records.map(r => r.party_name).filter(Boolean))];
   const uniqueProducts = [...new Set(records.map(r => r.product).filter(Boolean))];
-  const uniqueVehicleTypes = [...new Set(records.map(r => r.vehicle_type).filter(Boolean))];
+  
+  // Get unique vehicle types from both records and settings
+  const uniqueVehicleTypes = [...new Set([
+    ...records.map(r => r.vehicle_type).filter(Boolean),
+    ...Object.keys(settings.vehiclePrices || {})
+  ])];
 
+  // Function to clear all filters
+  const clearAllFilters = () => {
+    setSearch("");
+    setPartyFilter([]);
+    setProductFilter([]);
+    setVehicleTypeFilter([]);
+    setReportType("overall");
+    setSelectedMonth(new Date().getMonth() + 1);
+    setSelectedYear(new Date().getFullYear());
+    setCustomFromDate("");
+    setCustomToDate("");
+    setCurrentPage(1);
+  };
+
+  // Filter records based on search and filters
   const filteredRecords = records.filter((r) => {
-    // ✅ Search filter
-    const matchesSearch = search
-      ? r.vehicle_number.toLowerCase().includes(search.toLowerCase()) ||
-        r.vehicle_type.toLowerCase().includes(search.toLowerCase()) ||
-        r.product?.toLowerCase().includes(search.toLowerCase()) ||
-        r.party_name?.toLowerCase().includes(search.toLowerCase()) ||
-        r.id.toString().includes(search)
-      : true;
+    try {
+      // ✅ Search filter - handle empty or undefined values safely
+      const matchesSearch = search
+        ? (r.vehicle_number && r.vehicle_number.toLowerCase().includes(search.toLowerCase())) ||
+          (r.vehicle_type && r.vehicle_type.toLowerCase().includes(search.toLowerCase())) ||
+          (r.product && r.product.toLowerCase().includes(search.toLowerCase())) ||
+          (r.party_name && r.party_name.toLowerCase().includes(search.toLowerCase())) ||
+          r.id.toString().includes(search)
+        : true;
 
-    // ✅ Party filter
-    const matchesParty = partyFilter ? r.party_name === partyFilter : true;
+      // ✅ Party filter - updated for multiple selection
+      const matchesParty = partyFilter.length > 0 ? partyFilter.includes(r.party_name) : true;
 
-    // ✅ Product filter
-    const matchesProduct = productFilter ? r.product === productFilter : true;
+      // ✅ Product filter - updated for multiple selection
+      const matchesProduct = productFilter.length > 0 ? productFilter.includes(r.product) : true;
 
-    // ✅ Vehicle type filter
-    const matchesVehicleType = vehicleTypeFilter ? r.vehicle_type === vehicleTypeFilter : true;
+      // ✅ Vehicle type filter - updated for multiple selection
+      const matchesVehicleType = vehicleTypeFilter.length > 0 ? vehicleTypeFilter.includes(r.vehicle_type) : true;
 
-    // ✅ Report type filter
-    const matchesReportType = (() => {
-      const today = new Date();
-      const recordDate = new Date(r.date || r.first_weight_time);
-      
-      if (isNaN(recordDate)) return false;
+      // ✅ Report type filter
+      const matchesReportType = (() => {
+        // Handle different date formats properly
+        let recordDate;
+        
+        // Try to parse the date string properly
+        if (r.date) {
+          recordDate = new Date(r.date);
+        } else if (r.first_weight_time) {
+          // Handle the format "2025-11-05 16:29:22"
+          if (typeof r.first_weight_time === 'string' && r.first_weight_time.includes(' ')) {
+            const [datePart, timePart] = r.first_weight_time.split(' ');
+            const [year, month, day] = datePart.split('-');
+            const [hour, minute, second] = timePart.split(':');
+            recordDate = new Date(year, month - 1, day, hour, minute, second);
+          } else {
+            recordDate = new Date(r.first_weight_time);
+          }
+        }
+        
+        // If we can't parse a valid date, and we're not in overall mode, filter out the record
+        if (!recordDate || isNaN(recordDate.getTime())) {
+          // For overall report type, we still want to show records without valid dates
+          return reportType === 'overall';
+        }
 
-      switch (reportType) {
-        case 'daily':
-          const todayStr = today.toISOString().split('T')[0];
-          const dailyRecordDateStr = recordDate.toISOString().split('T')[0];
-          return dailyRecordDateStr === todayStr;
-          
-        case 'monthly':
-          return recordDate.getMonth() + 1 === selectedMonth && recordDate.getFullYear() === selectedYear;
-          
-        case 'yearly':
-          return recordDate.getFullYear() === selectedYear;
-          
-        case 'overall':
-          return true;
-          
-        case 'custom':
-          if (!customFromDate || !customToDate) return true;
-          const customRecordDateStr = recordDate.toISOString().split('T')[0];
-          return customRecordDateStr >= customFromDate && customRecordDateStr <= customToDate;
-          
-        default:
-          return true;
-      }
-    })();
+        switch (reportType) {
+          case 'daily':
+            const todayStr = new Date().toISOString().split('T')[0];
+            const dailyRecordDateStr = recordDate.toISOString().split('T')[0];
+            return dailyRecordDateStr === todayStr;
+            
+          case 'monthly':
+            return recordDate.getMonth() + 1 === selectedMonth && recordDate.getFullYear() === selectedYear;
+            
+          case 'yearly':
+            return recordDate.getFullYear() === selectedYear;
+            
+          case 'overall':
+            return true;
+            
+          case 'custom':
+            if (!customFromDate || !customToDate) return true;
+            const customRecordDateStr = recordDate.toISOString().split('T')[0];
+            return customRecordDateStr >= customFromDate && customRecordDateStr <= customToDate;
+            
+          default:
+            return true;
+        }
+      })();
 
-    return matchesSearch && matchesParty && matchesProduct && matchesVehicleType && matchesReportType;
+      return matchesSearch && matchesParty && matchesProduct && matchesVehicleType && matchesReportType;
+    } catch (error) {
+      console.error('Error filtering record:', error, r);
+      // If there's an error in filtering, show the record to avoid hiding it
+      return true;
+    }
   });
-
+  
   const grandTotal = filteredRecords.reduce((sum, r) => sum + (parseFloat(r.total_price) || 0), 0);
 
   // Financial calculations for stats cards
@@ -263,6 +320,8 @@ export default function RecordsPage() {
     };
 
     const filteredExpenses = getFilteredExpenses();
+
+  
     
     // Use today's values for daily reports, otherwise use filtered calculations
     const filteredRevenue = reportType === 'daily' ? todayRevenue : filteredRecords.reduce((sum, r) => sum + (parseFloat(r.total_price) || 0), 0);
@@ -453,20 +512,6 @@ export default function RecordsPage() {
     dispatch(setSelectedRecord(record));
   };
 
-  // Function to clear all filters
-  const clearAllFilters = () => {
-    setSearch("");
-    setPartyFilter("");
-    setProductFilter("");
-    setVehicleTypeFilter("");
-    setReportType("daily");
-    setSelectedMonth(new Date().getMonth() + 1);
-    setSelectedYear(new Date().getFullYear());
-    setCustomFromDate("");
-    setCustomToDate("");
-    setCurrentPage(1);
-  };
-
   // Function to generate customer report (print version instead of PDF)
   const generateCustomerReport = () => {
     // Calculate total net weight and records count from filtered records
@@ -483,9 +528,9 @@ export default function RecordsPage() {
 
     // Build filter information string
     const filterInfo = [];
-    if (partyFilter) filterInfo.push(`Party: ${partyFilter}`);
-    if (productFilter) filterInfo.push(`Product: ${productFilter}`);
-    if (vehicleTypeFilter) filterInfo.push(`Vehicle Type: ${vehicleTypeFilter}`);
+    if (partyFilter.length > 0) filterInfo.push(`Party: ${partyFilter.join(', ')}`);
+    if (productFilter.length > 0) filterInfo.push(`Product: ${productFilter.join(', ')}`);
+    if (vehicleTypeFilter.length > 0) filterInfo.push(`Vehicle Type: ${vehicleTypeFilter.join(', ')}`);
     if (search) filterInfo.push(`Search Term: ${search}`);
     
     // Add report type information
@@ -575,7 +620,7 @@ export default function RecordsPage() {
     html, body { 
       margin: 0; 
       padding: 0; 
-      font-family: Arial, sans-serif;
+      font-family: 'Courier New', monospace !important;
       font-size: 10px; /* Smaller font size */
       color: #000;
       line-height: 1.3;
@@ -911,17 +956,11 @@ export default function RecordsPage() {
           </div>
         </div>
 
-        {/* Financial Overview Section */}
-        <FinancialSummary 
-          financialStats={financialStats} 
-          reportType={reportType} 
-          formatCurrency={formatCurrency} 
-        />
-
         {/* Records Table - Replacing RecordsGrid */}
         <div className="mt-4">
           <RecordsTable 
             records={filteredRecords} 
+            expenses={expenses}
             openPrintModal={openPrintModal} 
             onUpdateRecord={() => dispatch(fetchRecords())}
             vehiclePrices={[]} // Pass empty array for now

@@ -8,9 +8,20 @@ const api = {
   login: async (credentials) => {
     try {
       const response = await axios.post(`${API_BASE_URL}/index.php?action=login`, credentials);
+      console.log('API Response:', response); // Debug log
       return response.data;
     } catch (error) {
-      throw error;
+      // Handle different types of errors
+      if (error.response) {
+        // Server responded with error status
+        throw error;
+      } else if (error.request) {
+        // Request was made but no response received
+        throw new Error('Network error. Please check your connection.');
+      } else {
+        // Something else happened
+        throw new Error('An unexpected error occurred.');
+      }
     }
   },
 

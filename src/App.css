@@ -2,11 +2,10 @@
 @import 'bootstrap/dist/css/bootstrap.min.css';
 
 body {
-  font-family: 'Arial', 'Segoe UI', 'Roboto', sans-serif;
-  font-family: 'Courier New', monospace !important;
+  font-family: 'Courier New', 'Segoe UI', 'Roboto', sans-serif;
+  font-family: 'Corbel', monospace !important;
   font-optical-sizing: auto;
-  font-weight: 400;
-  font-style: normal;
+  font-weight: 600;
   background-color: #f8f9fa;
   line-height: 1.6;
 }
@@ -239,4 +238,11 @@ button:focus {
 .summary-item.net-weight .summary-value {
   font-weight: 700;
   color: #198754; /* Bootstrap green */
+}
+input {
+  text-transform: uppercase !important;
+  font-weight: 600 !important;
+}
+.login-form input {
+  text-transform: unset !important;
 }

@@ -20,8 +20,6 @@ export const DEFAULT_VEHICLE_TYPE = "Truck";
 
 // Helper function to get vehicle prices with fallback
 export const getVehiclePrices = (settingsVehiclePrices = {}) => {
-  return {
-    ...STANDARD_VEHICLE_PRICES,
-    ...settingsVehiclePrices
-  };
+  // Only return settings vehicle prices, not defaults
+  return settingsVehiclePrices || {};
 };

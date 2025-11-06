@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
+import { useNavigate } from "react-router-dom";
 import notify from "./notification";
 import logo from "../assets/logo512.png";
 import { 
@@ -15,7 +16,19 @@ export default function Login() {
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
     const dispatch = useDispatch();
-    const { loading, error } = useSelector(state => state.auth);
+    const navigate = useNavigate();
+    const { loading, error, loggedIn, role } = useSelector(state => state.auth);
+
+    // Redirect if already logged in
+    useEffect(() => {
+        if (loggedIn && role) {
+            if (role === "operator") {
+                navigate("/dashboard");
+            } else if (role === "owner" || role === "admin") {
+                navigate("/owner");
+            }
+        }
+    }, [loggedIn, role, navigate]);
 
     const handleLogin = async () => {
         if (!username || !password) {
@@ -27,12 +40,22 @@ export default function Login() {
         
         if (result.error) {
             notify.error(result.error.message || "Login failed");
+        } else {
+            // Navigation will be handled by the useEffect above
+            notify.success("Login successful");
+        }
+    };
+
+    // Handle Enter key press
+    const handleKeyPress = (e) => {
+        if (e.key === 'Enter') {
+            handleLogin();
         }
     };
 
     return (
         <div
-            className="d-flex align-items-center justify-content-center vh-100"
+            className="login-form d-flex align-items-center justify-content-center vh-100"
             style={{ 
                 background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)"
             }}
@@ -75,6 +98,7 @@ export default function Login() {
                             }}
                             value={username}
                             onChange={(e) => setUsername(e.target.value)}
+                            onKeyPress={handleKeyPress}
                             placeholder="Enter username"
                         />
                         <label htmlFor="username">
@@ -95,6 +119,7 @@ export default function Login() {
                             }}
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
+                            onKeyPress={handleKeyPress}
                             placeholder="Enter password"
                         />
                         <label htmlFor="password">

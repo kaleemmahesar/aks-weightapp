@@ -260,9 +260,9 @@ const ReportGenerator = ({
 
     // Build filter information string
     const filterInfo = [];
-    if (partyFilter) filterInfo.push(`Party: ${partyFilter}`);
-    if (productFilter) filterInfo.push(`Product: ${productFilter}`);
-    if (vehicleTypeFilter) filterInfo.push(`Vehicle Type: ${vehicleTypeFilter}`);
+    if (partyFilter && partyFilter.length > 0) filterInfo.push(`Party: ${partyFilter.join(', ')}`);
+    if (productFilter && productFilter.length > 0) filterInfo.push(`Product: ${productFilter.join(', ')}`);
+    if (vehicleTypeFilter && vehicleTypeFilter.length > 0) filterInfo.push(`Vehicle Type: ${vehicleTypeFilter.join(', ')}`);
     if (search) filterInfo.push(`Search Term: ${search}`);
     
     const filterString = filterInfo.length > 0 ? filterInfo.join(', ') : 'No additional filters applied';
@@ -281,7 +281,7 @@ const ReportGenerator = ({
           html, body { 
             margin: 0; 
             padding: 0; 
-            font-family: Arial, sans-serif;
+            font-family: Courier New, sans-serif;
             font-size: 10px; /* Smaller font size */
             color: #000;
             line-height: 1.3;
@@ -487,79 +487,21 @@ const ReportGenerator = ({
             </div>
           </div>
 
-          <!-- Financial Summary -->
+          <!-- Simplified Financial Summary -->
           <div class="content-section">
-            <div class="section-title">FINANCIAL SUMMARY</div>
-            ${reportType === 'daily' ? `
-              <div class="info-row">
-                <span class="info-label">Today's Revenue:</span>
-                <span class="info-value">Rs ${reportRevenue.toLocaleString()}</span>
-              </div>
-              <div class="info-row">
-                <span class="info-label">Today's Expenses:</span>
-                <span class="info-value">Rs ${reportExpensesAmount.toLocaleString()}</span>
-              </div>
-              <div class="info-row">
-                <span class="info-label">Today's Net Profit:</span>
-                <span class="info-value">Rs ${reportNetProfit.toLocaleString()}</span>
-              </div>
-              ${reportDepositsAmount > 0 ? `
-                <div class="info-row">
-                  <span class="info-label">Paid to Owner:</span>
-                  <span class="info-value">Rs ${reportDepositsAmount.toLocaleString()}</span>
-                </div>
-                <div class="info-row">
-                  <span class="info-label">Remaining Cash:</span>
-                  <span class="info-value">Rs ${reportFinalBalance.toLocaleString()}</span>
-                </div>
-              ` : ''}
-            ` : reportType === 'overall' ? `
-              <div class="info-row">
-                <span class="info-label">Total Revenue:</span>
-                <span class="info-value">Rs ${totalRevenue.toLocaleString()}</span>
-              </div>
-              <div class="info-row">
-                <span class="info-label">Total Expenses:</span>
-                <span class="info-value">Rs ${totalExpensesAmount.toLocaleString()}</span>
-              </div>
-              <div class="info-row">
-                <span class="info-label">Net Profit:</span>
-                <span class="info-value">Rs ${totalNetProfit.toLocaleString()}</span>
-              </div>
-              ${totalDepositsAmount > 0 ? `
-                <div class="info-row">
-                  <span class="info-label">Paid to Owner:</span>
-                  <span class="info-value">Rs ${totalDepositsAmount.toLocaleString()}</span>
-                </div>
-                <div class="info-row">
-                  <span class="info-label">Remaining Cash:</span>
-                  <span class="info-value">Rs ${totalFinalBalance.toLocaleString()}</span>
-                </div>
-              ` : ''}
-            ` : `
-              <div class="info-row">
-                <span class="info-label">${reportType.charAt(0).toUpperCase() + reportType.slice(1)} Revenue:</span>
-                <span class="info-value">Rs ${reportRevenue.toLocaleString()}</span>
-              </div>
-              <div class="info-row">
-                <span class="info-label">${reportType.charAt(0).toUpperCase() + reportType.slice(1)} Expenses:</span>
-                <span class="info-value">Rs ${reportExpensesAmount.toLocaleString()}</span>
-              </div>
-              <div class="info-row">
-                <span class="info-label">${reportType.charAt(0).toUpperCase() + reportType.slice(1)} Net Profit:</span>
-                <span class="info-value">Rs ${reportNetProfit.toLocaleString()}</span>
-              </div>
-              ${reportDepositsAmount > 0 ? `
-                <div class="info-row">
-                  <span class="info-label">Paid to Owner:</span>
-                  <span class="info-value">Rs ${reportDepositsAmount.toLocaleString()}</span>
-                </div>
-                <div class="info-row">
-                  <span class="info-label">Remaining Cash:</span>
-                  <span class="info-value">Rs ${reportFinalBalance.toLocaleString()}</span>
-                </div>
-              ` : ''}
-            `}
+            <div class="section-title">SUMMARY</div>
+            <div class="info-row">
+              <span class="info-label">Total Records:</span>
+              <span class="info-value">${finalFilteredRecords.length}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Total Sales:</span>
+              <span class="info-value">Rs ${reportRevenue.toLocaleString()}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Total Expenses:</span>
+              <span class="info-value">Rs ${reportExpensesAmount.toLocaleString()}</span>
+            </div>
           </div>
 
           <!-- Vehicle Type Counts -->
@@ -637,60 +579,6 @@ const ReportGenerator = ({
                   ${expense.description ? `<div class="expense-row" style="font-size: 9px; color: #7f8c8d; margin-left: 8px;">${expense.description}</div>` : ''}
                 </div>
               `).join('')}
-            </div>
-          ` : ''}
-
-          <!-- Owner Deposits Details -->
-          ${reportDepositsToOwner.length > 0 ? `
-            <div class="content-section">
-              <div class="section-title">OWNER DEPOSITS</div>
-              ${reportDepositsToOwner.map(deposit => `
-                <div class="expense-item">
-                  <div class="expense-row">
-                    <span class="expense-label">${deposit.date ? deposit.date : '-'} - Deposited</span>
-                    <span class="expense-value">Rs ${(parseFloat(deposit.amount) || 0).toLocaleString()}</span>
-                  </div>
-                  ${deposit.description ? `<div class="expense-row" style="font-size: 9px; color: #7f8c8d; margin-left: 8px;">${deposit.description}</div>` : ''}
-                </div>
-              `).join('')}
-            </div>
-          ` : ''}
-
-          <!-- Revenue Details (Only for Overall reports) -->
-          ${reportType === 'overall' && finalFilteredRecords.length > 0 ? `
-            <div class="content-section">
-              <div class="section-title">REVENUE DETAILS</div>
-              ${finalFilteredRecords.map(record => `
-                <div class="revenue-item">
-                  <div class="expense-row">
-                    <span class="expense-label">${record.date ? record.date : '-'} - ${record.vehicle_number || '-'}</span>
-                    <span class="expense-value">Rs ${(parseFloat(record.total_price) || 0).toLocaleString()}</span>
-                  </div>
-                </div>
-              `).join('')}
-            </div>
-          ` : ''}
-
-          <!-- Cash Management (Only for Overall reports) -->
-          ${reportType === 'overall' ? `
-            <div class="content-section">
-              <div class="section-title">CASH MANAGEMENT</div>
-              <div class="info-row">
-                <span class="info-label">Opening Balance:</span>
-                <span class="info-value">Rs 0</span>
-              </div>
-              <div class="info-row">
-                <span class="info-label">Total Revenue:</span>
-                <span class="info-value">Rs ${totalRevenue.toLocaleString()}</span>
-              </div>
-              <div class="info-row">
-                <span class="info-label">Total Expenses:</span>
-                <span class="info-value">Rs ${totalExpensesAmount.toLocaleString()}</span>
-              </div>
-              <div class="info-row">
-                <span class="info-label">Remaining Cash:</span>
-                <span class="info-value">Rs ${totalFinalBalance.toLocaleString()}</span>
-              </div>
             </div>
           ` : ''}
 

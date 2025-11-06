@@ -16,6 +16,9 @@ export default function FinalWeightForm({
   const dispatch = useDispatch();
   const { settings = {} } = useSelector(state => state.settings || {});
   const vehiclePrices = getVehiclePrices(settings.vehiclePrices);
+  
+  // Define vehicle types that should have vehicle number set to "12345"
+  const zeroVehicleTypes = ["Tractor", "Chingchi", "Daalo", "GadahGano"];
 
   // Custom styles for react-select (matching original form height and styling)
   const customSelectStyles = {
@@ -98,7 +101,24 @@ export default function FinalWeightForm({
 
   // Handle vehicle type change for react-select
   const handleVehicleTypeChange = (selectedOption) => {
-    formik.setFieldValue('finalVehicleType', selectedOption ? selectedOption.value : 'Select');
+    const vehicleType = selectedOption ? selectedOption.value : 'Select';
+    formik.setFieldValue('finalVehicleType', vehicleType);
+    
+    if (selectedOption && selectedOption.value !== 'Select') {
+      // Set vehicle number to "12345" for specific vehicle types
+      if (zeroVehicleTypes.includes(selectedOption.value)) {
+        formik.setFieldValue('finalVehicle', '12345');
+      } 
+      // Reset vehicle number to empty for other vehicle types if it was previously set to "12345"
+      else if (formik.values.finalVehicle === '12345') {
+        formik.setFieldValue('finalVehicle', '');
+      }
+    } else {
+      // Reset vehicle number to empty when no vehicle type is selected
+      if (formik.values.finalVehicle === '12345') {
+        formik.setFieldValue('finalVehicle', '');
+      }
+    }
   };
 
   // Handle product change for react-select
@@ -134,11 +154,7 @@ export default function FinalWeightForm({
       finalWithDriver: true,
     },
     validationSchema: Yup.object({
-      finalVehicle: Yup.string().when('finalVehicleType', {
-        is: (vehicleType) => ['Truck', 'SixWheeler', 'DahWheeler', 'Rocket Double', 'Container', 'Shahzore', 'Datson', 'Mazda'].includes(vehicleType),
-        then: (schema) => schema.required("Required"),
-        otherwise: (schema) => schema
-      }),
+      finalVehicle: Yup.string().required("Required"),
       party: Yup.string().required("Required"),
       finalVehicleType: Yup.string().required("Required"),
       finalProduct: Yup.string().required("Required"),
@@ -146,8 +162,8 @@ export default function FinalWeightForm({
         .typeError("Must be a number")
         .required("Required"),
       finalWeight: Yup.number()
-  .required("Weight is required")
-  .min(0, "Weight cannot be negative"),
+        .required("Weight is required")
+        .min(0, "Weight cannot be negative"),
     }),
     onSubmit: async (values, { resetForm }) => {
       const netWeight =
@@ -177,7 +193,7 @@ export default function FinalWeightForm({
           console.log("✅ Final weight saved:", resultAction.payload);
 
           const recordedData = resultAction.payload.record;
-          console.log(recordedData)
+          console.log(recordedData);
           if (onSuccess) onSuccess(recordedData, "final");
           resetForm();
         } else {
