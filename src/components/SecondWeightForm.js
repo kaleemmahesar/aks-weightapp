@@ -298,8 +298,10 @@ export default function SecondWeightForm({ liveWeight, onSuccess }) {
             ? (() => {
                 const netWeight = formik.values.selectedVehicle.record.first_weight - formik.values.secondWeight;
                 const munds = netWeight / 40;
-                const mundsInteger = Math.floor(munds);
-                const kgRemaining = netWeight % 40;
+                // Use trunc() instead of floor() to handle negative numbers correctly
+                const mundsInteger = Math.trunc(munds);
+                // Calculate remaining kg properly for negative values
+                const kgRemaining = netWeight - (mundsInteger * 40);
                 const tons = netWeight / 1000;
                 return `${netWeight.toFixed(2)} KG | ${mundsInteger} Munds ${kgRemaining.toFixed(0)} kg | ${tons.toFixed(2)} Tons`;
               })()

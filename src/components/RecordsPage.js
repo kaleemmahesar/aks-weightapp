@@ -828,7 +828,8 @@ export default function RecordsPage() {
         <tbody>
           ${filteredRecords.map(record => {
             const netWeight = parseFloat(record.net_weight) || 0;
-            const netMunds = netWeight / 40; // 1 Mund = 40 kg
+            // Use Math.trunc() to handle negative numbers correctly
+            const netMunds = Math.trunc(netWeight / 40);
             const firstWeight = parseFloat(record.first_weight) || 0;
             const secondWeight = parseFloat(record.second_weight) || 0;
             const recordDate = record.date || record.first_weight_time || '';

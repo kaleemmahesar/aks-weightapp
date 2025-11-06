@@ -37,7 +37,8 @@ const OldPrinterPrint = ({ record, slipType }) => {
     const sign = n < 0 ? '-' : '';
     const abs = Math.abs(n);
 
-    let munds = Math.floor(abs / 40);
+    // Use Math.trunc() instead of Math.floor() to handle negative numbers correctly
+    let munds = Math.trunc(abs / 40);
     let remKg = Math.round(abs % 40);
 
     // handle edge case: 40 kg remainder

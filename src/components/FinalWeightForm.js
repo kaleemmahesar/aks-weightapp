@@ -432,7 +432,7 @@ export default function FinalWeightForm({
             </div>
 
             {/* Net Weight (Calculated) */}
-            <div className="input-group-enhanced">
+            <div className="input-group-enhanced" style={{ gridColumn: 'span 2' }}>
               <div className="weight-input-container">
                 <input
                   type="number"
@@ -451,26 +451,25 @@ export default function FinalWeightForm({
                 />
                 <div className="weight-unit">KG</div>
               </div>
+              {/* Display Net Weight in KG, Munds, and Tons like SecondWeightForm */}
+              {formik.values.finalWeight && formik.values.emptyWeight && (
+                <div className="summary-item net-weight" style={{ marginTop: '10px', padding: '10px', backgroundColor: '#f8f9fa', borderRadius: '4px' }}>
+                  <span className="summary-value" style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#007bff' }}>
+                    {(() => {
+                      const netWeight = formik.values.finalWeight - formik.values.emptyWeight;
+                      const munds = netWeight / 40;
+                      // Use trunc() instead of floor() to handle negative numbers correctly
+                      const mundsInteger = Math.trunc(munds);
+                      // Calculate remaining kg properly for negative values
+                      const kgRemaining = netWeight - (mundsInteger * 40);
+                      const tons = netWeight / 1000;
+                      return `${netWeight.toFixed(2)} KG | ${mundsInteger} Munds ${kgRemaining.toFixed(0)} kg | ${tons.toFixed(2)} Tons`;
+                    })()}
+                  </span>
+                </div>
+              )}
             </div>
 
-            {/* Driver Checkbox */}
-            <div className="input-group-enhanced">
-              <div className="checkbox-container mt-0">
-                <div className="form-check">
-                  <input
-                    type="checkbox"
-                    name="finalWithDriver"
-                    id="finalWithDriver"
-                    className="form-check-input"
-                    checked={formik.values.finalWithDriver}
-                    onChange={formik.handleChange}
-                  />
-                  <label className="form-check-label ms-2" htmlFor="finalWithDriver">
-                    Include Driver in Weight
-                  </label>
-                </div>
-              </div>
-            </div>
           </div>
 
           {/* Enhanced Submit Button */}

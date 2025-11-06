@@ -286,7 +286,8 @@ export default function OwnerDashboard() {
                     <tbody>
                         ${filteredRecords.map(r => {
                             const netWeight = parseFloat(r.net_weight) || 0;
-                            const netMunds = netWeight / 40; // 1 Mund = 40 kg
+                            // Use Math.trunc() to handle negative numbers correctly
+                            const netMunds = Math.trunc(netWeight / 40); // 1 Mund = 40 kg
                             const firstWeight = parseFloat(r.first_weight) || 0;
                             const secondWeight = parseFloat(r.second_weight) || 0;
                             const recordDate = r.date || r.first_weight_time || '';
