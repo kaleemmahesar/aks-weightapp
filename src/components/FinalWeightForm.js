@@ -17,8 +17,8 @@ export default function FinalWeightForm({
   const { settings = {} } = useSelector(state => state.settings || {});
   const vehiclePrices = getVehiclePrices(settings.vehiclePrices);
   
-  // Define vehicle types that should have vehicle number set to "12345"
-  const zeroVehicleTypes = ["Tractor", "Chingchi", "Daalo", "GadahGano"];
+  // Define vehicle types that should allow manual vehicle number input
+  const specialVehicleTypes = ["Truck", "Dahwheeler", "SixWheeler", "Container"];
 
   // Custom styles for react-select (matching original form height and styling)
   const customSelectStyles = {
@@ -105,19 +105,17 @@ export default function FinalWeightForm({
     formik.setFieldValue('finalVehicleType', vehicleType);
     
     if (selectedOption && selectedOption.value !== 'Select') {
-      // Set vehicle number to "12345" for specific vehicle types
-      if (zeroVehicleTypes.includes(selectedOption.value)) {
-        formik.setFieldValue('finalVehicle', '12345');
-      } 
-      // Reset vehicle number to empty for other vehicle types if it was previously set to "12345"
-      else if (formik.values.finalVehicle === '12345') {
+      // Set vehicle number to the vehicle type name for specific vehicle types
+      // If vehicle type is NOT Truck, Dahwheeler, SixWheeler, or Container, fill vehicle number with vehicle type name
+      if (!specialVehicleTypes.includes(selectedOption.value)) {
+        formik.setFieldValue('finalVehicle', selectedOption.value);
+      } else {
+        // For special vehicle types, clear the vehicle number to allow manual input
         formik.setFieldValue('finalVehicle', '');
       }
     } else {
       // Reset vehicle number to empty when no vehicle type is selected
-      if (formik.values.finalVehicle === '12345') {
-        formik.setFieldValue('finalVehicle', '');
-      }
+      formik.setFieldValue('finalVehicle', '');
     }
   };
 
@@ -234,6 +232,39 @@ export default function FinalWeightForm({
       <div className="modern-card-body">
         <form onSubmit={formik.handleSubmit}>
           <div className="enhanced-form-grid" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
+            {/* Vehicle Type */}
+            <div className="input-group-enhanced">
+              <Select
+                options={vehicleOptions}
+                value={vehicleOptions.find(option => option.value === formik.values.finalVehicleType)}
+                onChange={handleVehicleTypeChange}
+                onBlur={() => formik.setFieldTouched('finalVehicleType', true)}
+                isSearchable
+                menuPortalTarget={document.body}
+                menuPosition="absolute"
+                menuPlacement="auto"
+                styles={{
+                  ...customSelectStyles,
+                  control: (provided, state) => ({
+                    ...provided,
+                    borderRadius: '4px',
+                    border: `1px solid ${formik.touched.finalVehicleType && formik.errors.finalVehicleType ? '#dc3545' : '#ced4da'}`,
+                    boxShadow: state.isFocused ? '0 0 0 0.2rem rgba(0, 123, 255, 0.25)' : 'none',
+                    borderColor: state.isFocused ? '#007bff' : (formik.touched.finalVehicleType && formik.errors.finalVehicleType ? '#dc3545' : '#ced4da'),
+                    height: '58px',
+                    minHeight: '58px'
+                  })
+                }}
+                placeholder="Select Vehicle Type *"
+                className="enhanced-select"
+              />
+              {formik.touched.finalVehicleType && formik.errors.finalVehicleType && (
+                <div className="error-message-enhanced">
+                  <i className="fas fa-exclamation-triangle me-2"></i>
+                  {formik.errors.finalVehicleType}
+                </div>
+              )}
+            </div>
             {/* Vehicle Number */}
             <div className="input-group-enhanced">
               <input
@@ -282,39 +313,7 @@ export default function FinalWeightForm({
               )}
             </div>
 
-            {/* Vehicle Type */}
-            <div className="input-group-enhanced">
-              <Select
-                options={vehicleOptions}
-                value={vehicleOptions.find(option => option.value === formik.values.finalVehicleType)}
-                onChange={handleVehicleTypeChange}
-                onBlur={() => formik.setFieldTouched('finalVehicleType', true)}
-                isSearchable
-                menuPortalTarget={document.body}
-                menuPosition="absolute"
-                menuPlacement="auto"
-                styles={{
-                  ...customSelectStyles,
-                  control: (provided, state) => ({
-                    ...provided,
-                    borderRadius: '4px',
-                    border: `1px solid ${formik.touched.finalVehicleType && formik.errors.finalVehicleType ? '#dc3545' : '#ced4da'}`,
-                    boxShadow: state.isFocused ? '0 0 0 0.2rem rgba(0, 123, 255, 0.25)' : 'none',
-                    borderColor: state.isFocused ? '#007bff' : (formik.touched.finalVehicleType && formik.errors.finalVehicleType ? '#dc3545' : '#ced4da'),
-                    height: '58px',
-                    minHeight: '58px'
-                  })
-                }}
-                placeholder="Select Vehicle Type *"
-                className="enhanced-select"
-              />
-              {formik.touched.finalVehicleType && formik.errors.finalVehicleType && (
-                <div className="error-message-enhanced">
-                  <i className="fas fa-exclamation-triangle me-2"></i>
-                  {formik.errors.finalVehicleType}
-                </div>
-              )}
-            </div>
+            
 
             {/* Product */}
             {/* <div className="input-group-enhanced">

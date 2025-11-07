@@ -28,7 +28,7 @@ export default function SecondWeightForm({ liveWeight, onSuccess }) {
   const options = [
   { value: "Select", label: "Select Vehicle" },
   ...records
-    .filter((r) => r && (r.second_weight === null || r.second_weight === undefined || !r.second_weight))
+    .filter((r) => r && (r.second_weight === null || r.second_weight === undefined || r.second_weight === 0 || r.second_weight === "0" || r.second_weight === "0.00"))
     .map((r) => ({
       value: r.id,
       label: `${r.party_name || 'Unknown'} | Serial No: ${r.id || 'N/A'}`,

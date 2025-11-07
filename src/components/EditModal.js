@@ -50,25 +50,33 @@ export default function EditRecordModal({ show, onClose, record, slipType }) {
 
     onSubmit: async (values) => {
       console.log(values)
-      // ✅ Calculate derived fields
+      // ✅ Calculate derived fields only if both weights are provided
       const net_weight = values.second_weight !== "" && values.first_weight !== "" ?
         parseFloat(values.first_weight || 0) - parseFloat(values.second_weight || 0) : null;
       
       const total_price = vehiclePrices[values.vehicle_type] || 0;
 
       try {
-        // Dispatch the Redux action to update the record
-        const resultAction = await dispatch(updateRecord({
+        // Prepare update data - only include fields that should be updated
+        const updateData = {
           id: record.id,
           party_name: values.party_name,
           vehicleNumber: values.vehicle_number,  // Changed from vehicle_number to vehicleNumber
           vehicleType: values.vehicle_type,      // Changed from vehicle_type to vehicleType
           product: values.product,
           first_weight: values.first_weight !== "" ? parseFloat(values.first_weight) : null,
-          second_weight: values.second_weight !== "" ? parseFloat(values.second_weight) : null,
-          net_weight: net_weight,
-          total_price: total_price
-        }));
+        };
+
+        // Only update second_weight and related fields if we're editing a second or final weight record
+        // For first weight records, we should not modify second_weight related fields to preserve NULL values
+        if (slipType === "second" || slipType === "final") {
+          updateData.second_weight = values.second_weight !== "" ? parseFloat(values.second_weight) : null;
+          updateData.net_weight = net_weight;
+          updateData.total_price = total_price;
+        }
+
+        // Dispatch the Redux action to update the record
+        const resultAction = await dispatch(updateRecord(updateData));
 
         console.log(resultAction)
 

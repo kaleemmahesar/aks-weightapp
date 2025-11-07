@@ -515,7 +515,8 @@ export default function RecordsPage() {
   // Function to generate customer report (print version instead of PDF)
   const generateCustomerReport = () => {
     // Calculate total net weight and records count from filtered records
-    const totalNetWeight = filteredRecords.reduce((sum, r) => sum + (parseFloat(r.net_weight) || 0), 0);
+    // Use absolute values to handle negative net weights correctly
+    const totalNetWeight = filteredRecords.reduce((sum, r) => sum + Math.abs(parseFloat(r.net_weight) || 0), 0);
     const totalMunds = totalNetWeight / 40; // 1 Mund = 40 kg
     const totalRecords = filteredRecords.length;
 
@@ -799,7 +800,11 @@ export default function RecordsPage() {
       </div>
       <div class="info-row">
         <span class="info-label">Total Munds:</span>
-        <span class="info-value">${totalMunds.toFixed(2)} Munds</span>
+        <span class="info-value">${(() => {
+      const mundsInteger = Math.floor(totalMunds);
+      const remainingKgs = Math.round((totalMunds - mundsInteger) * 40);
+      return `${mundsInteger}-${remainingKgs}`;
+    })()} Munds</span>
       </div>
       <div class="info-row">
         <span class="info-label">Total Net Weight:</span>

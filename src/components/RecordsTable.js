@@ -459,17 +459,34 @@ export default function RecordsTable({ records, expenses = [], openPrintModal, v
                 {/* Summary row at the bottom */}
                 <div className="d-flex justify-content-between align-items-center p-3 border-top">
                     <div>
-                        <span className="fw-bold" style={{ fontSize: '1.15rem' }}>Total Records: </span>
-                        <span style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>{records.length}</span>
+                        <span className="fw-bold" style={{ fontSize: '1.25rem' }}>Total Records: </span>
+                        <span style={{ fontSize: '1.25rem', fontWeight: 'bold' }}>{records.length}</span>
                     </div>
                     
                     <div>
-                        <span className="fw-bold" style={{ fontSize: '1.15rem' }}>Total Expenses: </span>
-                        <span style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>PKR {totalExpenses.toLocaleString()}</span>
+                        <span className="fw-bold" style={{ fontSize: '1.25rem' }}>Total Weight: </span>
+                        <span style={{ fontSize: '1.25rem', fontWeight: 'bold' }}>
+                          {paginatedRecords.reduce((sum, r) => sum + Math.abs(parseFloat(r.net_weight) || 0), 0).toLocaleString()} kg
+                        </span>
+                        <span className="mx-2">|</span>
+                        <span style={{ fontSize: '1.25rem', fontWeight: 'bold' }}>
+                          {(() => {
+                            const totalNetWeight = paginatedRecords.reduce((sum, r) => sum + Math.abs(parseFloat(r.net_weight) || 0), 0);
+                            const totalMunds = totalNetWeight / 40;
+                            const mundsInteger = Math.floor(totalMunds);
+                            const remainingKgs = Math.round((totalMunds - mundsInteger) * 40);
+                            return `${mundsInteger}-${remainingKgs} Munds`;
+                          })()}
+                        </span>
+                        <span className="mx-2">|</span>
+                        <span style={{ fontSize: '1.25rem', fontWeight: 'bold' }}>
+                          {(paginatedRecords.reduce((sum, r) => sum + Math.abs(parseFloat(r.net_weight) || 0), 0) / 1000).toFixed(2)} tons
+                        </span>
                     </div>
+                    
                     <div>
-                        <span className="fw-bold" style={{ fontSize: '1.15rem' }}>Total Sales: </span>
-                        <span style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>PKR {grandTotal.toLocaleString()}</span>
+                        <span className="fw-bold" style={{ fontSize: '1.25rem' }}>Total Sales: </span>
+                        <span style={{ fontSize: '1.25rem', fontWeight: 'bold' }}>PKR {grandTotal.toLocaleString()}</span>
                     </div>
                 </div>
 

@@ -30,7 +30,8 @@ export default function OperatorDashboard() {
   // ✅ Dashboard Stats
   const totalVehicles = records.length;
   const todaysVehicles = records.length;
-  const pendingSecond = records.filter((r) => r && !r.second_weight).length;
+  // Count records where second_weight is null, undefined, or 0.00
+  const pendingSecond = records.filter((r) => r && (r.second_weight === null || r.second_weight === undefined || r.second_weight === 0 || r.second_weight === "0" || r.second_weight === "0.00")).length;
 
   // ✅ Fetch Records from Backend
   useEffect(() => {

@@ -224,7 +224,11 @@ const ReportGenerator = ({
 
     // Calculate financial metrics
     const reportRevenue = finalFilteredRecords.reduce((sum, r) => sum + (parseFloat(r.total_price) || 0), 0);
-    
+
+    // Calculate total net weight using absolute values
+    const totalNetWeight = finalFilteredRecords.reduce((sum, r) => sum + Math.abs(parseFloat(r.net_weight) || 0), 0);
+    const totalMunds = totalNetWeight / 40; // 1 Mund = 40 kg
+
     // Separate regular expenses from deposits to owner
     const reportRegularExpenses = finalFilteredExpenses.filter(e => e.category !== "Deposit to Owner");
     const reportDepositsToOwner = finalFilteredExpenses.filter(e => e.category === "Deposit to Owner");
@@ -493,6 +497,18 @@ const ReportGenerator = ({
             <div class="info-row">
               <span class="info-label">Total Records:</span>
               <span class="info-value">${finalFilteredRecords.length}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Total Net Weight:</span>
+              <span class="info-value">${totalNetWeight.toFixed(2)} kg</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Total Munds:</span>
+              <span class="info-value">${(() => {
+                const mundsInteger = Math.floor(totalMunds);
+                const remainingKgs = Math.round((totalMunds - mundsInteger) * 40);
+                return `${mundsInteger}-${remainingKgs}`;
+              })()} Munds</span>
             </div>
             <div class="info-row">
               <span class="info-label">Total Sales:</span>
