@@ -567,124 +567,204 @@ const PrintModal = ({ show, slipType, onClose }) => {
         className="modal d-block fade show"
         tabIndex="-1"
         style={{ zIndex: 1050 }}
+        onClick={(e) => {
+          if (e.target === e.currentTarget) {
+            onClose();
+          }
+        }}
       >
-        <div className="modal-dialog">
-          <div className="modal-content">
-            <div className="modal-header">
-              <h5 className="modal-title">Weighbridge Slip</h5>
+        <div className="modal-dialog modal-dialog-centered" style={{ 
+          maxWidth: '860px', 
+          width: '90%',
+          margin: '0 auto'
+        }}>
+          <div className="modal-content" style={{ 
+            minHeight: '370px',
+            minWidth: '100%',
+            borderRadius: '12px',
+            boxShadow: '0 10px 30px rgba(0,0,0,0.3)'
+          }}>
+            <div className="modal-header" style={{ 
+              padding: '1rem 2rem',
+              backgroundColor: '#f8f9fa',
+              borderBottom: '1px solid #dee2e6'
+            }}>
+              <h5 className="modal-title fw-bold" style={{ fontSize: '1.5rem' }}>
+                Weighbridge Slip
+              </h5>
               <button
                 type="button"
                 className="btn-close"
                 onClick={onClose}
-              ></button>
+                aria-label="Close">
+              </button>
             </div>
-            <div className="modal-body" id="print-area">
-              <div className="text-center mb-3">
-                <img src="/logo512.png" alt="Logo" style={{ height: "50px" }} />
-                <h4>Al Hussaini Computerised Kanta</h4>
+            <div className="modal-body" style={{ padding: '1.5rem 2rem' }}>
+              <div className="text-center mb-4">
+                <h3 className="mt-2 fw-bold">Al Hussaini Computerised Kanta</h3>
                 <p>Near Bhand Chowk, Taulka Sijawal Junejo | Phone: 0331 4812277</p>
                 <hr />
               </div>
-              <h4 className="text-center">
+              <h4 className="text-center mb-4 fw-bold">
                 {slipType === "first"
                   ? "First Weight Slip"
                   : slipType === "second"
                     ? "Second Weight Slip"
                     : "Final Weight Slip"}
               </h4>
-              <hr />
 
-              {/* ✅ Common Info */}
-              <p>
-                <strong>Vehicle Number:</strong> {record.vehicle_number}
-              </p>
-              <p>
-                <strong>Party Name:</strong> {record.party_name}
-              </p>
-              <p>
-                <strong>Product:</strong> {record.product}
-              </p>
-              <p>
-                <strong>Driver:</strong> {record.driver_name || record.driver || 'N/A'}
-              </p>
+              {/* ✅ Common Info in 2-column grid */}
+              <div className="row g-4 mb-4">
+                <div className="col-md-6">
+                  <div className="d-flex">
+                    <strong className="me-2">Business Name:</strong>
+                    <span className="text-uppercase">{record.business_name || 'N/A'}</span>
+                  </div>
+                </div>
+                <div className="col-md-6">
+                  <div className="d-flex">
+                    <strong className="me-2">Vehicle Number:</strong>
+                    <span className="text-uppercase">{record.vehicle_number || 'N/A'}</span>
+                  </div>
+                </div>
+                <div className="col-md-6">
+                  <div className="d-flex">
+                    <strong className="me-2">Party Name:</strong>
+                    <span className="text-uppercase">{record.party_name || 'N/A'}</span>
+                  </div>
+                </div>
+                <div className="col-md-6">
+                  <div className="d-flex">
+                    <strong className="me-2">Product:</strong>
+                    <span>{record.product || 'N/A'}</span>
+                  </div>
+                </div>
+                <div className="col-md-6">
+                  <div className="d-flex">
+                    <strong className="me-2">Driver:</strong>
+                    <span>{record.driver_name || record.driver || 'N/A'}</span>
+                  </div>
+                </div>
+                <div className="col-md-6">
+                  <div className="d-flex">
+                    <strong className="me-2">Vehicle Type:</strong>
+                    <span className="text-uppercase">{record.vehicle_type || 'N/A'}</span>
+                  </div>
+                </div>
+                {record.bilty_number && (
+                  <div className="col-md-6">
+                    <div className="d-flex">
+                      <strong className="me-2">Bilty Number:</strong>
+                      <span>{record.bilty_number}</span>
+                    </div>
+                  </div>
+                )}
+              </div>
 
-              {/* ✅ First Slip Details */}
-              {slipType !== "final" && (
-                <>
-                  <p>
-                    <strong>First Weight:</strong>{" "}
-                    {formatWeight(record.first_weight)} Kg
-                  </p>
+              {/* ✅ Weight Details */}
+              <div className="row g-4">
+                {/* ✅ First Slip Details */}
+                {slipType !== "final" && (
+                  <>
+                    <div className="col-md-6">
+                      <div className="d-flex">
+                        <strong className="me-2">First Weight:</strong>
+                        <span>{formatWeight(record.first_weight)} Kg</span>
+                      </div>
+                    </div>
+                    <div className="col-md-6">
+                      <div className="d-flex">
+                        <strong className="me-2">First Weight Time:</strong>
+                        <span>{formatToPST(record.first_weight_time)}</span>
+                      </div>
+                    </div>
+                  </>
+                )}
 
-                  <p>
-                    <strong>First Weight Time:</strong>{" "}
-                    {formatToPST(record.first_weight_time)}
-                  </p>
-                </>
-              )}
-              {/* ✅ Second Slip Details */}
-              {slipType !== "first" && record.second_weight && (
-                <>
-                  <p>
-                    <strong>
-                      {slipType === "final"
-                        ? "Empty Weight:"
-                        : "Second Weight:"}
-                    </strong>{" "}
-                    {formatWeight(record.second_weight)} Kg
-                  </p>
-                  {slipType !== "final" && (
-                    <p>
-                      <strong>Second Weight Time:</strong>{" "}
-                      {formatToPST(record.second_weight_time)}
-                    </p>
-                  )}
-                </>
-              )}
+                {/* ✅ Second Slip Details */}
+                {slipType !== "first" && record.second_weight && (
+                  <>
+                    <div className="col-md-6">
+                      <div className="d-flex">
+                        <strong className="me-2">
+                          {slipType === "final"
+                            ? "Empty Weight:"
+                            : "Second Weight:"}
+                        </strong>
+                        <span>{formatWeight(record.second_weight)} Kg</span>
+                      </div>
+                    </div>
+                    {slipType !== "final" && (
+                      <div className="col-md-6">
+                        <div className="d-flex">
+                          <strong className="me-2">Second Weight Time:</strong>
+                          <span>{formatToPST(record.second_weight_time)}</span>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
 
-              
+                {/* ✅ Final Slip Extra Details */}
+                {slipType === "final" && record.second_weight && (
+                  <>
+                    <div className="col-md-6">
+                      <div className="d-flex">
+                        <strong className="me-2">Current Weight:</strong>
+                        <span>{formatWeight(record.first_weight)} kg</span>
+                      </div>
+                    </div>
+                    <div className="col-md-6">
+                      <div className="d-flex">
+                        <strong className="me-2">Current Weight Time:</strong>
+                        <span>{formatToPST(record.first_weight_time)}</span>
+                      </div>
+                    </div>
+                  </>
+                )}
 
-              {/* ✅ Final Slip Extra Details */}
-              {slipType === "final" && record.second_weight && (
-                <>
-                  <p>
-                    <strong>Current Weight:</strong>{" "}
-                    {formatWeight(record.first_weight)} kg
-                  </p>
-                  <p>
-                    <strong>Current Weight Time:</strong>{" "}
-                    {formatToPST(record.first_weight_time)}
-                  </p>
-                </>
-              )}
+                {/* ✅ Net Weight & Munds */}
+                {slipType !== "first" && record.net_weight && (
+                  <>
+                    <div className="col-md-6">
+                      <div className="d-flex">
+                        <strong className="me-2">Net Weight:</strong>
+                        <span>{formatWeight(record.net_weight)} kg</span>
+                      </div>
+                    </div>
+                    <div className="col-md-6">
+                      <div className="d-flex">
+                        <strong className="me-2">Munds:</strong>
+                        <span>
+                          {`${kgToMundsString(record.net_weight).sign}${kgToMundsString(record.net_weight).munds}`}{" "}
+                          Munds{" "}
+                          {kgToMundsString(record.net_weight).remKg} Kg
+                        </span>
+                      </div>
+                    </div>
+                  </>
+                )}
 
-              {/* ✅ Net Weight & Munds */}
-              {slipType !== "first" && record.net_weight && (
-                <p>
-  <strong>Net Weight:</strong>{" "}
-  {formatWeight(record.net_weight)} kg &nbsp;
-  <strong>Munds:</strong>{" "}
-  {`${kgToMundsString(record.net_weight).sign}${kgToMundsString(record.net_weight).munds}`}{" "}
-  Munds{" "}
-  {kgToMundsString(record.net_weight).remKg} Kg
-</p>
-
-              )}
-
-              {/* ✅ Price Calculation */}
-              <p>
-                <strong>Price:</strong> {record.total_price} PKR
-              </p>
+                {/* ✅ Price Calculation */}
+                <div className="col-md-12 mt-3">
+                  <div className="d-flex justify-content-center">
+                    <strong className="me-2">Price:</strong>
+                    <span className="fw-bold fs-5">{record.total_price || '0'} PKR</span>
+                  </div>
+                </div>
+              </div>
             </div>
-            <div className="modal-footer">
-              {/* <button className="btn btn-primary" onClick={handlePrint}>
-                Print
-              </button> */}
-              {/* Use the new component for old printer printing */}
-              <OldPrinterPrint record={record} slipType={slipType} />
-              <button className="btn btn-secondary" onClick={onClose}>
-                Close
-              </button>
+            <div className="modal-footer" style={{ padding: '1rem 0' }}>
+              <div className="d-flex justify-content-center w-100">
+                {/* <button className="btn btn-primary me-3" onClick={handlePrint}>
+                  Print
+                </button> */}
+                {/* Use the new component for old printer printing */}
+                <OldPrinterPrint record={record} slipType={slipType} />
+                <button className="btn btn-secondary ms-3" onClick={onClose}>
+                  Close
+                </button>
+              </div>
             </div>
           </div>
         </div>

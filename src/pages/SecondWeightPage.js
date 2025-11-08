@@ -67,6 +67,7 @@ export default function SecondWeightPage() {
       first_weight_time: formatTo12Hour(updatedRecord.first_weight_time),
       second_weight_time: formatTo12Hour(updatedRecord.second_weight_time),
       driver_name: updatedRecord.driver_name,
+      business_name: updatedRecord.business_name || null  // Add business_name field
     };
     dispatch(setSelectedRecord(formattedRecord));
 

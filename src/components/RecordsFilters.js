@@ -29,11 +29,30 @@ const RecordsFilters = ({
   uniqueBusinessNames,
   onClearFilters
 }) => {
-  // Convert unique values to react-select options
-  const partyOptions = uniqueParties.map(party => ({ value: party, label: party.toUpperCase() }));
-  const productOptions = uniqueProducts.map(product => ({ value: product, label: product.toUpperCase() }));
+  // Convert unique values to react-select options with deduplication
+  const deduplicateOptions = (items) => {
+    const seen = new Map(); // Use Map to store the canonical form
+    const uniqueItems = [];
+    
+    items.forEach(item => {
+      const upperItem = item.toUpperCase();
+      if (!seen.has(upperItem)) {
+        seen.set(upperItem, item); // Store the first occurrence as canonical
+        uniqueItems.push(item);
+      }
+    });
+    
+    // Return options with uppercase for display, but keep original value for matching
+    return uniqueItems.map(item => ({ 
+      value: item, 
+      label: item.toUpperCase() // Show uppercase for display
+    }));
+  };
+  
+  const partyOptions = deduplicateOptions(uniqueParties);
+  const productOptions = deduplicateOptions(uniqueProducts);
   const vehicleTypeOptions = uniqueVehicleTypes.map(vehicleType => ({ value: vehicleType, label: vehicleType.toUpperCase() }));
-  const businessNameOptions = uniqueBusinessNames.map(businessName => ({ value: businessName, label: businessName.toUpperCase() }));
+  const businessNameOptions = deduplicateOptions(uniqueBusinessNames);
 
   // Custom styles for react-select to match bootstrap and fix z-index
   const customStyles = {
@@ -106,20 +125,20 @@ const RecordsFilters = ({
                 '&:hover': {
                   borderColor: '#ced4da'
                 },
-                textTransform: 'uppercase',
+                textTransform: 'uppercase'
               }),
               option: (provided) => ({
                 ...provided,
-                textTransform: 'uppercase',
+                textTransform: 'uppercase'
               }),
               singleValue: (provided) => ({
                 ...provided,
-                textTransform: 'uppercase',
+                textTransform: 'uppercase'
               }),
               placeholder: (provided) => ({
                 ...provided,
                 color: '#6c757d',
-                textTransform: 'uppercase',
+                textTransform: 'uppercase'
               })
             }}
             menuPortalTarget={document.body}
@@ -153,20 +172,20 @@ const RecordsFilters = ({
                 '&:hover': {
                   borderColor: '#ced4da'
                 },
-                textTransform: 'uppercase',
+                textTransform: 'uppercase'
               }),
               option: (provided) => ({
                 ...provided,
-                textTransform: 'uppercase',
+                textTransform: 'uppercase'
               }),
               singleValue: (provided) => ({
                 ...provided,
-                textTransform: 'uppercase',
+                textTransform: 'uppercase'
               }),
               placeholder: (provided) => ({
                 ...provided,
                 color: '#6c757d',
-                textTransform: 'uppercase',
+                textTransform: 'uppercase'
               })
             }}
             menuPortalTarget={document.body}
@@ -200,20 +219,20 @@ const RecordsFilters = ({
                 '&:hover': {
                   borderColor: '#ced4da'
                 },
-                textTransform: 'uppercase',
+                textTransform: 'uppercase'
               }),
               option: (provided) => ({
                 ...provided,
-                textTransform: 'uppercase',
+                textTransform: 'uppercase'
               }),
               singleValue: (provided) => ({
                 ...provided,
-                textTransform: 'uppercase',
+                textTransform: 'uppercase'
               }),
               placeholder: (provided) => ({
                 ...provided,
                 color: '#6c757d',
-                textTransform: 'uppercase',
+                textTransform: 'uppercase'
               })
             }}
             menuPortalTarget={document.body}
@@ -247,20 +266,20 @@ const RecordsFilters = ({
                 '&:hover': {
                   borderColor: '#ced4da'
                 },
-                textTransform: 'uppercase',
+                textTransform: 'uppercase'
               }),
               option: (provided) => ({
                 ...provided,
-                textTransform: 'uppercase',
+                textTransform: 'uppercase'
               }),
               singleValue: (provided) => ({
                 ...provided,
-                textTransform: 'uppercase',
+                textTransform: 'uppercase'
               }),
               placeholder: (provided) => ({
                 ...provided,
                 color: '#6c757d',
-                textTransform: 'uppercase',
+                textTransform: 'uppercase'
               })
             }}
             menuPortalTarget={document.body}

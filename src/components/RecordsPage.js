@@ -121,10 +121,25 @@ export default function RecordsPage() {
     fetchData();
   }, [dispatch]);
 
-  // Get unique values for filter dropdowns
-  const uniqueParties = [...new Set(records.map(r => r.party_name).filter(Boolean))];
-  const uniqueProducts = [...new Set(records.map(r => r.product).filter(Boolean))];
-  const uniqueBusinessNames = [...new Set(records.map(r => r.business_name).filter(Boolean))];
+  // Get unique values for filter dropdowns (case-insensitive to avoid duplicates while preserving original case)
+  const getUniqueCaseInsensitive = (items) => {
+    const seen = new Map(); // Use Map to store the canonical form
+    const uniqueItems = [];
+    
+    items.forEach(item => {
+      const upperItem = item.toUpperCase();
+      if (!seen.has(upperItem)) {
+        seen.set(upperItem, item); // Store the first occurrence as canonical
+        uniqueItems.push(item);
+      }
+    });
+    
+    return uniqueItems;
+  };
+  
+  const uniqueParties = getUniqueCaseInsensitive(records.map(r => r.party_name).filter(Boolean));
+  const uniqueProducts = getUniqueCaseInsensitive(records.map(r => r.product).filter(Boolean));
+  const uniqueBusinessNames = getUniqueCaseInsensitive(records.map(r => r.business_name).filter(Boolean));
   
   // Get unique vehicle types from both records and settings
   const uniqueVehicleTypes = [...new Set([
@@ -160,17 +175,26 @@ export default function RecordsPage() {
           r.id.toString().includes(search)
         : true;
 
-      // ✅ Party filter - updated for multiple selection
-      const matchesParty = partyFilter.length > 0 ? partyFilter.includes(r.party_name) : true;
+      // ✅ Party filter - updated for multiple selection with case-insensitive matching
+      const matchesParty = partyFilter.length > 0 
+        ? partyFilter.some(filterValue => 
+            r.party_name && r.party_name.toLowerCase() === filterValue.toLowerCase())
+        : true;
 
-      // ✅ Product filter - updated for multiple selection
-      const matchesProduct = productFilter.length > 0 ? productFilter.includes(r.product) : true;
+      // ✅ Product filter - updated for multiple selection with case-insensitive matching
+      const matchesProduct = productFilter.length > 0 
+        ? productFilter.some(filterValue => 
+            r.product && r.product.toLowerCase() === filterValue.toLowerCase())
+        : true;
 
       // ✅ Vehicle type filter - updated for multiple selection
       const matchesVehicleType = vehicleTypeFilter.length > 0 ? vehicleTypeFilter.includes(r.vehicle_type) : true;
 
-      // ✅ Business name filter - updated for multiple selection
-      const matchesBusinessName = businessNameFilter.length > 0 ? businessNameFilter.includes(r.business_name) : true;
+      // ✅ Business name filter - updated for multiple selection with case-insensitive matching
+      const matchesBusinessName = businessNameFilter.length > 0 
+        ? businessNameFilter.some(filterValue => 
+            r.business_name && r.business_name.toLowerCase() === filterValue.toLowerCase())
+        : true;
 
       // ✅ Report type filter
       const matchesReportType = (() => {
@@ -1558,10 +1582,10 @@ export default function RecordsPage() {
                       <FaFileInvoice className="me-2" />
                       A4 Owner Report
                     </button>
-                    <button className="btn btn-secondary w-100 d-block" onClick={generateThermalOwnerReport}>
+                    {/* <button className="btn btn-secondary w-100 d-block" onClick={generateThermalOwnerReport}>
                       <FaFileInvoice className="me-2" />
                       Thermal Owner Report
-                    </button>
+                    </button> */}
                   </div>
                 </div>
               </div>

@@ -54,17 +54,19 @@ export default function SecondWeightForm({ liveWeight, onSuccess }) {
     control: (provided, state) => ({
       ...provided,
       borderRadius: '0.375rem',
-      border: '1px solid #ced4da',
+      border: '2px solid #000000', // Black border
       fontSize: '1rem',
       minHeight: '58px',
       height: '58px',
       paddingLeft: '0.75rem',
       paddingRight: '0.75rem',
-      boxShadow: state.isFocused ? '0 0 0 0.25rem rgba(13, 110, 253, 0.25)' : 'none',
-      borderColor: state.isFocused ? '#86b7fe' : '#ced4da',
+      boxShadow: state.isFocused ? '0 0 0 0.25rem rgba(0, 0, 0, 0.25)' : 'none',
+      borderColor: state.isFocused ? '#000000' : '#000000', // Black border
       backgroundColor: 'white',
+      color: '#000000', // Black text
+      fontWeight: '700', // Bold text
       '&:hover': {
-        borderColor: '#86b7fe'
+        borderColor: '#000000' // Black border on hover
       }
     }),
     menu: (provided) => ({
@@ -73,7 +75,9 @@ export default function SecondWeightForm({ liveWeight, onSuccess }) {
       position: 'absolute',
       top: '100%',
       left: 0,
-      right: 0
+      right: 0,
+      border: '1px solid #000000', // Black border
+      borderRadius: '0.375rem'
     }),
     menuPortal: (provided) => ({
       ...provided,
@@ -84,17 +88,22 @@ export default function SecondWeightForm({ liveWeight, onSuccess }) {
       height: '56px',
       padding: '0 8px',
       display: 'flex',
-      alignItems: 'center'
+      alignItems: 'center',
+      color: '#000000', // Black text
+      fontWeight: '700' // Bold text
     }),
     singleValue: (provided) => ({
       ...provided,
       margin: '0',
-      color: '#495057'
+      color: '#000000', // Black text
+      fontWeight: '700' // Bold text
     }),
     input: (provided) => ({
       ...provided,
       margin: '0',
-      padding: '0'
+      padding: '0',
+      color: '#000000', // Black text
+      fontWeight: '700' // Bold text
     }),
     indicatorsContainer: (provided) => ({
       ...provided,
@@ -102,14 +111,16 @@ export default function SecondWeightForm({ liveWeight, onSuccess }) {
     }),
     placeholder: (provided) => ({
       ...provided,
-      color: '#6c757d',
+      color: '#000000', // Black placeholder
       fontSize: '1rem',
-      margin: '0'
+      margin: '0',
+      fontWeight: '700' // Bold placeholder
     }),
     option: (provided, state) => ({
       ...provided,
-      backgroundColor: state.isSelected ? '#0d6efd' : state.isFocused ? '#f8f9fc' : 'white',
-      color: state.isSelected ? 'white' : '#495057'
+      backgroundColor: state.isSelected ? '#000000' : state.isFocused ? '#f0f0f0' : 'white', // Black background when selected
+      color: state.isSelected ? 'white' : '#000000', // White text when selected, black otherwise
+      fontWeight: '700' // Bold text
     })
   };
 
@@ -284,37 +295,7 @@ export default function SecondWeightForm({ liveWeight, onSuccess }) {
               )}
             </div>
 
-            {/* Net Weight Display */}
-            {formik.values.selectedVehicle && formik.values.selectedVehicle.value !== "Select" && formik.values.secondWeight && (
-              <div className="input-group-enhanced" style={{ gridColumn: 'span 3' }}>
-                <div className="weight-summary-container">
-        
-                  
-                  {/* Display Net Weight in KG, Munds, and Tons */}
-                  <div className="summary-item net-weight" style={{ marginTop: '10px', padding: '15px', backgroundColor: '#f8f9fa', borderRadius: '8px', border: '1px solid #dee2e6' }}>
-                    <h3>Weight Summary:</h3>
-                    <span className="summary-value" style={{ fontSize: '1.75rem', fontWeight: 'bold', color: '#007bff' }}>
-                      {(() => {
-                        const record = formik.values.selectedVehicle.record;
-                        if (record) {
-                          const firstWeight = parseFloat(record.first_weight);
-                          const secondWeight = parseFloat(formik.values.secondWeight);
-                          const netWeight = firstWeight - secondWeight;
-                          const munds = netWeight / 40;
-                          // Use trunc() instead of floor() to handle negative numbers correctly
-                          const mundsInteger = Math.trunc(munds);
-                          // Calculate remaining kg properly for negative values
-                          const kgRemaining = netWeight - (mundsInteger * 40);
-                          const tons = netWeight / 1000;
-                          return `${netWeight.toFixed(2)} KG | ${mundsInteger}-${Math.abs(kgRemaining).toFixed(0)} Munds | ${tons.toFixed(2)} Tons`;
-                        }
-                        return "N/A";
-                      })()}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            )}
+            
 
             {/* Record Summary Display - Always show when a record is selected */}
             {formik.values.selectedVehicle && formik.values.selectedVehicle.value !== "Select" && (
@@ -343,6 +324,40 @@ export default function SecondWeightForm({ liveWeight, onSuccess }) {
                     <div>
                       <strong style={{ fontSize: '1.2rem' }}>Product:</strong> 
                       <span style={{ marginLeft: '8px', fontSize: '1.3rem', fontWeight: '600', color: '#0c5460', textTransform: 'uppercase' }}>{formik.values.selectedVehicle.record.product || 'N/A'}</span>
+                    </div>
+                    <div>
+                      {/* Net Weight Display */}
+            {formik.values.selectedVehicle && formik.values.selectedVehicle.value !== "Select" && formik.values.secondWeight && (
+              <div className="input-group-enhanced" style={{ gridColumn: 'span 3' }}>
+                <div className="weight-summary-container">
+        
+                  
+                  {/* Display Net Weight in KG, Munds, and Tons */}
+                  <div className="summary-item net-weight d-flex align-items-center">
+                    <strong style={{ fontSize: '1.2rem' }}>Net Weight:</strong>
+                    <span className="summary-value" style={{ fontSize: '1.65rem', fontWeight: 'bold', color: '#007bff' }}>
+                      {(() => {
+                        const record = formik.values.selectedVehicle.record;
+                        if (record) {
+                          const firstWeight = parseFloat(record.first_weight);
+                          const secondWeight = parseFloat(formik.values.secondWeight);
+                          const netWeight = firstWeight - secondWeight;
+                          const munds = netWeight / 40;
+                          // Use trunc() instead of floor() to handle negative numbers correctly
+                          const mundsInteger = Math.trunc(munds);
+                          // Calculate remaining kg properly for negative values
+                          const kgRemaining = netWeight - (mundsInteger * 40);
+                          const tons = netWeight / 1000;
+                          return `${netWeight.toFixed(2)} KG | ${mundsInteger}-${Math.abs(kgRemaining).toFixed(0)} Munds | ${tons.toFixed(2)} Tons`;
+                        }
+                        return "N/A";
+                      })()}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+                      
                     </div>
                   </div>
                 </div>

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useSelector } from "react-redux"; // Add useSelector import
 import { FaEdit, FaPrint } from "react-icons/fa";
 import { IoPrint } from "react-icons/io5";
 import EditRecordModal from "./EditModal";
@@ -47,6 +48,7 @@ const formatWeight = (weight) => {
 };
 
 export default function RecordsTable({ records, expenses = [], openPrintModal, vehiclePrices, slipType, onUpdateRecord, filters = {} }) {
+    const { role } = useSelector(state => state.auth || {}); // Get user role from auth state
     const [currentPage, setCurrentPage] = useState(1);
     const [recordsPerPage, setRecordsPerPage] = useState(12); // Default to 12 records per page
     const [editModalShow, setEditModalShow] = useState(false);
@@ -698,9 +700,9 @@ export default function RecordsTable({ records, expenses = [], openPrintModal, v
                     <button className="btn btn-sm btn-outline-primary text-uppercase" onClick={generatePrintReport}>
                         A4 Report
                     </button>
-                    <button className="btn btn-sm btn-outline-secondary text-uppercase" onClick={generateThermalPrintReport}>
+                    {/* <button className="btn btn-sm btn-outline-secondary text-uppercase" onClick={generateThermalPrintReport}>
                         Thermal Report
-                    </button>
+                    </button> */}
                 </div>
             </div>
 
@@ -749,24 +751,26 @@ export default function RecordsTable({ records, expenses = [], openPrintModal, v
                                     <td className="py-1 px-2 text-uppercase">{r.second_weight_time ? formatDateTimeForDisplay(r.second_weight_time) : "-"}</td>
                                     <td className="py-1 px-2 text-uppercase">
                                         <div className="d-flex gap-1">
-                                            <button
-                                                className="btn btn-sm btn-outline-secondary text-uppercase"
-                                                onClick={() => {
-                                                  // Determine the appropriate slip type based on record data
-                                                  let slipType = "first";
-                                                  if (r.second_weight && r.second_weight !== "0" && r.second_weight !== "0.00") {
-                                                    if (r.final_weight === "Yes") {
-                                                      slipType = "final";
-                                                    } else {
-                                                      slipType = "second";
-                                                    }
-                                                  }
-                                                  openEditModal(r, slipType);
-                                                }}
-                                                title="Edit Record"
-                                            >
-                                                <FaEdit />
-                                            </button>
+                                            {role === 'admin' && (
+                                                <button
+                                                    className="btn btn-sm btn-outline-secondary text-uppercase"
+                                                    onClick={() => {
+                                                      // Determine the appropriate slip type based on record data
+                                                      let slipType = "first";
+                                                      if (r.second_weight && r.second_weight !== "0" && r.second_weight !== "0.00") {
+                                                        if (r.final_weight === "Yes") {
+                                                          slipType = "final";
+                                                        } else {
+                                                          slipType = "second";
+                                                        }
+                                                      }
+                                                      openEditModal(r, slipType);
+                                                    }}
+                                                    title="Edit Record"
+                                                >
+                                                    <FaEdit />
+                                                </button>
+                                            )}
                                             {r.final_weight === "Yes" ? (
                                                 <button
                                                     className="btn btn-sm btn-success text-uppercase"

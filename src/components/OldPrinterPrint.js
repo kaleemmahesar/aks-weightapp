@@ -83,7 +83,7 @@ const OldPrinterPrint = ({ record, slipType }) => {
           html, body {
             margin: 0; 
             padding: 0;
-            font-family: 'Courier New', Courier, monospace;
+            font-family: 'Tahoma', 'Courier New', Courier, monospace;
             font-size: 12px;
             color: #000;
             line-height: 1.3;
@@ -114,18 +114,21 @@ const OldPrinterPrint = ({ record, slipType }) => {
             font-size: 16px;
             margin-bottom: 5px;
             font-weight: bold;
+            text-transform: uppercase;
           }
 
           .product-line {
             font-size: 14px;
             margin-bottom: 10px;
             font-weight: bold;
+            text-transform: uppercase;
           }
 
           .vehicle-number-line {
             font-size: 14px;
             margin-bottom: 5px;
             font-weight: bold;
+            text-transform: uppercase;
           }
 
           .weight-line {
@@ -134,6 +137,7 @@ const OldPrinterPrint = ({ record, slipType }) => {
             font-size: 12px;
             margin-bottom: 3px;
             align-items: center;
+            text-transform: uppercase;
           }
 
           .vehicle-info {
@@ -153,6 +157,7 @@ const OldPrinterPrint = ({ record, slipType }) => {
             text-align: right;
             font-size: 22px;
             font-weight: bolder;
+            text-transform: uppercase;
           }
 
           .weight-type {
@@ -160,6 +165,7 @@ const OldPrinterPrint = ({ record, slipType }) => {
             text-align: left;
             font-size: 16px;
             font-weight: bold;
+            text-transform: uppercase;
           }
 
           .net-weight-line {
@@ -168,6 +174,7 @@ const OldPrinterPrint = ({ record, slipType }) => {
             font-weight: bold;
             margin: 5px 0;
             padding-right: 60px;
+            text-transform: uppercase;
           }
 
           .result-line {
@@ -175,6 +182,7 @@ const OldPrinterPrint = ({ record, slipType }) => {
             justify-content: space-between;
             font-size: 12px;
             margin-bottom: 3px;
+            text-transform: uppercase;
           }
 
           .result-label {
@@ -184,6 +192,7 @@ const OldPrinterPrint = ({ record, slipType }) => {
           .result-value {
             width: 30%;
             text-align: right;
+            text-transform: uppercase;
           }
 
           .footer-line {
@@ -192,54 +201,62 @@ const OldPrinterPrint = ({ record, slipType }) => {
             font-weight: bold;
             color: #0000ff;
             margin-top: 15px;
+            text-transform: uppercase;
           }
+        
+        .price-line {
+          display: flex;
+          justify-content: flex-end;
+          font-size: 12px;
+          margin-top: 15px;
+          align-items: center;
+          padding-right: 30px;
+          text-transform: uppercase;
+        }
+        .price-line.munds {
+          padding-right: 22px;
           
-          .price-line {
-            display: flex;
-            justify-content: flex-end;
-            font-size: 12px;
-            margin-top: 15px;
-            align-items: center;
-            padding-right: 30px;
-          }
-          .price-line.munds {
-            padding-right: 22px;
-          }
-          .price-label {
-            font-weight: bold;
-            margin-right: 12px;
-          }
-          
-          .price-value {
-            font-size: 20px;
-            font-weight: bolder;
-            width: auto;
-            min-width: 60px;
-            text-align: right;
-            white-space: nowrap;
-          }
-          
-          .munds-line {
-            display: flex;
-            justify-content: flex-end;
-            font-size: 12px;
-            margin-bottom: 3px;
-          }
-          
-          .munds-label {
-            font-weight: normal;
-            margin-right: 10px;
-          }
-          
-          .munds-value {
-            font-size: 20px;
-            font-weight: bolder;
-            width: auto;
-            min-width: 60px;
-            text-align: right;
-            white-space: nowrap;
-          }
-          
+        }
+        .price-label {
+          font-weight: bold;
+          margin-right: 12px;
+          text-transform: uppercase;
+        }
+        
+        .price-value {
+          font-size: 20px;
+          font-weight: bolder;
+          width: auto;
+          min-width: 60px;
+          text-align: right;
+          white-space: nowrap;
+          text-transform: uppercase;
+        }
+        
+        .munds-line {
+          display: flex;
+          justify-content: flex-end;
+          font-size: 12px;
+          margin-bottom: 3px;
+          text-transform: uppercase;
+        }
+        
+        .munds-label {
+          font-weight: normal;
+          margin-right: 10px;
+          text-transform: uppercase;
+        }
+        
+        .munds-value {
+          font-size: 20px;
+          font-weight: bolder;
+          width: auto;
+          min-width: 60px;
+          text-align: right;
+          white-space: nowrap;
+          text-transform: uppercase;
+        }
+
           hr {
             border: none;
             border-top: 1px solid #000;
@@ -252,44 +269,44 @@ const OldPrinterPrint = ({ record, slipType }) => {
       <div class="slip-container">
         <div class="center-content">
           <div class="party-line">
-           ${record.party_name || "N/A"}
+           ${(record.business_name ? `${record.business_name} - ${record.party_name || "N/A"}` : (record.party_name || "N/A")).toUpperCase()}
           </div>
           
           <div class="product-line">
-            ${record.product || "N/A"}
+            ${(record.product || "N/A").toUpperCase()}
           </div>
           
           ${shouldShowVehicleNumber ? `
           <div class="vehicle-number-line">
-            Vehicle: ${record.vehicle_number}
+            Vehicle: ${(record.vehicle_number || "").toUpperCase()}
           </div>` : ''}
           
           <hr>
           ${
             slipType === "first" ? 
             `<div class="weight-line">
-              <span class="vehicle-info">${record.vehicle_type || "N/A"}</span>
-              <span class="serial-info">${record.vehicle_id || "N/A"}</span>
-              <span class="datetime-info">${formatDateTimeForPrint(record.first_weight_time)}</span>
+              <span class="vehicle-info">${(record.vehicle_type || "N/A").toUpperCase()}</span>
+              <span class="serial-info">${(record.vehicle_id || "N/A").toUpperCase()}</span>
+              <span class="datetime-info">${formatDateTimeForPrint(record.first_weight_time).toUpperCase()}</span>
               <span class="weight-info">${formatWeight(record.first_weight)} KG</span>
               <span class="weight-type">G</span>
             </div>
             <hr>
             <div class="price-line">
               <span class="price-label">Price:</span>
-              <span class="price-value">${record.total_price || "0"}</span>
+              <span class="price-value">${(record.total_price || "0").toUpperCase()}</span>
             </div>` : 
             `<div class="weight-line">
-              <span class="vehicle-info">${record.vehicle_type || "N/A"}</span>
-              <span class="serial-info">${record.vehicle_id || "N/A"}</span>
-              <span class="datetime-info">${formatDateTimeForPrint(record.first_weight_time)}</span>
+              <span class="vehicle-info">${(record.vehicle_type || "N/A").toUpperCase()}</span>
+              <span class="serial-info">${(record.vehicle_id || "N/A").toUpperCase()}</span>
+              <span class="datetime-info">${formatDateTimeForPrint(record.first_weight_time).toUpperCase()}</span>
               <span class="weight-info">${formatWeight(record.first_weight)} KG</span>
               <span class="weight-type">G</span>
             </div>
             <div class="weight-line">
-              <span class="vehicle-info">${record.vehicle_type || "N/A"}</span>
-              <span class="serial-info">${record.vehicle_id || "N/A"}</span>
-              <span class="datetime-info">${formatDateTimeForPrint(record.second_weight_time)}</span>
+              <span class="vehicle-info">${(record.vehicle_type || "N/A").toUpperCase()}</span>
+              <span class="serial-info">${(record.vehicle_id || "N/A").toUpperCase()}</span>
+              <span class="datetime-info">${formatDateTimeForPrint(record.second_weight_time).toUpperCase()}</span>
               <span class="weight-info">${formatWeight(record.second_weight)} KG</span>
               <span class="weight-type">T</span>
             </div>
@@ -311,7 +328,7 @@ const OldPrinterPrint = ({ record, slipType }) => {
             </div>
             <div class="price-line">
               <span class="price-label">Price:</span>
-              <span class="price-value">${record.total_price || "0"}</span>
+              <span class="price-value">${(record.total_price || "0").toUpperCase()}</span>
             </div>` : ""
           }
         </div>

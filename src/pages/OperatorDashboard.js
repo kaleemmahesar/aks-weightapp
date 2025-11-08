@@ -64,6 +64,7 @@ export default function OperatorDashboard() {
       total_price: savedRecord.total_price || 0,
       first_weight_time: savedRecord.first_weight_time,
       driver_name: savedRecord.driver_name || 'No',
+      business_name: savedRecord.business_name || null  // Add business_name field
     };
     
     console.log('Record being sent to print modal:', recordForPrint);

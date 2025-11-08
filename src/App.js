@@ -89,7 +89,7 @@ function App() {
             path="/"
             element={
               loggedIn ? (
-                role === "operator" ? <Navigate to="/dashboard" replace /> : <Navigate to="/owner" replace />
+                role === "operator" || role === "admin" ? <Navigate to="/dashboard" replace /> : <Navigate to="/owner" replace />
               ) : (
                 <Login />
               )
@@ -100,7 +100,7 @@ function App() {
           <Route
             path="/dashboard"
             element={
-              <ProtectedRoute loggedIn={loggedIn} role={role} allowedRole="operator">
+              <ProtectedRoute loggedIn={loggedIn} role={role} allowedRoles={["operator", "admin"]}>
                 <OperatorDashboard />
               </ProtectedRoute>
             }
@@ -116,7 +116,7 @@ function App() {
           <Route
             path="/second-weight"
             element={
-              <ProtectedRoute loggedIn={loggedIn} role={role} allowedRole="operator">
+              <ProtectedRoute loggedIn={loggedIn} role={role} allowedRoles={["operator", "admin"]}>
                 <SecondWeightPage />
               </ProtectedRoute>
             }
@@ -124,7 +124,7 @@ function App() {
           <Route
             path="/final-weight"
             element={
-              <ProtectedRoute loggedIn={loggedIn} role={role} allowedRole="operator">
+              <ProtectedRoute loggedIn={loggedIn} role={role} allowedRoles={["operator", "admin"]}>
                 <FinalWeightPage />
               </ProtectedRoute>
             }
@@ -132,7 +132,7 @@ function App() {
           <Route
             path="/records"
             element={
-              <ProtectedRoute loggedIn={loggedIn}>
+              <ProtectedRoute loggedIn={loggedIn} role={role} allowedRoles={["operator", "admin"]}>
                 <RecordsPage />
               </ProtectedRoute>
             }
@@ -140,7 +140,7 @@ function App() {
           <Route
             path="/expenses"
             element={
-              <ProtectedRoute loggedIn={loggedIn}>
+              <ProtectedRoute loggedIn={loggedIn} role={role} allowedRoles={["operator", "admin"]}>
                 <ExpensePage />
               </ProtectedRoute>
             }
@@ -148,7 +148,7 @@ function App() {
           <Route
             path="/settings"
             element={
-              <ProtectedRoute loggedIn={loggedIn}>
+              <ProtectedRoute loggedIn={loggedIn} role={role} allowedRoles={["operator", "admin"]}>
                 <SettingsPage />
               </ProtectedRoute>
             }
@@ -160,17 +160,22 @@ function App() {
 }
 
 // ✅ ProtectedRoute Component
-function ProtectedRoute({ loggedIn, role, allowedRole, children }) {
+function ProtectedRoute({ loggedIn, role, allowedRole, allowedRoles, children }) {
   if (!loggedIn) {
     return <Navigate to="/" replace />;
   }
-  if (allowedRole && role !== allowedRole) {
-    // For admin role, allow access to owner routes as well
-    if (allowedRole === "owner" && role === "admin") {
-      return children;
-    }
+  
+  // Check if user has access based on single role or multiple roles
+  const hasAccess = allowedRole 
+    ? role === allowedRole 
+    : allowedRoles 
+      ? allowedRoles.includes(role)
+      : true;
+      
+  if (!hasAccess) {
     return <Navigate to="/" replace />;
   }
+  
   return children;
 }
 

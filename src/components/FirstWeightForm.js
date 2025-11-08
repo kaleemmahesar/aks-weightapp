@@ -26,17 +26,19 @@ const FirstWeightForm = ({ liveWeight, onSuccess }) => {
     control: (provided, state) => ({
       ...provided,
       borderRadius: '0.375rem',
-      border: '1px solid #ced4da',
+      border: '2px solid #000000', // Black border
       fontSize: '1rem',
       minHeight: '58px',
       height: '58px',
       paddingLeft: '0.75rem',
       paddingRight: '0.75rem',
-      boxShadow: state.isFocused ? '0 0 0 0.25rem rgba(13, 110, 253, 0.25)' : 'none',
-      borderColor: state.isFocused ? '#86b7fe' : '#ced4da',
+      boxShadow: state.isFocused ? '0 0 0 0.25rem rgba(0, 0, 0, 0.25)' : 'none',
+      borderColor: state.isFocused ? '#000000' : '#000000', // Black border
       backgroundColor: 'white',
+      color: '#000000', // Black text
+      fontWeight: '700', // Bold text
       '&:hover': {
-        borderColor: '#86b7fe'
+        borderColor: '#000000' // Black border on hover
       }
     }),
     menu: (provided) => ({
@@ -45,7 +47,9 @@ const FirstWeightForm = ({ liveWeight, onSuccess }) => {
       position: 'absolute',
       top: '100%',
       left: 0,
-      right: 0
+      right: 0,
+      border: '1px solid #000000', // Black border
+      borderRadius: '0.375rem'
     }),
     menuPortal: (provided) => ({
       ...provided,
@@ -56,17 +60,22 @@ const FirstWeightForm = ({ liveWeight, onSuccess }) => {
       height: '56px',
       padding: '0 8px',
       display: 'flex',
-      alignItems: 'center'
+      alignItems: 'center',
+      color: '#000000', // Black text
+      fontWeight: '700' // Bold text
     }),
     singleValue: (provided) => ({
       ...provided,
       margin: '0',
-      color: '#495057'
+      color: '#000000', // Black text
+      fontWeight: '700' // Bold text
     }),
     input: (provided) => ({
       ...provided,
       margin: '0',
-      padding: '0'
+      padding: '0',
+      color: '#000000', // Black text
+      fontWeight: '700' // Bold text
     }),
     indicatorsContainer: (provided) => ({
       ...provided,
@@ -74,14 +83,16 @@ const FirstWeightForm = ({ liveWeight, onSuccess }) => {
     }),
     placeholder: (provided) => ({
       ...provided,
-      color: '#6c757d',
+      color: '#000000', // Black placeholder
       fontSize: '1rem',
-      margin: '0'
+      margin: '0',
+      fontWeight: '700' // Bold placeholder
     }),
     option: (provided, state) => ({
       ...provided,
-      backgroundColor: state.isSelected ? '#0d6efd' : state.isFocused ? '#f8f9fc' : 'white',
-      color: state.isSelected ? 'white' : '#495057'
+      backgroundColor: state.isSelected ? '#000000' : state.isFocused ? '#f0f0f0' : 'white', // Black background when selected
+      color: state.isSelected ? 'white' : '#000000', // White text when selected, black otherwise
+      fontWeight: '700' // Bold text
     })
   };
 
@@ -280,19 +291,19 @@ const FirstWeightForm = ({ liveWeight, onSuccess }) => {
                     borderColor: state.isFocused ? '#007bff' : (formik.touched.businessName && formik.errors.businessName ? '#dc3545' : '#ced4da'),
                     height: '58px',
                     minHeight: '58px',
-                    textTransform: 'uppercase'  // Add uppercase text transform
+                    textTransform: 'uppercase'
                   }),
                   option: (provided, state) => ({
                     ...provided,
                     backgroundColor: state.isSelected ? '#0d6efd' : state.isFocused ? '#f8f9fc' : 'white',
                     color: state.isSelected ? 'white' : '#495057',
-                    textTransform: 'uppercase'  // Add uppercase text transform to options
+                    textTransform: 'uppercase'
                   }),
                   singleValue: (provided) => ({
                     ...provided,
                     margin: '0',
                     color: '#495057',
-                    textTransform: 'uppercase'  // Add uppercase text transform to selected value
+                    textTransform: 'uppercase'
                   })
                 }}
                 placeholder="Select Business Name"
@@ -327,7 +338,19 @@ const FirstWeightForm = ({ liveWeight, onSuccess }) => {
                     borderColor: state.isFocused ? '#007bff' : (formik.touched.vehicleType && formik.errors.vehicleType ? '#dc3545' : '#ced4da'),
                     height: '58px',
                     minHeight: '58px',
-                    textTransform: 'uppercase',  // Add uppercase text transform
+                    textTransform: 'uppercase',
+                  }),
+                  option: (provided, state) => ({
+                    ...provided,
+                    backgroundColor: state.isSelected ? '#0d6efd' : state.isFocused ? '#f8f9fc' : 'white',
+                    color: state.isSelected ? 'white' : '#495057',
+                    textTransform: 'uppercase',
+                  }),
+                  singleValue: (provided) => ({
+                    ...provided,
+                    margin: '0',
+                    color: '#495057',
+                    textTransform: 'uppercase',
                   })
                 }}
                 placeholder="Select Vehicle Type *"
@@ -340,6 +363,7 @@ const FirstWeightForm = ({ liveWeight, onSuccess }) => {
                 </div>
               )}
             </div>
+
             {/* Vehicle Number */}
             <div className="input-group-enhanced">
               <input
@@ -388,42 +412,7 @@ const FirstWeightForm = ({ liveWeight, onSuccess }) => {
               )}
             </div>
 
-            
-
             {/* Product */}
-            {/* <div className="input-group-enhanced">
-              <Select
-                options={productOptions}
-                value={productOptions.find(option => option.value === formik.values.product)}
-                onChange={handleProductChange}
-                onBlur={() => formik.setFieldTouched('product', true)}
-                isSearchable
-                menuPortalTarget={document.body}
-                menuPosition="absolute"
-                menuPlacement="auto"
-                styles={{
-                  ...customSelectStyles,
-                  control: (provided, state) => ({
-                    ...provided,
-                    borderRadius: '4px',
-                    border: `1px solid ${formik.touched.product && formik.errors.product ? '#dc3545' : '#ced4da'}`,
-                    boxShadow: state.isFocused ? '0 0 0 0.2rem rgba(0, 123, 255, 0.25)' : 'none',
-                    borderColor: state.isFocused ? '#007bff' : (formik.touched.product && formik.errors.product ? '#dc3545' : '#ced4da'),
-                    height: '58px',
-                    minHeight: '58px'
-                  })
-                }}
-                placeholder="Select Product Type *"
-                className="enhanced-select"
-              />
-              {formik.touched.product && formik.errors.product && (
-                <div className="error-message-enhanced">
-                  <i className="fas fa-exclamation-triangle me-2"></i>
-                  {formik.errors.product}
-                </div>
-              )}
-            </div> */}
-
             <div className="input-group-enhanced">
               <input
                 type="text"

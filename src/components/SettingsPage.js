@@ -170,15 +170,13 @@ const SettingsPage = () => {
       <div className="row">
         <div className="col-12">
           <div className="card">
-            <div className="card-header bg-primary text-white">
-              <h4 className="mb-0 text-uppercase">Business Names Settings</h4>
-              <p className="mb-0 text-uppercase">Manage business names for party selection</p>
+            <div className="card-header bg-primary text-white py-4">
+              <h4 className="mb-0 text-capitalize">Business Names Settings</h4>
             </div>
             <div className="card-body">
               {/* Add New Business Name Form */}
               <div className="row mb-4">
                 <div className="col-md-12">
-                  <h5 className="text-uppercase">Add New Business Name</h5>
                   <form onSubmit={handleAddBusinessName} className="row g-3">
                     <div className="col-md-10">
                       <label className="form-label text-uppercase">Business Name</label>
@@ -288,15 +286,13 @@ const SettingsPage = () => {
       <div className="row mt-4">
         <div className="col-12">
           <div className="card">
-            <div className="card-header bg-primary text-white">
-              <h4 className="mb-0 text-uppercase">Vehicle Type Settings</h4>
-              <p className="mb-0 text-uppercase">Manage vehicle types and their prices</p>
+            <div className="card-header bg-primary text-white p-4">
+              <h4 className="mb-0 text-capitalize">Vehicle Type Settings</h4>
             </div>
             <div className="card-body">
               {/* Add New Vehicle Type Form */}
               <div className="row mb-4">
                 <div className="col-md-12">
-                  <h5 className="text-uppercase">Add New Vehicle Type</h5>
                   <form onSubmit={handleAddVehicleType} className="row g-3">
                     <div className="col-md-5">
                       <label className="form-label text-uppercase">Vehicle Type Name</label>

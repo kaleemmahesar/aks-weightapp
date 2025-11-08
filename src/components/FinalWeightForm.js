@@ -26,17 +26,19 @@ export default function FinalWeightForm({
     control: (provided, state) => ({
       ...provided,
       borderRadius: '0.375rem',
-      border: '1px solid #ced4da',
+      border: '2px solid #000000', // Black border
       fontSize: '1rem',
       minHeight: '58px',
       height: '58px',
       paddingLeft: '0.75rem',
       paddingRight: '0.75rem',
-      boxShadow: state.isFocused ? '0 0 0 0.25rem rgba(13, 110, 253, 0.25)' : 'none',
-      borderColor: state.isFocused ? '#86b7fe' : '#ced4da',
+      boxShadow: state.isFocused ? '0 0 0 0.25rem rgba(0, 0, 0, 0.25)' : 'none',
+      borderColor: state.isFocused ? '#000000' : '#000000', // Black border
       backgroundColor: 'white',
+      color: '#000000', // Black text
+      fontWeight: '700', // Bold text
       '&:hover': {
-        borderColor: '#86b7fe'
+        borderColor: '#000000' // Black border on hover
       }
     }),
     menu: (provided) => ({
@@ -45,7 +47,9 @@ export default function FinalWeightForm({
       position: 'absolute',
       top: '100%',
       left: 0,
-      right: 0
+      right: 0,
+      border: '1px solid #000000', // Black border
+      borderRadius: '0.375rem'
     }),
     menuPortal: (provided) => ({
       ...provided,
@@ -56,17 +60,22 @@ export default function FinalWeightForm({
       height: '56px',
       padding: '0 8px',
       display: 'flex',
-      alignItems: 'center'
+      alignItems: 'center',
+      color: '#000000', // Black text
+      fontWeight: '700' // Bold text
     }),
     singleValue: (provided) => ({
       ...provided,
       margin: '0',
-      color: '#495057'
+      color: '#000000', // Black text
+      fontWeight: '700' // Bold text
     }),
     input: (provided) => ({
       ...provided,
       margin: '0',
-      padding: '0'
+      padding: '0',
+      color: '#000000', // Black text
+      fontWeight: '700' // Bold text
     }),
     indicatorsContainer: (provided) => ({
       ...provided,
@@ -74,14 +83,16 @@ export default function FinalWeightForm({
     }),
     placeholder: (provided) => ({
       ...provided,
-      color: '#6c757d',
+      color: '#000000', // Black placeholder
       fontSize: '1rem',
-      margin: '0'
+      margin: '0',
+      fontWeight: '700' // Bold placeholder
     }),
     option: (provided, state) => ({
       ...provided,
-      backgroundColor: state.isSelected ? '#0d6efd' : state.isFocused ? '#f8f9fc' : 'white',
-      color: state.isSelected ? 'white' : '#495057'
+      backgroundColor: state.isSelected ? '#000000' : state.isFocused ? '#f0f0f0' : 'white', // Black background when selected
+      color: state.isSelected ? 'white' : '#000000', // White text when selected, black otherwise
+      fontWeight: '700' // Bold text
     })
   };
 
