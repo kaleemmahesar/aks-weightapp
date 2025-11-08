@@ -1,5 +1,5 @@
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import Select from "react-select";
@@ -15,27 +15,39 @@ export default function SecondWeightForm({ liveWeight, onSuccess }) {
   const { records = [] } = useSelector(state => state.records || {});
   const { settings = {} } = useSelector(state => state.settings || {});
   const vehiclePrices = settings.vehiclePrices || {};
-  // const options = [
-  //   { value: "Select", label: "Select Vehicle" },
-  //   ...records
-  //     .filter((r) => r && (r.second_weight === null || r.second_weight === undefined || !r.second_weight))
-  //     .map((r) => ({
-  //       value: r.id,
-  //       label: `${r.party_name || 'Unknown'} | Serial No: ${r.id || 'N/A'}`,
-  //     }))
-  // ];
-
+  
+  // State for search input
+  const [searchInput, setSearchInput] = useState("");
+  
+  // Filter records based on search input
+  const filteredRecords = records.filter((r) => 
+    r && (r.second_weight === null || r.second_weight === undefined || r.second_weight === 0 || r.second_weight === "0" || r.second_weight === "0.00")
+  );
+  
+  // Further filter by exact ID match only
+  const searchFilteredRecords = filteredRecords.filter((r) => {
+    if (!searchInput) return false; // Don't show any records when no search input (require search first)
+    // Only match if the search input exactly matches the record ID
+    return r.id && r.id.toString() === searchInput;
+  });
+  
   const options = [
-  { value: "Select", label: "Select Vehicle" },
-  ...records
-    .filter((r) => r && (r.second_weight === null || r.second_weight === undefined || r.second_weight === 0 || r.second_weight === "0" || r.second_weight === "0.00"))
-    .map((r) => ({
+    { value: "Select", label: "Select Vehicle".toUpperCase() },
+    ...searchFilteredRecords.map((r) => ({
       value: r.id,
-      label: `${r.party_name || 'Unknown'} | Serial No: ${r.id || 'N/A'}`,
-      record: r   // ✅ keep the full record here
+      label: `${(r.party_name || 'Unknown').toUpperCase()} | Serial No: ${(r.id || 'N/A')}`,
+      record: r
     }))
-];
-
+  ];
+  
+  // Add "No records found" option when search returns no results
+  if (searchInput && searchFilteredRecords.length === 0) {
+    options.push({
+      value: "no-results",
+      label: `No records found for "${searchInput}"`.toUpperCase(),
+      isDisabled: true
+    });
+  }
 
   // Custom styles for react-select (matching updated styling with z-index fix)
   const customSelectStyles = {
@@ -178,8 +190,8 @@ export default function SecondWeightForm({ liveWeight, onSuccess }) {
             <FaBalanceScale size={32} className="header-icon" />
           </div>
           <div className="header-text">
-            <h3 className="form-title gradient-text">Second Weight Entry</h3>
-            <p className="form-subtitle">Complete the weighing process by recording final vehicle weight</p>
+            <h3 className="form-title gradient-text text-uppercase">Second Weight Entry</h3>
+            <p className="form-subtitle text-uppercase">Complete the weighing process by recording final vehicle weight</p>
           </div>
         </div>
       </div>
@@ -187,7 +199,7 @@ export default function SecondWeightForm({ liveWeight, onSuccess }) {
       {/* Enhanced Form Body */}
       <div className="modern-card-body">
         <form onSubmit={formik.handleSubmit}>
-          <div className="enhanced-form-grid">
+          <div className="enhanced-form-grid" style={{ gridTemplateColumns: 'repeat(2, 1fr)' }}>
             {/* Vehicle Selection */}
             <div className="input-group-enhanced">
               <Select
@@ -196,9 +208,11 @@ export default function SecondWeightForm({ liveWeight, onSuccess }) {
                 onChange={(option) =>
                   formik.setFieldValue("selectedVehicle", option)
                 }
+                onInputChange={(inputValue) => {
+                  setSearchInput(inputValue);
+                }}
                 isSearchable
                 openMenuOnClick={true}
-                openMenuOnFocus={true}
                 menuPortalTarget={document.body}
                 menuPosition="absolute"
                 menuPlacement="auto"
@@ -207,38 +221,39 @@ export default function SecondWeightForm({ liveWeight, onSuccess }) {
                   control: (provided, state) => ({
                     ...provided,
                     borderRadius: '4px',
-                    border: `1px solid ${formik.touched.vehicleType && formik.errors.vehicleType ? '#dc3545' : '#ced4da'}`,
+                    border: `1px solid ${formik.touched.selectedVehicle && formik.errors.selectedVehicle ? '#dc3545' : '#ced4da'}`,
                     boxShadow: state.isFocused ? '0 0 0 0.2rem rgba(0, 123, 255, 0.25)' : 'none',
-                    borderColor: state.isFocused ? '#007bff' : (formik.touched.vehicleType && formik.errors.vehicleType ? '#dc3545' : '#ced4da'),
+                    borderColor: state.isFocused ? '#007bff' : (formik.touched.selectedVehicle && formik.errors.selectedVehicle ? '#dc3545' : '#ced4da'),
                     height: '58px',
-                    minHeight: '58px'
+                    minHeight: '58px',
+                    textTransform: 'uppercase',
+                  }),
+                  option: (provided, state) => ({
+                    ...provided,
+                    backgroundColor: state.isSelected ? '#0d6efd' : state.isFocused ? '#f8f9fc' : 'white',
+                    color: state.isSelected ? 'white' : '#495057',
+                    textTransform: 'uppercase',
+                  }),
+                  singleValue: (provided) => ({
+                    ...provided,
+                    margin: '0',
+                    color: '#495057',
+                    textTransform: 'uppercase',
                   })
                 }}
-                placeholder="Type vehicle name or slip serial to search..."
+                placeholder={"Select Vehicle *".toUpperCase()}
                 className="enhanced-select"
-                filterOption={(option, inputValue) => {
-                  if (!inputValue) return false; // Don't show options until user types
-                  const record = option.data.record;
-                  if (!record) return false;
-                  
-                  // Check if input matches party name or serial number (ID)
-                  const partyNameMatch = record.party_name && 
-                    record.party_name.toLowerCase().includes(inputValue.toLowerCase());
-                  const serialMatch = record.id && 
-                    record.id.toString().includes(inputValue);
-                  
-                  return partyNameMatch || serialMatch;
-                }}
+                noOptionsMessage={() => searchInput ? `No records found for "${searchInput}"` : "Start typing to search..."}
               />
               {formik.touched.selectedVehicle && formik.errors.selectedVehicle && (
-                <div className="error-message-enhanced">
+                <div className="error-message-enhanced text-uppercase">
                   <i className="fas fa-exclamation-triangle me-2"></i>
                   {formik.errors.selectedVehicle}
                 </div>
               )}
             </div>
 
-            {/* Live Weight Input */}
+            {/* Second Weight Input */}
             <div className="input-group-enhanced weight-input-group">
               <div className={`weight-input-container ${
                 formik.touched.secondWeight && formik.errors.secondWeight
@@ -253,88 +268,109 @@ export default function SecondWeightForm({ liveWeight, onSuccess }) {
                   value={formik.values.secondWeight}
                   onChange={formik.handleChange}
                   onBlur={formik.handleBlur}
-                  placeholder="Live Weight *"
+                  placeholder={"Second Weight *".toUpperCase()}
                 />
-                <div className="weight-unit">KG</div>
+                <div className="weight-unit text-uppercase">KG</div>
                 <div className="live-badge">
                   <span className="live-dot"></span>
-                  LIVE
+                  <span className="text-uppercase">LIVE</span>
                 </div>
               </div>
               {formik.touched.secondWeight && formik.errors.secondWeight && (
-                <div className="error-message-enhanced">
+                <div className="error-message-enhanced text-uppercase">
                   <i className="fas fa-exclamation-triangle me-2"></i>
                   {formik.errors.secondWeight}
                 </div>
               )}
             </div>
-          </div>
-          
-          
-          
-          {/* ✅ Summary Section */}
-{formik.values.selectedVehicle?.record && (
-  <div className="row">
-            <div className="col-12">
-  <div className="weight-summary">
-    <h4 className="summary-title" style={{ fontSize: '2rem' }}>Weight Summary</h4>
-    <div className="summary-column">
-      <div className="summary-item">
-        <span className="summary-label" style={{ fontSize: '1.5rem' }}>First Weight:</span>
-        <span className="summary-value" style={{ fontSize: '2rem', fontWeight: 'bold' }}>
-          {formik.values.selectedVehicle.record.first_weight} KG
-        </span>
-      </div>
-      <div className="summary-item">
-        <span className="summary-label" style={{ fontSize: '1.5rem' }}>Second Weight:</span>
-        <span className="summary-value" style={{ fontSize: '2rem', fontWeight: 'bold' }}>
-          {formik.values.secondWeight || "-"} KG
-        </span>
-      </div>
-      <div className="summary-item net-weight">
-        <span className="summary-label" style={{ fontSize: '1.5rem' }}>Net Weight:</span>
-        <span className="summary-value" style={{ fontSize: '2rem', fontWeight: 'bold' }}>
-          {formik.values.secondWeight
-            ? (() => {
-                const netWeight = formik.values.selectedVehicle.record.first_weight - formik.values.secondWeight;
-                const munds = netWeight / 40;
-                // Use trunc() instead of floor() to handle negative numbers correctly
-                const mundsInteger = Math.trunc(munds);
-                // Calculate remaining kg properly for negative values
-                const kgRemaining = netWeight - (mundsInteger * 40);
-                const tons = netWeight / 1000;
-                return `${netWeight.toFixed(2)} KG | ${mundsInteger} Munds ${kgRemaining.toFixed(0)} kg | ${tons.toFixed(2)} Tons`;
-              })()
-            : "-"}
-        </span>
-      </div>
-    </div>
-  </div>
-  </div>
-  </div>
-)}
 
-
-
-          {/* Enhanced Submit Button */}
-          <div className="submit-section">
-            <button 
-              type="submit" 
-              className="submit-button-enhanced second-weight-submit"
-              disabled={formik.isSubmitting}
-            >
-              <div className="button-content">
-                <div className="button-icon">
-                  <FaBalanceScale size={18} />
-                </div>
-                <span className="button-text">
-                  {formik.isSubmitting ? 'Processing...' : 'Complete Second Weight'}
-                </span>
-                <div className="button-arrow">
-                  <i className="fas fa-arrow-right"></i>
+            {/* Net Weight Display */}
+            {formik.values.selectedVehicle && formik.values.selectedVehicle.value !== "Select" && formik.values.secondWeight && (
+              <div className="input-group-enhanced" style={{ gridColumn: 'span 3' }}>
+                <div className="weight-summary-container">
+        
+                  
+                  {/* Display Net Weight in KG, Munds, and Tons */}
+                  <div className="summary-item net-weight" style={{ marginTop: '10px', padding: '15px', backgroundColor: '#f8f9fa', borderRadius: '8px', border: '1px solid #dee2e6' }}>
+                    <h3>Weight Summary:</h3>
+                    <span className="summary-value" style={{ fontSize: '1.75rem', fontWeight: 'bold', color: '#007bff' }}>
+                      {(() => {
+                        const record = formik.values.selectedVehicle.record;
+                        if (record) {
+                          const firstWeight = parseFloat(record.first_weight);
+                          const secondWeight = parseFloat(formik.values.secondWeight);
+                          const netWeight = firstWeight - secondWeight;
+                          const munds = netWeight / 40;
+                          // Use trunc() instead of floor() to handle negative numbers correctly
+                          const mundsInteger = Math.trunc(munds);
+                          // Calculate remaining kg properly for negative values
+                          const kgRemaining = netWeight - (mundsInteger * 40);
+                          const tons = netWeight / 1000;
+                          return `${netWeight.toFixed(2)} KG | ${mundsInteger}-${Math.abs(kgRemaining).toFixed(0)} Munds | ${tons.toFixed(2)} Tons`;
+                        }
+                        return "N/A";
+                      })()}
+                    </span>
+                  </div>
                 </div>
               </div>
-            </button>
+            )}
+
+            {/* Record Summary Display - Always show when a record is selected */}
+            {formik.values.selectedVehicle && formik.values.selectedVehicle.value !== "Select" && (
+              <div className="input-group-enhanced" style={{ gridColumn: 'span 2' }}>
+                <div className="record-summary-container" style={{ padding: '20px', backgroundColor: '#e9f7ef', borderRadius: '12px', border: '2px solid #28a745' }}>
+                  <h2 style={{ fontSize: '1.8rem', fontWeight: 'bold', marginBottom: '15px', color: '#155724' }}>Record Summary:</h2>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '15px' }}>
+                    <div>
+                      <strong style={{ fontSize: '1.2rem' }}>Business Name:</strong> 
+                      <span style={{ marginLeft: '8px', fontSize: '1.3rem', fontWeight: '600', color: '#0c5460', textTransform: 'uppercase' }}>{formik.values.selectedVehicle.record.business_name || 'N/A'}</span>
+                    </div>
+                    <div>
+                      <strong style={{ fontSize: '1.2rem' }}>Party Name:</strong> 
+                      <span style={{ marginLeft: '8px', fontSize: '1.3rem', fontWeight: '600', color: '#0c5460', textTransform: 'uppercase' }}>{formik.values.selectedVehicle.record.party_name || 'N/A'}</span>
+                    </div>
+                    <div>
+                      <strong style={{ fontSize: '1.2rem' }}>Vehicle Number:</strong> 
+                      <span style={{ marginLeft: '8px', fontSize: '1.3rem', fontWeight: '600', color: '#0c5460', textTransform: 'uppercase' }}>{formik.values.selectedVehicle.record.vehicle_number || 'N/A'}</span>
+                    </div>
+                    <div>
+                      <strong style={{ fontSize: '1.2rem' }}>First Weight:</strong> 
+                      <span style={{ marginLeft: '8px', fontWeight: 'bold', color: '#007bff', fontSize: '1.5rem', textTransform: 'uppercase' }}>
+                        {formik.values.selectedVehicle.record.first_weight ? `${parseFloat(formik.values.selectedVehicle.record.first_weight).toFixed(2)} KG` : 'N/A'}
+                      </span>
+                    </div>
+                    <div>
+                      <strong style={{ fontSize: '1.2rem' }}>Product:</strong> 
+                      <span style={{ marginLeft: '8px', fontSize: '1.3rem', fontWeight: '600', color: '#0c5460', textTransform: 'uppercase' }}>{formik.values.selectedVehicle.record.product || 'N/A'}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            
+
+            {/* Submit Button */}
+            <div className="input-group-enhanced submit-section" style={{ gridColumn: 'span 3' }}>
+              <button 
+                type="submit" 
+                className="submit-button-enhanced second-weight-submit text-uppercase"
+                disabled={formik.isSubmitting}
+              >
+                <div className="button-content">
+                  <div className="button-icon">
+                    <FaBalanceScale size={18} />
+                  </div>
+                  <span className="button-text text-uppercase">
+                    {formik.isSubmitting ? 'Processing...' : 'Save Second Weight'}
+                  </span>
+                  <div className="button-arrow">
+                    <i className="fas fa-arrow-right"></i>
+                  </div>
+                </div>
+              </button>
+            </div>
           </div>
         </form>
       </div>

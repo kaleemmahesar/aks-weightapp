@@ -1,15 +1,16 @@
-import React from "react";
-import { useFormik } from "formik";
-import * as Yup from "yup";
+import React, { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { updateRecordData as updateRecord } from "../redux/slices/recordsSlice";
-import { getVehiclePrices } from "../config/vehicleConfig";
+import { Formik, Form, Field, ErrorMessage, useFormik } from "formik";
+import * as Yup from "yup";
+import { updateRecordData } from "../redux/slices/recordsSlice";
 
-export default function EditRecordModal({ show, onClose, record, slipType }) {
+export default function EditRecordModal({ show, onClose, record, slipType, onUpdate, vehiclePrices }) {
   const dispatch = useDispatch();
-  const { settings = {} } = useSelector(state => state.settings || {});
-  const vehiclePrices = getVehiclePrices(settings.vehiclePrices);
   
+  // Get business names from settings
+  const { settings = {} } = useSelector(state => state.settings || {});
+  const businessNames = settings.businessNames || [];
+
   // Define vehicle types that require vehicle number
   const vehicleTypesWithVehicleNumber = ['Truck', 'SixWheeler', 'DahWheeler', 'Rocket Double', 'Container', 'Shahzore', 'Datson', 'Mazda'];
 
@@ -17,6 +18,7 @@ export default function EditRecordModal({ show, onClose, record, slipType }) {
   const formik = useFormik({
     enableReinitialize: true,
     initialValues: {
+      business_name: record?.business_name || "",
       party_name: record?.party_name || "",
       vehicle_number: record?.vehicle_number || "",
       vehicle_type: record?.vehicle_type || "Truck",
@@ -25,6 +27,7 @@ export default function EditRecordModal({ show, onClose, record, slipType }) {
       second_weight: record?.second_weight || "",
     },
     validationSchema: Yup.object({
+      business_name: Yup.string(),
       vehicle_number: Yup.string().when('vehicle_type', {
         is: (vehicleType) => vehicleTypesWithVehicleNumber.includes(vehicleType),
         then: (schema) => schema.required("Required"),
@@ -47,7 +50,6 @@ export default function EditRecordModal({ show, onClose, record, slipType }) {
         }),
     }),
 
-
     onSubmit: async (values) => {
       console.log(values)
       // ✅ Calculate derived fields only if both weights are provided
@@ -60,9 +62,10 @@ export default function EditRecordModal({ show, onClose, record, slipType }) {
         // Prepare update data - only include fields that should be updated
         const updateData = {
           id: record.id,
+          business_name: values.business_name,
           party_name: values.party_name,
-          vehicleNumber: values.vehicle_number,  // Changed from vehicle_number to vehicleNumber
-          vehicleType: values.vehicle_type,      // Changed from vehicle_type to vehicleType
+          vehicleNumber: values.vehicle_number,
+          vehicleType: values.vehicle_type,
           product: values.product,
           first_weight: values.first_weight !== "" ? parseFloat(values.first_weight) : null,
         };
@@ -76,11 +79,11 @@ export default function EditRecordModal({ show, onClose, record, slipType }) {
         }
 
         // Dispatch the Redux action to update the record
-        const resultAction = await dispatch(updateRecord(updateData));
+        const resultAction = await dispatch(updateRecordData(updateData));
 
         console.log(resultAction)
 
-        if (updateRecord.fulfilled.match(resultAction)) {
+        if (updateRecordData.fulfilled.match(resultAction)) {
           alert("✅ Record updated successfully!");
 
           // ✅ Close modal
@@ -104,6 +107,12 @@ export default function EditRecordModal({ show, onClose, record, slipType }) {
 
   const price = vehiclePrices[formik.values.vehicle_type] || 0;
 
+  const formatWeightValue = (value) => {
+    if (value === "" || value === null || value === undefined) return "";
+    const num = parseFloat(value);
+    return Number.isInteger(num) ? num.toString() : num.toFixed(2);
+  };
+
   return (
     <>
       <div className="modal-backdrop fade show" style={{ zIndex: 1040 }}></div>
@@ -111,142 +120,179 @@ export default function EditRecordModal({ show, onClose, record, slipType }) {
         <div className="modal-dialog">
           <div className="modal-content">
             <div className="modal-header bg-info text-white">
-              <h5 className="modal-title">Edit Record ({slipType?.toUpperCase()})</h5>
+              <div>
+                <h5 className="modal-title text-uppercase">Edit Record ({slipType?.toUpperCase()})</h5>
+              </div>
               <button type="button" className="btn-close" onClick={onClose}></button>
             </div>
             <div className="modal-body">
               <form onSubmit={formik.handleSubmit}>
+                {/* Business Name */}
+                <div className="mb-3">
+                  <label className="text-uppercase">Business Name</label>
+                  <select
+                    name="business_name"
+                    className="form-select text-uppercase"
+                    value={formik.values.business_name}
+                    onChange={formik.handleChange}
+                  >
+                    {businessNames.map((name, index) => (
+                      <option key={index} value={name} className="text-uppercase">
+                        {name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                
                 {/* Vehicle Number */}
                 <div className="mb-3">
-                  <label>Vehicle Number</label>
+                  <label className="text-uppercase">Vehicle Number</label>
                   <input
                     type="text"
                     name="vehicle_number"
-                    className={`form-control ${
+                    className={`form-control text-uppercase ${
                       formik.touched.vehicle_number && formik.errors.vehicle_number ? "is-invalid" : ""
                     }`}
                     value={formik.values.vehicle_number}
                     onChange={formik.handleChange}
                   />
                   {formik.touched.vehicle_number && formik.errors.vehicle_number && (
-                    <div className="invalid-feedback">{formik.errors.vehicle_number}</div>
+                    <div className="invalid-feedback text-uppercase">{formik.errors.vehicle_number}</div>
                   )}
                 </div>
 
                 {/* Party Name */}
                 <div className="mb-3">
-                  <label>Party Name</label>
+                  <label className="text-uppercase">Party Name</label>
                   <input
                     type="text"
                     name="party_name"
-                    className={`form-control ${
+                    className={`form-control text-uppercase ${
                       formik.touched.party_name && formik.errors.party_name ? "is-invalid" : ""
                     }`}
                     value={formik.values.party_name}
                     onChange={formik.handleChange}
                   />
                   {formik.touched.party_name && formik.errors.party_name && (
-                    <div className="invalid-feedback">{formik.errors.party_name}</div>
+                    <div className="invalid-feedback text-uppercase">{formik.errors.party_name}</div>
                   )}
                 </div>
 
                 {/* Vehicle Type */}
                 <div className="mb-3">
-                  <label>Vehicle Type</label>
+                  <label className="text-uppercase">Vehicle Type</label>
                   <select
                     name="vehicle_type"
-                    className={`form-select ${
+                    className={`form-select text-uppercase ${
                       formik.touched.vehicle_type && formik.errors.vehicle_type ? "is-invalid" : ""
                     }`}
                     value={formik.values.vehicle_type}
                     onChange={formik.handleChange}
                   >
                     {Object.keys(vehiclePrices).map((type) => (
-                      <option key={type} value={type}>
-                        {type} - {vehiclePrices[type]}
+                      <option key={type} value={type} className="text-uppercase">
+                        {type.toUpperCase()} - {vehiclePrices[type]}
                       </option>
                     ))}
                   </select>
                   {formik.touched.vehicle_type && formik.errors.vehicle_type && (
-                    <div className="invalid-feedback">{formik.errors.vehicle_type}</div>
+                    <div className="invalid-feedback text-uppercase">{formik.errors.vehicle_type}</div>
                   )}
                 </div>
 
                 {/* Product */}
                 <div className="mb-3">
-                  <label>Product</label>
+                  <label className="text-uppercase">Product</label>
                   <input
                     type="text"
                     name="product"
-                    className={`form-control ${
+                    className={`form-control text-uppercase ${
                       formik.touched.product && formik.errors.product ? "is-invalid" : ""
                     }`}
                     value={formik.values.product}
                     onChange={formik.handleChange}
                   />
                   {formik.touched.product && formik.errors.product && (
-                    <div className="invalid-feedback">{formik.errors.product}</div>
+                    <div className="invalid-feedback text-uppercase">{formik.errors.product}</div>
                   )}
                 </div>
 
                 {/* Conditional weights */}
                 {(slipType === "first" || slipType === "final") && (
                   <div className="mb-3">
-                    <label>{slipType === "final" ? "Current Weight:" : "First Weight:"}</label>
+                    <label className="text-uppercase">{slipType === "final" ? "Current Weight:" : "First Weight:"}</label>
                     <input
                       type="number"
                       name="first_weight"
-                      className={`form-control ${formik.touched.first_weight && formik.errors.first_weight ? "is-invalid" : ""}`}
-                      value={formik.values.first_weight}
+                      className={`form-control text-uppercase ${formik.touched.first_weight && formik.errors.first_weight ? "is-invalid" : ""}`}
+                      value={formatWeightValue(formik.values.first_weight)}
                       onChange={formik.handleChange}
                     />
                     {formik.touched.first_weight && formik.errors.first_weight && (
-                      <div className="invalid-feedback">{formik.errors.first_weight}</div>
+                      <div className="invalid-feedback text-uppercase">{formik.errors.first_weight}</div>
+                    )}
+                  </div>
+                )}
+
+                {/* Show first weight for second and final weight records as editable */}
+                {(slipType === "second" || slipType === "final") && (
+                  <div className="mb-3">
+                    <label className="text-uppercase">First Weight:</label>
+                    <input
+                      type="number"
+                      name="first_weight"
+                      className={`form-control text-uppercase ${formik.touched.first_weight && formik.errors.first_weight ? "is-invalid" : ""}`}
+                      value={formatWeightValue(formik.values.first_weight)}
+                      onChange={formik.handleChange}
+                    />
+                    {formik.touched.first_weight && formik.errors.first_weight && (
+                      <div className="invalid-feedback text-uppercase">{formik.errors.first_weight}</div>
                     )}
                   </div>
                 )}
 
                 {(slipType === "second" || slipType === "final") && (
+                    <div className="mb-3">
+                      <label className="text-uppercase">Second Weight:</label>
+                      <input
+                        type="number"
+                        name="second_weight"
+                        className={`form-control text-uppercase ${formik.touched.second_weight && formik.errors.second_weight ? "is-invalid" : ""}`}
+                        value={formatWeightValue(formik.values.second_weight)}
+                        onChange={formik.handleChange}
+                      />
+                      {formik.touched.second_weight && formik.errors.second_weight && (
+                        <div className="invalid-feedback text-uppercase">{formik.errors.second_weight}</div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Net Weight Display (only for second/final weight) */}
+                  {(slipType === "second" || slipType === "final") && (
+                    <div className="mb-3">
+                      <label className="text-uppercase">Net Weight: {netWeight} KG</label>
+                    </div>
+                  )}
+
+                  {/* Price Display */}
                   <div className="mb-3">
-                    <label>{slipType === "final" ? "Empty Weight:" : "Second Weight:"}</label>
-                    <input
-                      type="number"
-                      name="second_weight"
-                      className={`form-control ${formik.touched.second_weight && formik.errors.second_weight ? "is-invalid" : ""}`}
-                      value={formik.values.second_weight}
-                      onChange={formik.handleChange}
-                    />
-                    {formik.touched.second_weight && formik.errors.second_weight && (
-                      <div className="invalid-feedback">{formik.errors.second_weight}</div>
-                    )}
+                    <label className="text-uppercase">Price: PKR {price}</label>
                   </div>
-                )}
 
-                {/* Driver Name */}
-                {/* Net Weight and Price */}
-                <div className="d-flex justify-content-between mb-3">
-                  <p>
-                    <strong>Net Weight:</strong> {netWeight}
-                  </p>
-                  <p>
-                    <strong>Price:</strong> {price}
-                  </p>
-                </div>
-
-                {/* Buttons */}
-                <div className="d-flex justify-content-end">
-                  <button type="button" className="btn btn-secondary me-2" onClick={onClose}>
-                    Cancel
-                  </button>
-                  <button type="submit" className="btn btn-primary">
-                    Save Changes
-                  </button>
-                </div>
-              </form>
+                  <div className="d-flex justify-content-end gap-2">
+                    <button type="button" className="btn btn-secondary text-uppercase" onClick={onClose}>
+                      Cancel
+                    </button>
+                    <button type="submit" className="btn btn-primary text-uppercase" disabled={formik.isSubmitting}>
+                      {formik.isSubmitting ? "Saving..." : "Save Changes"}
+                    </button>
+                  </div>
+                </form>
+              </div>
             </div>
           </div>
         </div>
-      </div>
-    </>
-  );
+      </>
+    );
+
 }

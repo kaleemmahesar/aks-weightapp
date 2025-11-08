@@ -31,7 +31,7 @@ export default function RecordsPage() {
           return isValid ? parsed : defaultValue;
         }
         // Special handling for filter arrays to ensure they're always arrays
-        if (key === 'vehicleTypeFilter' || key === 'partyFilter' || key === 'productFilter') {
+        if (key === 'vehicleTypeFilter' || key === 'partyFilter' || key === 'productFilter' || key === 'businessNameFilter') {
           return Array.isArray(parsed) ? parsed : defaultValue;
         }
         return parsed;
@@ -57,6 +57,7 @@ export default function RecordsPage() {
   const [partyFilter, setPartyFilter] = useState(() => getInitialState('partyFilter', []));
   const [productFilter, setProductFilter] = useState(() => getInitialState('productFilter', []));
   const [vehicleTypeFilter, setVehicleTypeFilter] = useState(() => getInitialState('vehicleTypeFilter', []));
+  const [businessNameFilter, setBusinessNameFilter] = useState(() => getInitialState('businessNameFilter', []));
   const [loading, setLoading] = useState(true);
 
   // Save filter state to localStorage whenever filters change
@@ -95,6 +96,10 @@ export default function RecordsPage() {
   useEffect(() => {
     localStorage.setItem('recordsPage_vehicleTypeFilter', JSON.stringify(vehicleTypeFilter));
   }, [vehicleTypeFilter]);
+  
+  useEffect(() => {
+    localStorage.setItem('recordsPage_businessNameFilter', JSON.stringify(businessNameFilter));
+  }, [businessNameFilter]);
 
   const recordsPerPage = 12;
 
@@ -119,6 +124,7 @@ export default function RecordsPage() {
   // Get unique values for filter dropdowns
   const uniqueParties = [...new Set(records.map(r => r.party_name).filter(Boolean))];
   const uniqueProducts = [...new Set(records.map(r => r.product).filter(Boolean))];
+  const uniqueBusinessNames = [...new Set(records.map(r => r.business_name).filter(Boolean))];
   
   // Get unique vehicle types from both records and settings
   const uniqueVehicleTypes = [...new Set([
@@ -132,6 +138,7 @@ export default function RecordsPage() {
     setPartyFilter([]);
     setProductFilter([]);
     setVehicleTypeFilter([]);
+    setBusinessNameFilter([]);
     setReportType("overall");
     setSelectedMonth(new Date().getMonth() + 1);
     setSelectedYear(new Date().getFullYear());
@@ -149,6 +156,7 @@ export default function RecordsPage() {
           (r.vehicle_type && r.vehicle_type.toLowerCase().includes(search.toLowerCase())) ||
           (r.product && r.product.toLowerCase().includes(search.toLowerCase())) ||
           (r.party_name && r.party_name.toLowerCase().includes(search.toLowerCase())) ||
+          (r.business_name && r.business_name.toLowerCase().includes(search.toLowerCase())) ||
           r.id.toString().includes(search)
         : true;
 
@@ -160,6 +168,9 @@ export default function RecordsPage() {
 
       // ✅ Vehicle type filter - updated for multiple selection
       const matchesVehicleType = vehicleTypeFilter.length > 0 ? vehicleTypeFilter.includes(r.vehicle_type) : true;
+
+      // ✅ Business name filter - updated for multiple selection
+      const matchesBusinessName = businessNameFilter.length > 0 ? businessNameFilter.includes(r.business_name) : true;
 
       // ✅ Report type filter
       const matchesReportType = (() => {
@@ -212,7 +223,7 @@ export default function RecordsPage() {
         }
       })();
 
-      return matchesSearch && matchesParty && matchesProduct && matchesVehicleType && matchesReportType;
+      return matchesSearch && matchesParty && matchesProduct && matchesVehicleType && matchesBusinessName && matchesReportType;
     } catch (error) {
       console.error('Error filtering record:', error, r);
       // If there's an error in filtering, show the record to avoid hiding it
@@ -412,92 +423,52 @@ export default function RecordsPage() {
           });
           break;
           
-        case 'overall':
-          // For overall, we can't really have a "previous" period, so return empty
-          return { revenue: 0, regularExpenses: 0, deposits: 0, availableCash: 0 };
-          
         default:
-          return { revenue: 0, regularExpenses: 0, deposits: 0, availableCash: 0 };
+          // For overall and custom reports, use all previous data
+          previousRecords = records;
+          previousExpenses = expenses;
       }
       
-      // Calculate previous period values
-      const prevRevenue = previousRecords.reduce((sum, r) => sum + (parseFloat(r.total_price) || 0), 0);
-      
-      const prevRegularExpenses = previousExpenses.reduce((sum, exp) => {
+      const previousRevenue = previousRecords.reduce((sum, r) => sum + (parseFloat(r.total_price) || 0), 0);
+      const previousRegularExpenses = previousExpenses.reduce((sum, exp) => {
         if (exp.category !== 'Deposit to Owner') {
           return sum + (parseFloat(exp.amount) || 0);
         }
         return sum;
       }, 0);
-      
-      const prevDeposits = previousExpenses.reduce((sum, exp) => {
-        if (exp.category === 'Deposit to Owner') {
-          return sum + (parseFloat(exp.amount) || 0);
-        }
-        return sum;
-      }, 0);
-      
-      const prevProfit = prevRevenue - prevRegularExpenses;
-      const prevAvailableCash = prevProfit - prevDeposits;
+      const previousProfit = previousRevenue - previousRegularExpenses;
       
       return {
-        revenue: prevRevenue,
-        regularExpenses: prevRegularExpenses,
-        deposits: prevDeposits,
-        profit: prevProfit,
-        availableCash: prevAvailableCash
+        revenue: previousRevenue,
+        profit: previousProfit,
+        records: previousRecords.length
       };
     };
     
-    const previousPeriod = getPreviousPeriodData();
-    
-    // Calculate filtered available cash (cumulative for daily reports)
-    let filteredAvailableCash;
-    if (reportType === 'daily') {
-      // For daily reports: previous remaining cash + today's profit - today's deposits
-      filteredAvailableCash = previousPeriod.availableCash + filteredProfit - filteredDeposits;
-    } else {
-      // For other reports: profit minus deposits for the period
-      filteredAvailableCash = filteredProfit - filteredDeposits;
-    }
+    const previousData = getPreviousPeriodData();
     
     return {
-      totalRevenue,
-      totalExpensesAmount,
-      regularExpenses,
-      netProfit,
-      bankDeposits,
+      revenue: filteredRevenue,
+      expenses: filteredExpensesAmount,
+      profit: filteredProfit,
+      deposits: filteredDeposits,
       availableCash,
-      todayRevenue,
-      todayExpenses,
-      todayProfit,
-      filteredRevenue,
-      filteredExpensesAmount,
-      filteredRegularExpenses,
-      filteredProfit,
-      filteredDeposits,
-      filteredAvailableCash,
-      previousPeriod,
-      filteredRecordsLength: filteredRecords.length
+      previous: previousData
     };
   };
 
   const financialStats = calculateFinancialStats();
 
-  // Format currency
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('en-PK', {
-      style: 'currency',
-      currency: 'PKR',
-      minimumFractionDigits: 0
-    }).format(amount);
-  };
+  // Pagination
+  const totalPages = Math.ceil(filteredRecords.length / recordsPerPage);
+  const paginatedRecords = filteredRecords.slice(
+    (currentPage - 1) * recordsPerPage,
+    currentPage * recordsPerPage
+  );
 
+  // Print modal functions
   const openPrintModal = (record, type) => {
-    // Create a new object with vehicle_id
-    const updatedRecord = { ...record, vehicle_id: record.id };
-
-    dispatch(setSelectedRecord(updatedRecord));
+    dispatch(setSelectedRecord(record));
     setSlipType(type);
     setShowPrintModal(true);
   };
@@ -507,63 +478,373 @@ export default function RecordsPage() {
     dispatch(setSelectedRecord(null));
   };
 
-  const openEditModal = (record) => {
-    setEditModalShow(true);
-    dispatch(setSelectedRecord(record));
+  // Customer report generation
+  const generateCustomerReport = () => {
+    // Create a new window for the report
+    const printWindow = window.open('', '_blank', 'width=800,height=600');
+    
+    // Generate HTML content for the report
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Customer Report</title>
+        <style>
+          @media print {
+            @page {
+              size: A4;
+              margin: 15mm;
+            }
+          }
+          
+          body {
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            line-height: 1.4;
+            color: #000;
+            margin: 0;
+            padding: 15mm;
+          }
+          
+          .report-container {
+            max-width: 100%;
+          }
+          
+          .header {
+            text-align: center;
+            border-bottom: 2px solid #000;
+            padding-bottom: 12px;
+            margin-bottom: 16px;
+          }
+          
+          .company-name {
+            font-size: 20px;
+            font-weight: bold;
+            color: #2c3e50;
+          }
+          
+          .company-details {
+            font-size: 12px;
+            margin: 4px 0;
+            color: #34495e;
+          }
+          
+          .report-title {
+            text-align: center;
+            font-size: 18px;
+            font-weight: bold;
+            margin: 16px 0;
+            color: #1a5276;
+          }
+          
+          .report-date {
+            text-align: center;
+            font-size: 12px;
+            margin-bottom: 16px;
+            color: #7f8c8d;
+          }
+          
+          .content-section {
+            margin: 16px 0;
+            page-break-inside: avoid;
+          }
+          
+          .section-title {
+            font-size: 14px;
+            font-weight: bold;
+            border-bottom: 1px solid #000;
+            padding-bottom: 4px;
+            margin-bottom: 8px;
+            color: #2c3e50;
+          }
+          
+          .info-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 8px;
+            margin: 6px 0;
+            border-bottom: 1px dotted #999;
+            font-size: 12px;
+            align-items: center;
+          }
+          
+          .info-label {
+            font-weight: bold;
+            display: inline-block;
+            min-width: 140px;
+            white-space: normal;
+          }
+          
+          .info-value {
+            font-size: 13px;
+            font-weight: bold;
+            display: inline-block;
+            white-space: normal;
+            word-break: break-word;
+          }
+          
+          .customer-item {
+            margin: 4px 0;
+            padding: 2px 0;
+          }
+          
+          .customer-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 8px;
+            font-size: 11px;
+            align-items: center;
+          }
+          
+          .customer-label {
+            font-weight: normal;
+            display: inline-block;
+            min-width: 120px;
+            white-space: normal;
+            font-size: 9px;
+          }
+
+          .customer-value {
+            font-size: 10px;
+            font-weight: bold;
+            display: inline-block;
+            white-space: normal;
+            word-break: break-word;
+          }
+
+          table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 12px 0;
+            font-size: 9px;
+            page-break-inside: auto;
+          }
+
+          thead { 
+            display: table-header-group; 
+          }
+          
+          tfoot { 
+            display: table-footer-group; 
+          }
+
+          tr {
+            page-break-inside: avoid;
+            page-break-after: auto;
+          }
+
+          th, td {
+            text-align: left;
+            padding: 4px 3px;
+            border: 1px solid #000;
+          }
+
+          th {
+            font-weight: bold;
+            font-size: 10px;
+            background-color: #ecf0f1;
+          }
+
+          .text-center {
+            text-align: center;
+          }
+
+          .text-right {
+            text-align: right;
+          }
+
+          .footer {
+            padding-top: 12px;
+            margin-top: 16px;
+            text-align: center;
+            font-size: 10px;
+            border-top: 2px solid #000;
+            page-break-inside: avoid;
+          }
+
+          .signature-line {
+            margin: 12px 0;
+            font-size: 10px;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="report-container">
+          <div class="header">
+            <div class="company-name">AL HUSSAINI COMPUTERISED KANTA</div>
+            <div class="company-details">Near Bhand Chowk, Taulka Sijawal Junejo | Phone: 0331 4812277</div>
+          </div>
+
+          <div class="report-title">CUSTOMER SUMMARY REPORT</div>
+          <div class="report-date">
+            Report Generated: ${new Date().toLocaleString('en-GB', { 
+              day: '2-digit', 
+              month: '2-digit', 
+              year: '2-digit',
+              hour: '2-digit',
+              minute: '2-digit'
+            })}
+          </div>
+
+          <!-- Customer Summary -->
+          <div class="content-section">
+            <div class="section-title">CUSTOMER SUMMARY</div>
+            ${(() => {
+              // Group records by party name
+              const partyGroups = {};
+              filteredRecords.forEach(record => {
+                const party = record.party_name || 'Unknown';
+                if (!partyGroups[party]) {
+                  partyGroups[party] = [];
+                }
+                partyGroups[party].push(record);
+              });
+              
+              // Calculate totals for each party
+              const partyTotals = Object.entries(partyGroups).map(([party, records]) => {
+                const totalWeight = records.reduce((sum, r) => sum + Math.abs(parseFloat(r.net_weight) || 0), 0);
+                const totalPrice = records.reduce((sum, r) => sum + (parseFloat(r.total_price) || 0), 0);
+                const munds = totalWeight / 40;
+                return {
+                  party,
+                  records: records.length,
+                  weight: totalWeight,
+                  munds,
+                  price: totalPrice
+                };
+              });
+              
+              return partyTotals.map(partyTotal => `
+                <div class="customer-item">
+                  <div class="customer-row">
+                    <span class="customer-label">${partyTotal.party} (${partyTotal.records} records):</span>
+                    <span class="customer-value">${partyTotal.weight.toFixed(2)} kg | ${partyTotal.munds.toFixed(2)} Munds | Rs ${partyTotal.price.toLocaleString()}</span>
+                  </div>
+                </div>
+              `).join('');
+            })()}
+          </div>
+
+          <!-- Overall Summary -->
+          <div class="content-section">
+            <div class="section-title">OVERALL SUMMARY</div>
+            <div class="info-row">
+              <span class="info-label">Total Customers:</span>
+              <span class="info-value">${(() => {
+                const uniqueCustomers = [...new Set(filteredRecords.map(r => r.party_name).filter(Boolean))];
+                return uniqueCustomers.length;
+              })()}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Total Records:</span>
+              <span class="info-value">${filteredRecords.length}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Total Net Weight:</span>
+              <span class="info-value">${filteredRecords.reduce((sum, r) => sum + Math.abs(parseFloat(r.net_weight) || 0), 0).toFixed(2)} kg</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Total Munds:</span>
+              <span class="info-value">${(() => {
+                const totalNetWeight = filteredRecords.reduce((sum, r) => sum + Math.abs(parseFloat(r.net_weight) || 0), 0);
+                const totalMunds = totalNetWeight / 40;
+                const mundsInteger = Math.floor(totalMunds);
+                const remainingKgs = Math.round((totalMunds - mundsInteger) * 40);
+                return `${mundsInteger}-${remainingKgs}`;
+              })()} Munds</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Total Sales:</span>
+              <span class="info-value">Rs ${filteredRecords.reduce((sum, r) => sum + (parseFloat(r.total_price) || 0), 0).toLocaleString()}</span>
+            </div>
+          </div>
+
+          <div class="footer">
+            <div>Report generated by Weight Scale Management System</div>
+            <div class="signature-line">
+              <div>___________________________</div>
+              <div>Authorized Signature</div>
+            </div>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    printWindow.document.write(html);
+    printWindow.document.close();
+    printWindow.focus();
+    
+    // Wait a bit for content to load before printing
+    setTimeout(() => {
+      printWindow.print();
+      // printWindow.close();
+    }, 500);
   };
 
-  // Function to generate customer report (print version instead of PDF)
-  const generateCustomerReport = () => {
-    // Calculate total net weight and records count from filtered records
-    // Use absolute values to handle negative net weights correctly
-    const totalNetWeight = filteredRecords.reduce((sum, r) => sum + Math.abs(parseFloat(r.net_weight) || 0), 0);
-    const totalMunds = totalNetWeight / 40; // 1 Mund = 40 kg
-    const totalRecords = filteredRecords.length;
-
-    // Create HTML content for customer report (no financial info)
-    const printWindow = window.open("", "", "width=800,height=600");
-    if (!printWindow) {
-      alert("Popup blocked! Please allow popups for report generation.");
-      return;
-    }
-
-    // Build filter information string
-    const filterInfo = [];
-    if (partyFilter.length > 0) filterInfo.push(`Party: ${partyFilter.join(', ')}`);
-    if (productFilter.length > 0) filterInfo.push(`Product: ${productFilter.join(', ')}`);
-    if (vehicleTypeFilter.length > 0) filterInfo.push(`Vehicle Type: ${vehicleTypeFilter.join(', ')}`);
-    if (search) filterInfo.push(`Search Term: ${search}`);
+  // Thermal Owner report generation (79mm width for dot matrix printers)
+  const generateThermalOwnerReport = () => {
+    // Create a new window for the report
+    const printWindow = window.open('', '_blank', 'width=800,height=600');
     
-    // Add report type information
-    let dateRange = '';
-    switch (reportType) {
-      case 'daily':
-        const today = new Date();
-        dateRange = `Daily Report - ${today.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}`;
-        break;
-      case 'monthly':
-        const monthName = new Date(selectedYear, selectedMonth - 1).toLocaleString('default', { month: 'long' });
-        dateRange = `Monthly Report - ${monthName} ${selectedYear}`;
-        break;
-      case 'yearly':
-        dateRange = `Yearly Report - ${selectedYear}`;
-        break;
-      case 'overall':
-        dateRange = 'Overall Report - All Time';
-        break;
-      case 'custom':
-        if (customFromDate && customToDate) {
-          dateRange = `Custom Report - ${new Date(customFromDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })} to ${new Date(customToDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}`;
-        } else {
-          dateRange = 'Custom Report';
+    // Group records by date
+    const recordsByDate = {};
+    filteredRecords.forEach(record => {
+      if (record.first_weight_time) {
+        const date = new Date(record.first_weight_time);
+        const dateKey = date.toISOString().split('T')[0]; // YYYY-MM-DD format
+        if (!recordsByDate[dateKey]) {
+          recordsByDate[dateKey] = [];
         }
-        break;
-      default:
-        dateRange = 'Report';
+        recordsByDate[dateKey].push(record);
+      }
+    });
+    
+    // Sort dates
+    const sortedDates = Object.keys(recordsByDate).sort();
+    
+    // Generate filter information for display
+    const filterInfo = [];
+    if (search) {
+      filterInfo.push(`• Search: "${search.toUpperCase()}"`);
+    }
+    if (partyFilter && partyFilter.length > 0) {
+      filterInfo.push(`• Party Names: ${partyFilter.map(name => name.toUpperCase()).join(', ')}`);
+    }
+    if (productFilter && productFilter.length > 0) {
+      filterInfo.push(`• Products: ${productFilter.map(product => product.toUpperCase()).join(', ')}`);
+    }
+    if (vehicleTypeFilter && vehicleTypeFilter.length > 0) {
+      filterInfo.push(`• Vehicle Types: ${vehicleTypeFilter.map(type => type.toUpperCase()).join(', ')}`);
+    }
+    if (businessNameFilter && businessNameFilter.length > 0) {
+      filterInfo.push(`• Business Names: ${businessNameFilter.map(name => name.toUpperCase()).join(', ')}`);
+    }
+    if (reportType && reportType !== 'overall') {
+      let reportTypeInfo = `• Report Type: ${reportType}`;
+      if (reportType === 'monthly' && selectedMonth && selectedYear) {
+        const monthName = new Date(selectedYear, selectedMonth - 1).toLocaleString('default', { month: 'long' });
+        reportTypeInfo += ` (${monthName} ${selectedYear})`;
+      } else if (reportType === 'yearly' && selectedYear) {
+        reportTypeInfo += ` (${selectedYear})`;
+      } else if (reportType === 'custom' && customFromDate && customToDate) {
+        reportTypeInfo += ` (${customFromDate} to ${customToDate})`;
+      }
+      filterInfo.push(reportTypeInfo);
     }
     
-    const filterString = filterInfo.length > 0 ? filterInfo.join(', ') : 'No additional filters applied';
-
+    // If no specific filters, show a message
+    if (filterInfo.length === 0) {
+      filterInfo.push("• No specific filters applied");
+    }
+    
+    // Calculate financial data for the report
+    const totalWeight = filteredRecords.reduce((sum, r) => sum + Math.abs(parseFloat(r.net_weight) || 0), 0);
+    const totalMunds = totalWeight / 40;
+    const totalSales = filteredRecords.reduce((sum, r) => sum + (parseFloat(r.total_price) || 0), 0);
+    const totalExpenses = expenses.reduce((sum, e) => sum + (parseFloat(e.amount) || 0), 0);
+    const netProfit = totalSales - totalExpenses;
+    
     // Function to format weight without .00 decimals when not needed
     const formatWeight = (weight) => {
       if (!weight) return "-";
@@ -578,318 +859,634 @@ export default function RecordsPage() {
         return num.toFixed(1);
       }
     };
-
-    // Function to format date as "22/10/25 @ 8:34 pm"
-    const formatDateTimeForDisplay = (dateString) => {
-      if (!dateString) return "-";
-      
-      const date = new Date(dateString);
-      if (isNaN(date.getTime())) return "-";
-      
-      // Format as "22/10/25 @ 8:34 pm"
-      const day = date.toLocaleString("en-GB", { timeZone: "Asia/Karachi", day: "2-digit" });
-      const month = date.toLocaleString("en-GB", { timeZone: "Asia/Karachi", month: "2-digit" });
-      const year = date.toLocaleString("en-GB", { timeZone: "Asia/Karachi", year: "2-digit" });
-      let hour = date.toLocaleString("en-GB", { timeZone: "Asia/Karachi", hour: "numeric", hour12: false });
-      const minute = date.toLocaleString("en-GB", { timeZone: "Asia/Karachi", minute: "2-digit" });
-      
-      // Convert to 12-hour format
-      let ampm = "am";
-      if (hour >= 12) {
-        ampm = "pm";
-        if (hour > 12) {
-          hour = hour - 12;
-        }
-      }
-      if (hour === 0) {
-        hour = 12;
-      }
-      
-      return `${day}/${month}/${year} @ ${hour}:${minute} ${ampm}`;
-    };
-
-    const html = `<!doctype html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <title>Customer Report - ${dateRange}</title>
-  <style>
-    @media print {
-      @page { margin: 15mm; size: A4; }
-    }
     
-    html, body { 
-      margin: 0; 
-      padding: 0; 
-      font-family: 'Courier New', monospace !important;
-      font-size: 10px; /* Smaller font size */
-      color: #000;
-      line-height: 1.3;
-    }
-
-    .report-container {
-      max-width: 210mm;
-      margin: 0 auto;
-      padding: 15mm;
-      background: #fff;
-      box-sizing: border-box;
-    }
-
-    .header {
-      text-align: center;
-      border-bottom: 2px solid #000;
-      padding-bottom: 8px;
-      margin-bottom: 12px;
-    }
-
-    .company-name {
-      font-size: 20px;
-      font-weight: bold;
-      color: #2c3e50;
-    }
-
-    .company-details {
-      font-size: 12px;
-      margin: 4px 0;
-      color: #34495e;
-    }
-
-    .report-title {
-      text-align: center;
-      font-size: 16px;
-      font-weight: bold;
-      margin: 12px 0;
-      color: #1a5276;
-    }
-
-    .report-date {
-      text-align: center;
-      font-size: 11px;
-      margin-bottom: 12px;
-      color: #7f8c8d;
-    }
-
-    .content-section {
-      margin: 12px 0;
-      page-break-inside: avoid;
-    }
-
-    .section-title {
-      text-align: center;
-      font-size: 14px;
-      font-weight: bold;
-      border-bottom: 1px solid #000;
-      padding-bottom: 4px;
-      margin-bottom: 8px;
-      color: #2c3e50;
-    }
-
-    .info-row {
-      display: flex;
-      justify-content: space-between;
-      gap: 8px;
-      margin: 6px 0;
-      border-bottom: 1px dotted #999;
-      font-size: 11px;
-      align-items: center;
-    }
-
-    .info-label {
-      font-weight: bold;
-      display: inline-block;
-      min-width: 120px;
-      white-space: normal;
-    }
-
-    .info-value {
-      font-size: 12px;
-      font-weight: bold;
-      display: inline-block;
-      white-space: normal;
-      word-break: break-word;
-    }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin: 12px 0;
-      font-size: 9px; /* Smaller font size for table */
-      page-break-inside: auto;
-    }
-
-    thead { 
-      display: table-header-group; 
-    }
+    // Generate HTML content for the thermal owner report (79mm width)
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Owner Report - Thermal</title>
+        <style>
+          @media print {
+            @page {
+              size: 79mm auto;
+              margin: 2mm;
+            }
+          }
+          
+          body {
+            font-family: 'Arial', 'Helvetica', sans-serif;
+            font-size: 10px;
+            font-weight: bold;
+            line-height: 1.3;
+            color: #000;
+            margin: 0;
+            padding: 2mm;
+            width: 79mm;
+          }
+          
+          .header {
+            text-align: center;
+            border-bottom: 1px solid #000;
+            padding-bottom: 2mm;
+            margin-bottom: 2mm;
+          }
+          
+          .company-name {
+            font-size: 12px;
+            font-weight: bold;
+          }
+          
+          .company-details {
+            font-size: 9px;
+            margin: 1mm 0;
+          }
+          
+          .report-title {
+            text-align: center;
+            font-size: 11px;
+            font-weight: bold;
+            margin: 2mm 0;
+          }
+          
+          .report-date {
+            text-align: center;
+            font-size: 9px;
+            margin-bottom: 2mm;
+          }
+          
+          .financial-section {
+            text-align: left;
+            font-size: 9px;
+            margin-bottom: 2mm;
+            padding: 1mm;
+            border: 1px solid #000;
+          }
+          
+          .financial-item {
+            margin: 1px 0;
+          }
+          
+          .filters-section {
+            text-align: left;
+            font-size: 9px;
+            margin-bottom: 2mm;
+            padding: 1mm;
+            border: 1px solid #000;
+          }
+          
+          .filter-item {
+            margin: 1px 0;
+          }
+          
+          .date-section {
+            margin: 3mm 0;
+          }
+          
+          .date-header {
+            font-size: 10px;
+            font-weight: bold;
+            margin: 2mm 0 1mm 0;
+            padding: 1mm 0;
+            border-bottom: 1px solid #000;
+          }
+          
+          table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 2mm 0;
+            font-size: 9px;
+            font-weight: bold;
+          }
+          
+          th {
+            background-color: #f0f0f0;
+            border-bottom: 1px solid #000;
+            padding: 1mm;
+            text-align: left;
+            font-weight: bold;
+          }
+          
+          td {
+            border-bottom: 1px solid #000;
+            padding: 0.5mm;
+          }
+          
+          .text-center {
+            text-align: center;
+          }
+          
+          .text-right {
+            text-align: right;
+          }
+          
+          .summary-row {
+            font-weight: bold;
+            background-color: #e0e0e0;
+          }
+          
+          .grand-total {
+            font-weight: bold;
+            background-color: #d0d0d0;
+            border: 1px solid #000 !important;
+          }
+          
+          .text-success {
+            color: #28a745;
+          }
+          
+          .text-danger {
+            color: #dc3545;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div class="company-name">AL HUSSAINI COMPUTERISED KANTA</div>
+          <div class="company-details">Near Bhand Chowk, Taulka Sijawal Junejo | Phone: 0331 4812277</div>
+          <div class="report-date">Generated on: ${new Date().toLocaleString("en-GB", { timeZone: "Asia/Karachi" })}</div>
+        </div>
+        
+        <!-- Financial Summary -->
+        <div class="financial-section">
+          <div class="financial-item">Records: ${filteredRecords.length}</div>
+          <div class="financial-item">Net Weight: ${totalWeight.toFixed(2)} kg</div>
+          <div class="financial-item">Munds: ${(() => {
+            const mundsInteger = Math.floor(totalMunds);
+            const remainingKgs = Math.round((totalMunds - mundsInteger) * 40);
+            return `${mundsInteger}-${remainingKgs}`;
+          })()}</div>
+          <div class="financial-item">Sales: Rs ${totalSales.toLocaleString()}</div>
+          <div class="financial-item">Expenses: Rs ${totalExpenses.toLocaleString()}</div>
+          <div class="financial-item">Profit: Rs ${netProfit.toLocaleString()} ${netProfit >= 0 ? '(Profit)' : '(Loss)'}</div>
+        </div>
+        
+        <!-- Filters Section -->
+        <div class="filters-section">
+          ${filterInfo.map(info => `<div class="filter-item">${info}</div>`).join('')}
+        </div>
+        
+        ${sortedDates.map(dateKey => {
+          const dateRecords = recordsByDate[dateKey];
+          const dateObj = new Date(dateKey);
+          const formattedDate = dateObj.toLocaleDateString('en-GB', { 
+            day: 'numeric', 
+            month: 'short', 
+            year: 'numeric' 
+          });
+          
+          // Calculate totals for this date
+          const dateTotalFirstWeight = dateRecords.reduce((sum, r) => sum + (parseFloat(r.first_weight) || 0), 0);
+          const dateTotalSecondWeight = dateRecords.reduce((sum, r) => sum + (parseFloat(r.second_weight) || 0), 0);
+          const dateTotalNetWeight = dateRecords.reduce((sum, r) => sum + (parseFloat(r.net_weight) || 0), 0);
+          const dateTotalPrice = dateRecords.reduce((sum, r) => sum + (parseFloat(r.total_price) || 0), 0);
+          
+          return `
+          <div class="date-section">
+            <div class="date-header">${formattedDate}</div>
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Party</th>
+                  <th>Product</th>
+                  <th>F.Wt</th>
+                  <th>S.Wt</th>
+                  <th>Net</th>
+                  <th>Price</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${dateRecords.map((r, index) => `
+                  <tr>
+                    <td>${r.id}</td>
+                    <td>${r.party_name || '-'}</td>
+                    <td>${r.product || '-'}</td>
+                    <td>${formatWeight(r.first_weight)}</td>
+                    <td>${formatWeight(r.second_weight)}</td>
+                    <td>${formatWeight(r.net_weight)}</td>
+                    <td>${r.total_price ? `${Number(r.total_price).toLocaleString()}` : "-"}</td>
+                  </tr>
+                `).join('')}
+                <tr class="summary-row">
+                  <td colspan="3">Total:</td>
+                  <td>${formatWeight(dateTotalFirstWeight)}</td>
+                  <td>${formatWeight(dateTotalSecondWeight)}</td>
+                  <td>${formatWeight(dateTotalNetWeight)}</td>
+                  <td>${dateTotalPrice.toLocaleString()}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          `;
+        }).join('')}
+        
+        <!-- Grand Total -->
+        <div style="margin-top: 3mm; border-top: 1px solid #000; padding-top: 2mm;">
+          <table>
+            <thead>
+              <tr>
+                <th colspan="2">Grand Total:</th>
+                <th class="text-right">F.Wt</th>
+                <th class="text-right">S.Wt</th>
+                <th class="text-right">Net</th>
+                <th class="text-right">Price</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="grand-total">
+                <td colspan="2">(${filteredRecords.length} records):</td>
+                <td class="text-right">${formatWeight(filteredRecords.reduce((sum, r) => sum + (parseFloat(r.first_weight) || 0), 0))}</td>
+                <td class="text-right">${formatWeight(filteredRecords.reduce((sum, r) => sum + (parseFloat(r.second_weight) || 0), 0))}</td>
+                <td class="text-right">${formatWeight(filteredRecords.reduce((sum, r) => sum + (parseFloat(r.net_weight) || 0), 0))}</td>
+                <td class="text-right">${filteredRecords.reduce((sum, r) => sum + (parseFloat(r.total_price) || 0), 0).toLocaleString()}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </body>
+      </html>
+    `;
     
-    tfoot { 
-      display: table-footer-group; 
-    }
-
-    tr {
-      page-break-inside: avoid;
-      page-break-after: auto;
-    }
-
-    th, td {
-      text-align: left;
-      padding: 4px 3px;
-      border: 1px solid #000;
-    }
-
-    th {
-      font-weight: bold;
-      font-size: 10px;
-      background-color: #ecf0f1;
-    }
-
-    .text-center {
-      text-align: center;
-    }
-
-    .text-right {
-      text-align: right;
-    }
-
-    .footer {
-      padding-top: 12px;
-      margin-top: 16px;
-      text-align: center;
-      font-size: 10px;
-      border-top: 2px solid #000;
-      page-break-inside: avoid;
-    }
-
-    .signature-line {
-      margin: 12px 0;
-      font-size: 10px;
-    }
-  </style>
-</head>
-<body>
-  <div class="report-container">
-    <div class="header">
-      <div class="company-name">AL HUSSAINI COMPUTERISED KANTA</div>
-      <div class="company-details">Near Bhand Chowk, Taulka Sijawal Junejo | Phone: 0331 4812277</div>
-    </div>
-
-    <div class="report-title">${dateRange}</div>
-    <div class="report-date">
-      Report Generated: ${new Date().toLocaleString('en-GB', { 
-        day: '2-digit', 
-        month: '2-digit', 
-        year: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit'
-      })}
-    </div>
-
-    <!-- Filter Information -->
-    <div class="content-section">
-      <div class="section-title">FILTERS APPLIED</div>
-      <div style="font-size: 11px; padding: 6px 0;">
-        ${filterString}
-      </div>
-    </div>
-
-    <!-- Financial Summary -->
-    <div class="content-section">
-      <div class="section-title">SUMMARY</div>
-      <div class="info-row">
-        <span class="info-label">Total Records:</span>
-        <span class="info-value">${totalRecords}</span>
-      </div>
-      <div class="info-row">
-        <span class="info-label">Total Munds:</span>
-        <span class="info-value">${(() => {
-      const mundsInteger = Math.floor(totalMunds);
-      const remainingKgs = Math.round((totalMunds - mundsInteger) * 40);
-      return `${mundsInteger}-${remainingKgs}`;
-    })()} Munds</span>
-      </div>
-      <div class="info-row">
-        <span class="info-label">Total Net Weight:</span>
-        <span class="info-value">${totalNetWeight.toFixed(2)} kg</span>
-      </div>
-    </div>
-
-    <!-- Records Table -->
-    <div class="content-section">
-      <div class="section-title">RECORDS</div>
-      <table>
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Date</th>
-            <th>Vehicle</th>
-            <th>Party</th>
-            <th>Product</th>
-            <th>F.Weight</th>
-            <th>S.Weight</th>
-            <th>Net Weight</th>
-            <th>Net Munds</th>
-            <th>Price</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${filteredRecords.map(record => {
-            const netWeight = parseFloat(record.net_weight) || 0;
-            // Use Math.trunc() to handle negative numbers correctly
-            const netMunds = Math.trunc(netWeight / 40);
-            const firstWeight = parseFloat(record.first_weight) || 0;
-            const secondWeight = parseFloat(record.second_weight) || 0;
-            const recordDate = record.date || record.first_weight_time || '';
-            return `
-            <tr>
-              <td>${record.id}</td>
-              <td>${recordDate ? formatDateTimeForDisplay(recordDate) : '-'}</td>
-              <td>${record.vehicle_number || '-'}</td>
-              <td>${record.party_name || '-'}</td>
-              <td>${record.product || '-'}</td>
-              <td>${formatWeight(firstWeight)}</td>
-              <td>${formatWeight(secondWeight)}</td>
-              <td>${formatWeight(netWeight)} kg</td>
-              <td>${netMunds.toFixed(2)} Munds</td>
-              <td>Rs ${(parseFloat(record.total_price) || 0).toLocaleString()}</td>
-            </tr>
-          `}).join('')}
-        </tbody>
-      </table>
-    </div>
-
-    <div class="footer">
-      <div class="signature-line">Operator: _____________</div>
-      <div class="signature-line">Customer: _____________</div>
-      <div style="margin-top: 12px; font-size: 9px;">
-        Software by <span style="display:inline-block;padding:3px 8px;font-weight:bold;border:1px solid #000;border-radius:6px;background:#f0f0f0">AKS Solutions</span> - Business Solution by Kaleem Mahesar
-      </div>
-    </div>
-  </div>
-</body>
-</html>`;
-
     printWindow.document.write(html);
     printWindow.document.close();
-
-    // Wait for content to load then print
+    printWindow.focus();
+    
+    // Wait a bit for content to load before printing
     setTimeout(() => {
-      printWindow.focus();
       printWindow.print();
-      printWindow.close();
+      // printWindow.close();
+    }, 500);
+  };
+  
+  // Owner report generation
+  const generateOwnerReport = () => {
+    // Create a new window for the report
+    const printWindow = window.open('', '_blank', 'width=800,height=600');
+    
+    // Group records by date
+    const recordsByDate = {};
+    filteredRecords.forEach(record => {
+      if (record.first_weight_time) {
+        const date = new Date(record.first_weight_time);
+        const dateKey = date.toISOString().split('T')[0]; // YYYY-MM-DD format
+        if (!recordsByDate[dateKey]) {
+          recordsByDate[dateKey] = [];
+        }
+        recordsByDate[dateKey].push(record);
+      }
+    });
+    
+    // Sort dates
+    const sortedDates = Object.keys(recordsByDate).sort();
+    
+    // Generate filter information for display
+    const filterInfo = [];
+    if (search) {
+      filterInfo.push(`• Search: "${search.toUpperCase()}"`);
+    }
+    if (partyFilter && partyFilter.length > 0) {
+      filterInfo.push(`• Party Names: ${partyFilter.map(name => name.toUpperCase()).join(', ')}`);
+    }
+    if (productFilter && productFilter.length > 0) {
+      filterInfo.push(`• Products: ${productFilter.map(product => product.toUpperCase()).join(', ')}`);
+    }
+    if (vehicleTypeFilter && vehicleTypeFilter.length > 0) {
+      filterInfo.push(`• Vehicle Types: ${vehicleTypeFilter.map(type => type.toUpperCase()).join(', ')}`);
+    }
+    if (businessNameFilter && businessNameFilter.length > 0) {
+      filterInfo.push(`• Business Names: ${businessNameFilter.map(name => name.toUpperCase()).join(', ')}`);
+    }
+    if (reportType && reportType !== 'overall') {
+      let reportTypeInfo = `• Report Type: ${reportType}`;
+      if (reportType === 'monthly' && selectedMonth && selectedYear) {
+        const monthName = new Date(selectedYear, selectedMonth - 1).toLocaleString('default', { month: 'long' });
+        reportTypeInfo += ` (${monthName} ${selectedYear})`;
+      } else if (reportType === 'yearly' && selectedYear) {
+        reportTypeInfo += ` (${selectedYear})`;
+      } else if (reportType === 'custom' && customFromDate && customToDate) {
+        reportTypeInfo += ` (${customFromDate} to ${customToDate})`;
+      }
+      filterInfo.push(reportTypeInfo);
+    }
+    
+    // If no specific filters, show a message
+    if (filterInfo.length === 0) {
+      filterInfo.push("• No specific filters applied");
+    }
+    
+    // Calculate financial data for the report
+    const totalWeight = filteredRecords.reduce((sum, r) => sum + Math.abs(parseFloat(r.net_weight) || 0), 0);
+    const totalMunds = totalWeight / 40;
+    const totalSales = filteredRecords.reduce((sum, r) => sum + (parseFloat(r.total_price) || 0), 0);
+    const totalExpenses = expenses.reduce((sum, e) => sum + (parseFloat(e.amount) || 0), 0);
+    const netProfit = totalSales - totalExpenses;
+    
+    // Function to format weight without .00 decimals when not needed
+    const formatWeight = (weight) => {
+      if (!weight) return "-";
+      const num = parseFloat(weight);
+      if (isNaN(num)) return "-";
+      
+      // If it's a whole number, don't show decimals
+      if (num % 1 === 0) {
+        return num.toString();
+      } else {
+        // Otherwise, show one decimal place
+        return num.toFixed(1);
+      }
+    };
+    
+    // Generate HTML content for the owner report
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Owner Report</title>
+        <style>
+          @media print {
+            @page {
+              size: A4;
+              margin: 15mm;
+            }
+          }
+          
+          body {
+            font-family: 'Arial Black', 'Arial Bold', Arial, sans-serif;
+            font-weight: bold;
+            font-size: 12px;
+            line-height: 1.4;
+            color: #000;
+            margin: 0;
+            padding: 15mm;
+          }
+          
+          .header {
+            text-align: center;
+            border-bottom: 3px solid #000;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+          }
+          
+          .company-name {
+            font-size: 24px;
+            font-weight: bold;
+            color: #000;
+          }
+          
+          .company-details {
+            font-size: 14px;
+            margin: 5px 0;
+            color: #000;
+          }
+          
+          .report-title {
+            text-align: center;
+            font-size: 18px;
+            font-weight: bold;
+            margin: 15px 0;
+            color: #000;
+          }
+          
+          .report-date {
+            text-align: center;
+            font-size: 12px;
+            margin-bottom: 15px;
+            color: #000;
+          }
+          
+          .financial-section {
+            text-align: left;
+            font-size: 12px;
+            margin-bottom: 15px;
+            padding: 12px;
+            border: 2px solid #000;
+            font-weight: bold;
+          }
+          
+          .financial-item {
+            margin: 3px 0;
+          }
+          
+          .filters-section {
+            text-align: left;
+            font-size: 12px;
+            margin-bottom: 15px;
+            padding: 12px;
+            border: 2px solid #000;
+            font-weight: bold;
+          }
+          
+          .filter-item {
+            margin: 3px 0;
+          }
+          
+          .date-section {
+            margin: 25px 0;
+          }
+          
+          .date-header {
+            font-size: 16px;
+            font-weight: bold;
+            margin: 18px 0 12px 0;
+            padding: 6px 0;
+            border-bottom: 2px solid #000;
+          }
+          
+          table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+            font-size: 12px;
+            page-break-inside: auto;
+          }
+          
+          thead { 
+            display: table-header-group; 
+          }
+          
+          tfoot { 
+            display: table-footer-group; 
+          }
+          
+          tr { 
+            page-break-inside: avoid; 
+          }
+          
+          th {
+            background-color: #f0f0f0;
+            border-bottom: 1px solid #000;
+            padding: 8px 5px;
+            text-align: left;
+            font-weight: bold;
+            color: #000;
+            font-size: 12px;
+          }
+          
+          td {
+            border-bottom: 1px solid #000;
+            padding: 6px;
+            font-size: 12px;
+            vertical-align: top;
+          }
+          
+          .text-center {
+            text-align: center;
+          }
+          
+          .text-right {
+            text-align: right;
+          }
+          
+          .fw-bold {
+            font-weight: bold;
+          }
+          
+          .summary-row {
+            font-weight: bold;
+            background-color: #e0e0e0;
+          }
+          
+          .grand-total {
+            font-weight: bold;
+            background-color: #d0d0d0;
+            border: 3px solid #000 !important;
+          }
+          
+          .text-success {
+            color: #28a745;
+          }
+          
+          .text-danger {
+            color: #dc3545;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div class="company-name">AL HUSSAINI COMPUTERISED KANTA</div>
+          <div class="company-details">Near Bhand Chowk, Taulka Sijawal Junejo | Phone: 0331 4812277</div>
+          <div class="report-date">Generated on: ${new Date().toLocaleString("en-GB", { timeZone: "Asia/Karachi" })}</div>
+        </div>
+        
+        <!-- Financial Summary -->
+        <div class="financial-section">
+          <div class="financial-item">Total Records: ${filteredRecords.length}</div>
+          <div class="financial-item">Total Net Weight: ${totalWeight.toFixed(2)} kg</div>
+          <div class="financial-item">Total Munds: ${(() => {
+            const mundsInteger = Math.floor(totalMunds);
+            const remainingKgs = Math.round((totalMunds - mundsInteger) * 40);
+            return `${mundsInteger}-${remainingKgs}`;
+          })()} Munds</div>
+          <div class="financial-item">Total Sales: Rs ${totalSales.toLocaleString()}</div>
+          <div class="financial-item">Total Expenses: Rs ${totalExpenses.toLocaleString()}</div>
+          <div class="financial-item">Net Profit: Rs ${netProfit.toLocaleString()} ${netProfit >= 0 ? '(Profit)' : '(Loss)'}</div>
+        </div>
+        
+        <!-- Filters Section -->
+        <div class="filters-section">
+          ${filterInfo.map(info => `<div class="filter-item">${info}</div>`).join('')}
+        </div>
+        
+        ${sortedDates.map(dateKey => {
+          const dateRecords = recordsByDate[dateKey];
+          const dateObj = new Date(dateKey);
+          const formattedDate = dateObj.toLocaleDateString('en-GB', { 
+            day: 'numeric', 
+            month: 'short', 
+            year: 'numeric' 
+          });
+          
+          // Calculate totals for this date
+          const dateTotalFirstWeight = dateRecords.reduce((sum, r) => sum + (parseFloat(r.first_weight) || 0), 0);
+          const dateTotalSecondWeight = dateRecords.reduce((sum, r) => sum + (parseFloat(r.second_weight) || 0), 0);
+          const dateTotalNetWeight = dateRecords.reduce((sum, r) => sum + (parseFloat(r.net_weight) || 0), 0);
+          const dateTotalPrice = dateRecords.reduce((sum, r) => sum + (parseFloat(r.total_price) || 0), 0);
+          
+          return `
+          <div class="date-section">
+            <div class="date-header">${formattedDate}</div>
+            <table>
+              <thead>
+                <tr>
+                  <th>Sr No:</th>
+                  <th>Party Name</th>
+                  <th>Product Name</th>
+                  <th>F. Weight</th>
+                  <th>S. Weight</th>
+                  <th>Net Weight</th>
+                  <th>Price</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${dateRecords.map((r, index) => `
+                  <tr>
+                    <td>${r.id}</td>
+                    <td>${r.party_name || '-'}</td>
+                    <td>${r.product || '-'}</td>
+                    <td>${formatWeight(r.first_weight)}</td>
+                    <td>${formatWeight(r.second_weight)}</td>
+                    <td>${formatWeight(r.net_weight)}</td>
+                    <td>${r.total_price ? `${Number(r.total_price).toLocaleString()}` : "-"}</td>
+                  </tr>
+                `).join('')}
+                <tr class="summary-row">
+                  <td colspan="3"><strong>Total for ${formattedDate}:</strong></td>
+                  <td><strong>${formatWeight(dateTotalFirstWeight)}</strong></td>
+                  <td><strong>${formatWeight(dateTotalSecondWeight)}</strong></td>
+                  <td><strong>${formatWeight(dateTotalNetWeight)}</strong></td>
+                  <td><strong>${dateTotalPrice.toLocaleString()}</strong></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          `;
+        }).join('')}
+        
+        <!-- Grand Total -->
+        <div style="margin-top: 35px; border-top: 4px solid #000; padding-top: 20px;">
+          <table>
+            <thead>
+              <tr>
+                <th colspan="3">Grand Total:</th>
+                <th class="text-right">F. Weight</th>
+                <th class="text-right">S. Weight</th>
+                <th class="text-right">Net Weight</th>
+                <th class="text-right">Total Price</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="grand-total">
+                <td colspan="3"><strong>All Dates (${filteredRecords.length} records):</strong></td>
+                <td class="text-right"><strong>${formatWeight(filteredRecords.reduce((sum, r) => sum + (parseFloat(r.first_weight) || 0), 0))}</strong></td>
+                <td class="text-right"><strong>${formatWeight(filteredRecords.reduce((sum, r) => sum + (parseFloat(r.second_weight) || 0), 0))}</strong></td>
+                <td class="text-right"><strong>${formatWeight(filteredRecords.reduce((sum, r) => sum + (parseFloat(r.net_weight) || 0), 0))}</strong></td>
+                <td class="text-right"><strong>${filteredRecords.reduce((sum, r) => sum + (parseFloat(r.total_price) || 0), 0).toLocaleString()}</strong></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </body>
+      </html>
+    `;
+    
+    printWindow.document.write(html);
+    printWindow.document.close();
+    printWindow.focus();
+    
+    // Wait a bit for content to load before printing
+    setTimeout(() => {
+      printWindow.print();
+      // printWindow.close();
     }, 500);
   };
 
-  // Show loading indicator while fetching data
   if (loading) {
     return (
-      <div className="dashboard-container">
-        <div className="container-fluid py-4">
-          <div className="d-flex justify-content-center align-items-center" style={{ height: '100vh' }}>
-            <div className="text-center">
-              <div className="spinner-border text-primary" role="status">
-                <span className="visually-hidden">Loading...</span>
-              </div>
-              <p className="mt-2">Loading records and expenses...</p>
-            </div>
+      <div className="container-fluid py-4">
+        <div className="text-center">
+          <div className="spinner-border" role="status">
+            <span className="visually-hidden">Loading...</span>
           </div>
         </div>
       </div>
@@ -930,9 +1527,12 @@ export default function RecordsPage() {
                 setProductFilter={setProductFilter}
                 vehicleTypeFilter={vehicleTypeFilter}
                 setVehicleTypeFilter={setVehicleTypeFilter}
+                businessNameFilter={businessNameFilter}
+                setBusinessNameFilter={setBusinessNameFilter}
                 uniqueParties={uniqueParties}
                 uniqueProducts={uniqueProducts}
                 uniqueVehicleTypes={uniqueVehicleTypes}
+                uniqueBusinessNames={uniqueBusinessNames}
                 onClearFilters={clearAllFilters}
               />
               <div className="col-md-3">
@@ -950,12 +1550,19 @@ export default function RecordsPage() {
                     partyFilter={partyFilter}
                     productFilter={productFilter}
                     vehicleTypeFilter={vehicleTypeFilter}
+                    businessNameFilter={businessNameFilter}
                     search={search}
                   />
-                  <button className="btn btn-primary w-100 d-block" onClick={generateCustomerReport}>
-                    <FaFileInvoice className="me-2" />
-                    Print Customer Report
-                  </button>
+                  <div className="d-grid gap-2">
+                    <button className="btn btn-primary w-100 d-block" onClick={generateOwnerReport}>
+                      <FaFileInvoice className="me-2" />
+                      A4 Owner Report
+                    </button>
+                    <button className="btn btn-secondary w-100 d-block" onClick={generateThermalOwnerReport}>
+                      <FaFileInvoice className="me-2" />
+                      Thermal Owner Report
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -969,8 +1576,21 @@ export default function RecordsPage() {
             expenses={expenses}
             openPrintModal={openPrintModal} 
             onUpdateRecord={() => dispatch(fetchRecords())}
-            vehiclePrices={[]} // Pass empty array for now
+            vehiclePrices={settings.vehiclePrices || {}} // Pass vehicle prices from settings
             slipType="first" // Default slip type
+            // Pass filter information for print report
+            filters={{
+              search,
+              partyFilter,
+              productFilter,
+              vehicleTypeFilter,
+              businessNameFilter,
+              reportType,
+              selectedMonth,
+              selectedYear,
+              customFromDate,
+              customToDate
+            }}
           />
         </div>
 

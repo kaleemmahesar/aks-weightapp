@@ -88,19 +88,19 @@ export default function FinalWeightPage() {
           <div className="col-md-4">
             <div className="card px-2 py-2 bg-info-subtle text-black shadow-sm border-0 rounded">
               <small>Live Weight</small>
-              <h5 className="m-0"><b>{weight} KG</b></h5>
+              <h2 className="m-0"><b>{weight} KG</b></h2>
             </div>
           </div>
           <div className="col-md-4">
             <div className="card px-2 py-2 bg-danger-subtle text-black shadow-sm border-0 rounded">
               <small>Total Vehicles</small>
-              <h5 className="m-0"><b>{totalVehicles}</b></h5>
+              <h2 className="m-0"><b>{totalVehicles}</b></h2>
             </div>
           </div>
           <div className="col-md-4">
             <div className="card px-2 py-2 bg-success-subtle text-black shadow-sm border-0 rounded">
               <small>Final Vehicles</small>
-              <h5 className="m-0"><b>{totalThird}</b></h5>
+              <h2 className="m-0"><b>{totalThird}</b></h2>
             </div>
           </div>
         </div>

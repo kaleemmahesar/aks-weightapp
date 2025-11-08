@@ -13,6 +13,7 @@ const ReportGenerator = ({
   partyFilter,
   productFilter,
   vehicleTypeFilter,
+  businessNameFilter,
   search
 }) => {
   // Helper function to get expense date (handles both 'date' and 'expense_date' properties)
@@ -30,10 +31,10 @@ const ReportGenerator = ({
     
     // If it's a whole number, don't show decimals
     if (num % 1 === 0) {
-      return num.toString();
+      return num.toString().toUpperCase();
     } else {
       // Otherwise, show one decimal place
-      return num.toFixed(1);
+      return num.toFixed(1).toUpperCase();
     }
   };
 
@@ -52,9 +53,9 @@ const ReportGenerator = ({
     const minute = date.toLocaleString("en-GB", { timeZone: "Asia/Karachi", minute: "2-digit" });
     
     // Convert to 12-hour format
-    let ampm = "am";
+    let ampm = "AM";
     if (hour >= 12) {
-      ampm = "pm";
+      ampm = "PM";
       if (hour > 12) {
         hour = hour - 12;
       }
@@ -63,7 +64,7 @@ const ReportGenerator = ({
       hour = 12;
     }
     
-    return `${day}/${month}/${year} @ ${hour}:${minute} ${ampm}`;
+    return `${day}/${month}/${year} @ ${hour}:${minute} ${ampm}`.toUpperCase();
   };
 
   const generateReport = () => {
@@ -211,422 +212,219 @@ const ReportGenerator = ({
         });
         break;
       case 'custom':
-        if (customFromDate && customToDate) {
-          finalFilteredExpenses = expenses.filter(e => {
-            const expenseDate = getExpenseDate(e);
-            return expenseDate && expenseDate >= customFromDate && expenseDate <= customToDate;
-          });
-        }
+        finalFilteredExpenses = expenses.filter(e => {
+          const expenseDate = getExpenseDate(e);
+          return expenseDate && expenseDate >= customFromDate && expenseDate <= customToDate;
+        });
         break;
       default:
         finalFilteredExpenses = expenses;
     }
 
-    // Calculate financial metrics
-    const reportRevenue = finalFilteredRecords.reduce((sum, r) => sum + (parseFloat(r.total_price) || 0), 0);
+    // Calculate totals for filtered records
+    const totalWeight = finalFilteredRecords.reduce((sum, r) => sum + Math.abs(parseFloat(r.net_weight) || 0), 0);
+    const totalMunds = totalWeight / 40;
+    const totalSales = finalFilteredRecords.reduce((sum, r) => sum + (parseFloat(r.total_price) || 0), 0);
+    const totalExpenses = finalFilteredExpenses.reduce((sum, e) => sum + (parseFloat(e.amount) || 0), 0);
+    const netProfit = totalSales - totalExpenses;
 
-    // Calculate total net weight using absolute values
-    const totalNetWeight = finalFilteredRecords.reduce((sum, r) => sum + Math.abs(parseFloat(r.net_weight) || 0), 0);
-    const totalMunds = totalNetWeight / 40; // 1 Mund = 40 kg
-
-    // Separate regular expenses from deposits to owner
-    const reportRegularExpenses = finalFilteredExpenses.filter(e => e.category !== "Deposit to Owner");
-    const reportDepositsToOwner = finalFilteredExpenses.filter(e => e.category === "Deposit to Owner");
-    
-    const reportExpensesAmount = reportRegularExpenses.reduce((sum, e) => sum + (parseFloat(e.amount) || 0), 0);
-    const reportDepositsAmount = reportDepositsToOwner.reduce((sum, e) => sum + (parseFloat(e.amount) || 0), 0);
-    const reportNetProfit = reportRevenue - reportExpensesAmount;
-    const reportFinalBalance = reportNetProfit - reportDepositsAmount;
-    
-    // Calculate cumulative totals (all time)
-    const totalRevenue = records.reduce((sum, r) => sum + (parseFloat(r.total_price) || 0), 0);
-    const totalRegularExpenses = expenses.filter(e => e.category !== "Deposit to Owner");
-    const totalDepositsToOwner = expenses.filter(e => e.category === "Deposit to Owner");
-    
-    const totalExpensesAmount = totalRegularExpenses.reduce((sum, e) => sum + (parseFloat(e.amount) || 0), 0);
-    const totalDepositsAmount = totalDepositsToOwner.reduce((sum, e) => sum + (parseFloat(e.amount) || 0), 0);
-    const totalNetProfit = totalRevenue - totalExpensesAmount;
-    const totalFinalBalance = totalNetProfit - totalDepositsAmount;
-
-    // Calculate vehicle type counts
-    const vehicleTypeCounts = {};
-    finalFilteredRecords.forEach(record => {
-      const vehicleType = record.vehicle_type || 'Unknown';
-      vehicleTypeCounts[vehicleType] = (vehicleTypeCounts[vehicleType] || 0) + 1;
-    });
-
-    // Create HTML content for printing
-    const printWindow = window.open("", "", "width=800,height=600");
-    if (!printWindow) {
-      alert("Popup blocked! Please allow popups for report generation.");
-      return;
-    }
-
-    // Build filter information string
-    const filterInfo = [];
-    if (partyFilter && partyFilter.length > 0) filterInfo.push(`Party: ${partyFilter.join(', ')}`);
-    if (productFilter && productFilter.length > 0) filterInfo.push(`Product: ${productFilter.join(', ')}`);
-    if (vehicleTypeFilter && vehicleTypeFilter.length > 0) filterInfo.push(`Vehicle Type: ${vehicleTypeFilter.join(', ')}`);
-    if (search) filterInfo.push(`Search Term: ${search}`);
-    
-    const filterString = filterInfo.length > 0 ? filterInfo.join(', ') : 'No additional filters applied';
-
-    const html = `
-      <!doctype html>
+    // Generate printable HTML report
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(`
+      <!DOCTYPE html>
       <html>
       <head>
-        <meta charset="utf-8">
-        <title>${dateRange}</title>
+        <title>Weight Scale Management Report</title>
         <style>
-          @media print {
-            @page { margin: 15mm; size: A4; }
+          body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            text-transform: uppercase; /* Make all text uppercase */
           }
-          
-          html, body { 
-            margin: 0; 
-            padding: 0; 
-            font-family: Courier New, sans-serif;
-            font-size: 10px; /* Smaller font size */
-            color: #000;
-            line-height: 1.3;
-          }
-
-          .report-container {
-            max-width: 210mm;
-            margin: 0 auto;
-            padding: 15mm;
-            background: #fff;
-            box-sizing: border-box;
-          }
-
           .header {
             text-align: center;
-            border-bottom: 2px solid #000;
-            padding-bottom: 8px;
-            margin-bottom: 12px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #333;
+            padding-bottom: 10px;
           }
-
-          .company-name {
-            font-size: 20px;
-            font-weight: bold;
-            color: #2c3e50;
-          }
-
-          .company-details {
-            font-size: 12px;
-            margin: 4px 0;
-            color: #34495e;
-          }
-
-          .report-title {
-            text-align: center;
-            font-size: 16px;
-            font-weight: bold;
-            margin: 12px 0;
-            color: #1a5276;
-          }
-
-          .report-date {
-            text-align: center;
-            font-size: 11px;
-            margin-bottom: 12px;
-            color: #7f8c8d;
-          }
-
-          .content-section {
-            margin: 12px 0;
-            page-break-inside: avoid;
-          }
-
-          .section-title {
-            text-align: center;
-            font-size: 14px;
-            font-weight: bold;
-            border-bottom: 1px solid #000;
-            padding-bottom: 4px;
-            margin-bottom: 8px;
-            color: #2c3e50;
-          }
-
-          .info-row {
+          .report-info {
             display: flex;
             justify-content: space-between;
-            gap: 8px;
-            margin: 6px 0;
-            border-bottom: 1px dotted #999;
-            font-size: 11px;
-            align-items: center;
+            margin-bottom: 20px;
+            text-transform: uppercase;
           }
-
-          .info-label {
-            font-weight: bold;
-            display: inline-block;
-            min-width: 120px;
-            white-space: normal;
+          .summary-section {
+            margin: 20px 0;
+            text-transform: uppercase;
           }
-
-          .info-value {
-            font-size: 12px;
-            font-weight: bold;
-            display: inline-block;
-            white-space: normal;
-            word-break: break-word;
+          .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            text-transform: uppercase;
           }
-
-          .expense-item, .revenue-item, .vehicle-item {
-            border-bottom: 1px dotted #ccc;
-            padding: 3px 0;
-            margin: 2px 0;
+          .summary-card {
+            border: 1px solid #ddd;
+            padding: 15px;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+            text-transform: uppercase;
           }
-
-          .expense-item:last-child, .revenue-item:last-child, .vehicle-item:last-child {
-            border-bottom: none;
-          }
-
-          .expense-row {
-            display: flex;
-            justify-content: space-between;
-            gap: 6px;
-            margin: 2px 0;
-            font-size: 9px; /* Smaller font size */
-            align-items: center;
-            line-height: 1.2;
-          }
-
-          .expense-label {
-            font-weight: normal;
-            display: inline-block;
-            min-width: 100px;
-            white-space: normal;
-            font-size: 9px; /* Smaller font size */
-          }
-
-          .expense-value {
-            font-size: 10px; /* Smaller font size */
-            font-weight: bold;
-            display: inline-block;
-            white-space: normal;
-            word-break: break-word;
-          }
-
           table {
             width: 100%;
             border-collapse: collapse;
-            margin: 12px 0;
-            font-size: 9px; /* Smaller font size for table */
-            page-break-inside: auto;
+            margin: 20px 0;
+            text-transform: uppercase;
           }
-
-          thead { 
-            display: table-header-group; 
-          }
-          
-          tfoot { 
-            display: table-footer-group; 
-          }
-
-          tr {
-            page-break-inside: avoid;
-            page-break-after: auto;
-          }
-
           th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
             text-align: left;
-            padding: 4px 3px;
-            border: 1px solid #000;
+            text-transform: uppercase;
           }
-
           th {
-            font-weight: bold;
-            font-size: 10px;
-            background-color: #ecf0f1;
+            background-color: #f2f2f2;
+            text-transform: uppercase;
           }
-
-          .text-center {
-            text-align: center;
-          }
-
           .text-right {
             text-align: right;
+            text-transform: uppercase;
           }
-
-          .footer {
-            padding-top: 12px;
-            margin-top: 16px;
-            text-align: center;
-            font-size: 10px;
-            border-top: 2px solid #000;
-            page-break-inside: avoid;
+          .fw-bold {
+            font-weight: bold;
+            text-transform: uppercase;
           }
-
-          .signature-line {
-            margin: 12px 0;
-            font-size: 10px;
+          .text-success {
+            color: #28a745;
+            text-transform: uppercase;
+          }
+          .text-danger {
+            color: #dc3545;
+            text-transform: uppercase;
+          }
+          .text-info {
+            color: #17a2b8;
+            text-transform: uppercase;
+          }
+          .text-muted {
+            color: #6c757d;
+            text-transform: uppercase;
+          }
+          @media print {
+            .no-print {
+              display: none;
+            }
           }
         </style>
       </head>
       <body>
-        <div class="report-container">
-          <div class="header">
-            <div class="company-name">AL HUSSAINI COMPUTERISED KANTA</div>
-            <div class="company-details">Near Bhand Chowk, Taulka Sijawal Junejo | Phone: 0331 4812277</div>
-          </div>
-
-          <div class="report-title">${dateRange}</div>
-          <div class="report-date">
-            Report Generated: ${new Date().toLocaleString('en-GB', { 
-              day: '2-digit', 
-              month: '2-digit', 
-              year: '2-digit',
-              hour: '2-digit',
-              minute: '2-digit'
-            })}
-          </div>
-
-          <!-- Filter Information -->
-          <div class="content-section">
-            <div class="section-title">FILTERS APPLIED</div>
-            <div style="font-size: 11px; padding: 6px 0;">
-              ${filterString}
+        <div class="header">
+          <h1>Weight Scale Management System</h1>
+          <h2>${dateRange.toUpperCase()}</h2>
+        </div>
+        
+        <div class="report-info">
+          <div>Generated on: ${new Date().toLocaleString('en-GB', { timeZone: 'Asia/Karachi' }).toUpperCase()}</div>
+          <div>Total Records: ${finalFilteredRecords.length}</div>
+        </div>
+        
+        <div class="summary-section">
+          <h3>Summary</h3>
+          <div class="summary-grid">
+            <div class="summary-card">
+              <div class="fw-bold">Total Weight</div>
+              <div>${totalWeight.toLocaleString().toUpperCase()} KG</div>
             </div>
-          </div>
-
-          <!-- Simplified Financial Summary -->
-          <div class="content-section">
-            <div class="section-title">SUMMARY</div>
-            <div class="info-row">
-              <span class="info-label">Total Records:</span>
-              <span class="info-value">${finalFilteredRecords.length}</span>
+            <div class="summary-card">
+              <div class="fw-bold">Total Munds</div>
+              <div>${totalMunds.toFixed(2).toUpperCase()} MUNDS</div>
             </div>
-            <div class="info-row">
-              <span class="info-label">Total Net Weight:</span>
-              <span class="info-value">${totalNetWeight.toFixed(2)} kg</span>
+            <div class="summary-card">
+              <div class="fw-bold">Total Sales</div>
+              <div>PKR ${totalSales.toLocaleString().toUpperCase()}</div>
             </div>
-            <div class="info-row">
-              <span class="info-label">Total Munds:</span>
-              <span class="info-value">${(() => {
-                const mundsInteger = Math.floor(totalMunds);
-                const remainingKgs = Math.round((totalMunds - mundsInteger) * 40);
-                return `${mundsInteger}-${remainingKgs}`;
-              })()} Munds</span>
+            <div class="summary-card">
+              <div class="fw-bold">Total Expenses</div>
+              <div>PKR ${totalExpenses.toLocaleString().toUpperCase()}</div>
             </div>
-            <div class="info-row">
-              <span class="info-label">Total Sales:</span>
-              <span class="info-value">Rs ${reportRevenue.toLocaleString()}</span>
-            </div>
-            <div class="info-row">
-              <span class="info-label">Total Expenses:</span>
-              <span class="info-value">Rs ${reportExpensesAmount.toLocaleString()}</span>
-            </div>
-          </div>
-
-          <!-- Vehicle Type Counts -->
-          ${Object.keys(vehicleTypeCounts).length > 0 ? `
-            <div class="content-section">
-              <div class="section-title">VEHICLE TYPE COUNTS</div>
-              ${Object.entries(vehicleTypeCounts).map(([vehicleType, count]) => `
-                <div class="vehicle-item">
-                  <div class="expense-row">
-                    <span class="expense-label">${vehicleType}:</span>
-                    <span class="expense-value">${count} vehicles</span>
-                  </div>
-                </div>
-              `).join('')}
-            </div>
-          ` : ''}
-
-          <!-- Records Table -->
-          ${finalFilteredRecords.length > 0 ? `
-            <div class="content-section">
-              <div class="section-title">RECORDS DETAIL</div>
-              <table>
-                <thead>
-                  <tr>
-                    <th>ID</th>
-                    <th>Date</th>
-                    <th>Vehicle</th>
-                    <th>Party</th>
-                    <th>Type</th>
-                    <th>Product</th>
-                    <th>F.Weight</th>
-                    <th>S.Weight</th>
-                    <th>Net Weight</th>
-                    <th>Net Munds</th>
-                    <th>Price</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  ${finalFilteredRecords.map(record => {
-                    const netWeight = parseFloat(record.net_weight) || 0;
-                    // Use Math.trunc() to handle negative numbers correctly
-                    const netMunds = Math.trunc(netWeight / 40); // 1 Mund = 40 kg
-                    const firstWeight = parseFloat(record.first_weight) || 0;
-                    const secondWeight = parseFloat(record.second_weight) || 0;
-                    const recordDate = record.date || record.first_weight_time || '';
-                    return `
-                    <tr>
-                      <td>${record.id}</td>
-                      <td>${recordDate ? formatDateTimeForDisplay(recordDate) : '-'}</td>
-                      <td>${record.vehicle_number || '-'}</td>
-                      <td>${record.party_name || '-'}</td>
-                      <td>${record.vehicle_type || '-'}</td>
-                      <td>${record.product || '-'}</td>
-                      <td>${formatWeight(firstWeight)}</td>
-                      <td>${formatWeight(secondWeight)}</td>
-                      <td>${formatWeight(netWeight)} kg</td>
-                      <td>${netMunds.toFixed(2)} Munds</td>
-                      <td>Rs ${(parseFloat(record.total_price) || 0).toLocaleString()}</td>
-                    </tr>
-                  `}).join('')}
-                </tbody>
-              </table>
-            </div>
-          ` : ''}
-
-          <!-- Expense Details -->
-          ${reportRegularExpenses.length > 0 ? `
-            <div class="content-section">
-              <div class="section-title">EXPENSE DETAILS</div>
-              ${reportRegularExpenses.map(expense => `
-                <div class="expense-item">
-                  <div class="expense-row">
-                    <span class="expense-label">${expense.date ? expense.date : '-'} - ${expense.category || '-'}</span>
-                    <span class="expense-value">Rs ${(parseFloat(expense.amount) || 0).toLocaleString()}</span>
-                  </div>
-                  ${expense.description ? `<div class="expense-row" style="font-size: 9px; color: #7f8c8d; margin-left: 8px;">${expense.description}</div>` : ''}
-                </div>
-              `).join('')}
-            </div>
-          ` : ''}
-
-          <div class="footer">
-            <div class="signature-line">Operator: _____________</div>
-            <div class="signature-line">Owner: _____________</div>
-            <div style="margin-top: 12px; font-size: 9px;">
-              Software by <span style="display:inline-block;padding:3px 8px;font-weight:bold;border:1px solid #000;border-radius:6px;background:#f0f0f0">AKS Solutions</span> - Business Solution by Kaleem Mahesar
+            <div class="summary-card">
+              <div class="fw-bold">Net Profit</div>
+              <div class="${netProfit >= 0 ? 'text-success' : 'text-danger'}">PKR ${netProfit.toLocaleString().toUpperCase()}</div>
             </div>
           </div>
         </div>
+        
+        <h3>Records</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Business</th>
+              <th>Party</th>
+              <th>Vehicle</th>
+              <th>Type</th>
+              <th>Product</th>
+              <th>F.Weight</th>
+              <th>S.Weight</th>
+              <th>Net Weight</th>
+              <th>Total Price</th>
+              <th>Date</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${finalFilteredRecords.map(r => `
+              <tr>
+                <td>${r.id || '-'}</td>
+                <td>${r.business_name || '-'}</td>
+                <td>${r.party_name || '-'}</td>
+                <td>${r.vehicle_number || '-'}</td>
+                <td>${r.vehicle_type || '-'}</td>
+                <td>${r.product || '-'}</td>
+                <td class="text-right">${formatWeight(r.first_weight)}</td>
+                <td class="text-right">${formatWeight(r.second_weight)}</td>
+                <td class="text-right">${formatWeight(r.net_weight)}</td>
+                <td class="text-right">PKR ${Number(r.total_price || 0).toLocaleString()}</td>
+                <td>${r.first_weight_time ? formatDateTimeForDisplay(r.first_weight_time) : '-'}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+        
+        <h3>Expenses</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Description</th>
+              <th>Category</th>
+              <th>Amount</th>
+              <th>Date</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${finalFilteredExpenses.map(e => `
+              <tr>
+                <td>${e.description || '-'}</td>
+                <td>${e.category || '-'}</td>
+                <td class="text-right">PKR ${Number(e.amount || 0).toLocaleString()}</td>
+                <td>${getExpenseDate(e) ? new Date(getExpenseDate(e)).toLocaleDateString('en-GB') : '-'}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
       </body>
       </html>
-    `;
-
-    printWindow.document.write(html);
+    `);
     printWindow.document.close();
+    printWindow.print();
 
-    // Wait for content to load then print
-    setTimeout(() => {
-      printWindow.focus();
-      printWindow.print();
-      printWindow.close();
-    }, 500);
   };
 
   return (
-    <button className="btn btn-success w-100 d-block" onClick={generateReport}>
-      <FaFileInvoice className="me-2" />
-      Print Owner Report
-    </button>
+    <></>
+    // <button className="btn btn-primary w-100 d-block" onClick={generateReport}>
+    //   <FaFileInvoice className="me-2" />
+    //   Print Customer Report
+    // </button>
   );
 };
 

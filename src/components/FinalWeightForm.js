@@ -16,6 +16,7 @@ export default function FinalWeightForm({
   const dispatch = useDispatch();
   const { settings = {} } = useSelector(state => state.settings || {});
   const vehiclePrices = getVehiclePrices(settings.vehiclePrices);
+  const businessNames = settings.businessNames || [];
   
   // Define vehicle types that should allow manual vehicle number input
   const specialVehicleTypes = ["Truck", "Dahwheeler", "SixWheeler", "Container"];
@@ -84,12 +85,21 @@ export default function FinalWeightForm({
     })
   };
 
+  // Business name options for react-select
+  const businessNameOptions = [
+    { value: "", label: "Select Business Name (Optional)".toUpperCase() },
+    ...businessNames.map(name => ({
+      value: name,
+      label: name.toUpperCase()  // Make label uppercase
+    }))
+  ];
+
   // Vehicle options for react-select
   const vehicleOptions = [
-    { value: "Select", label: "Select Vehicle Type" },
+    { value: "Select", label: "Select Vehicle Type".toUpperCase() },
     ...Object.entries(vehiclePrices).map(([type, price]) => ({
       value: type,
-      label: `${type} — ${price.toLocaleString()}`
+      label: `${type.toUpperCase()} — ${price.toLocaleString()}`  // Make vehicle type uppercase
     }))
   ];
 
@@ -98,6 +108,11 @@ export default function FinalWeightForm({
     value: product.value,
     label: product.label
   }));
+
+  // Handle business name change
+  const handleBusinessNameChange = (selectedOption) => {
+    formik.setFieldValue('businessName', selectedOption ? selectedOption.value : '');
+  };
 
   // Handle vehicle type change for react-select
   const handleVehicleTypeChange = (selectedOption) => {
@@ -143,6 +158,7 @@ export default function FinalWeightForm({
 
   const formik = useFormik({
     initialValues: {
+      businessName: "",
       finalVehicle: "",
       party: "",
       finalVehicleType: "Select",
@@ -152,6 +168,7 @@ export default function FinalWeightForm({
       finalWithDriver: true,
     },
     validationSchema: Yup.object({
+      businessName: Yup.string(),
       finalVehicle: Yup.string().required("Required"),
       party: Yup.string().required("Required"),
       finalVehicleType: Yup.string().required("Required"),
@@ -181,6 +198,7 @@ export default function FinalWeightForm({
         first_weight_time: getCurrentDateTime(),
         second_weight_time: getCurrentDateTime(),
         final_weight: "Yes",
+        business_name: values.businessName || null
       };
 
       try {
@@ -232,6 +250,53 @@ export default function FinalWeightForm({
       <div className="modern-card-body">
         <form onSubmit={formik.handleSubmit}>
           <div className="enhanced-form-grid" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
+            {/* Business Name */}
+            <div className="input-group-enhanced">
+              <Select
+                options={businessNameOptions}
+                value={businessNameOptions.find(option => option.value === formik.values.businessName) || businessNameOptions[0]}
+                onChange={handleBusinessNameChange}
+                onBlur={() => formik.setFieldTouched('businessName', true)}
+                isSearchable
+                menuPortalTarget={document.body}
+                menuPosition="absolute"
+                menuPlacement="auto"
+                styles={{
+                  ...customSelectStyles,
+                  control: (provided, state) => ({
+                    ...provided,
+                    borderRadius: '4px',
+                    border: `1px solid ${formik.touched.businessName && formik.errors.businessName ? '#dc3545' : '#ced4da'}`,
+                    boxShadow: state.isFocused ? '0 0 0 0.2rem rgba(0, 123, 255, 0.25)' : 'none',
+                    borderColor: state.isFocused ? '#007bff' : (formik.touched.businessName && formik.errors.businessName ? '#dc3545' : '#ced4da'),
+                    height: '58px',
+                    minHeight: '58px',
+                    textTransform: 'uppercase'  // Add uppercase text transform
+                  }),
+                  option: (provided, state) => ({
+                    ...provided,
+                    backgroundColor: state.isSelected ? '#0d6efd' : state.isFocused ? '#f8f9fc' : 'white',
+                    color: state.isSelected ? 'white' : '#495057',
+                    textTransform: 'uppercase'  // Add uppercase text transform to options
+                  }),
+                  singleValue: (provided) => ({
+                    ...provided,
+                    margin: '0',
+                    color: '#495057',
+                    textTransform: 'uppercase'  // Add uppercase text transform to selected value
+                  })
+                }}
+                placeholder="Select Business Name"
+                className="enhanced-select"
+              />
+              {formik.touched.businessName && formik.errors.businessName && (
+                <div className="error-message-enhanced">
+                  <i className="fas fa-exclamation-triangle me-2"></i>
+                  {formik.errors.businessName}
+                </div>
+              )}
+            </div>
+
             {/* Vehicle Type */}
             <div className="input-group-enhanced">
               <Select
@@ -252,7 +317,8 @@ export default function FinalWeightForm({
                     boxShadow: state.isFocused ? '0 0 0 0.2rem rgba(0, 123, 255, 0.25)' : 'none',
                     borderColor: state.isFocused ? '#007bff' : (formik.touched.finalVehicleType && formik.errors.finalVehicleType ? '#dc3545' : '#ced4da'),
                     height: '58px',
-                    minHeight: '58px'
+                    minHeight: '58px',
+                    textTransform: 'uppercase',  // Add uppercase text transform
                   })
                 }}
                 placeholder="Select Vehicle Type *"
@@ -295,7 +361,7 @@ export default function FinalWeightForm({
                 type="text"
                 name="party"
                 id="party"
-                className={`weight-input-enhanced ${
+                className={`weight-input-enhanced text-uppercase ${
                   formik.touched.party && formik.errors.party
                     ? "error"
                     : ""
@@ -303,10 +369,10 @@ export default function FinalWeightForm({
                 value={formik.values.party}
                 onChange={formik.handleChange}
                 onBlur={formik.handleBlur}
-                placeholder="Party Name *"
+                placeholder={"Party Name *".toUpperCase()}
               />
               {formik.touched.party && formik.errors.party && (
-                <div className="error-message-enhanced">
+                <div className="error-message-enhanced text-uppercase">
                   <i className="fas fa-exclamation-triangle me-2"></i>
                   {formik.errors.party}
                 </div>
@@ -354,7 +420,7 @@ export default function FinalWeightForm({
                 type="text"
                 name="finalProduct"
                 id="finalProduct"
-                className={`weight-input-enhanced ${
+                className={`weight-input-enhanced text-uppercase ${
                   formik.touched.party && formik.errors.finalProduct
                     ? "error"
                     : ""
@@ -362,10 +428,10 @@ export default function FinalWeightForm({
                 value={formik.values.finalProduct}
                 onChange={formik.handleChange}
                 onBlur={formik.handleBlur}
-                placeholder="Product Type *"
+                placeholder={"Product Type *".toUpperCase()}
               />
               {formik.touched.finalProduct && formik.errors.finalProduct && (
-                <div className="error-message-enhanced">
+                <div className="error-message-enhanced text-uppercase">
                   <i className="fas fa-exclamation-triangle me-2"></i>
                   {formik.errors.finalProduct}
                 </div>
@@ -374,7 +440,7 @@ export default function FinalWeightForm({
 
             {/* Empty Weight */}
             <div className="input-group-enhanced">
-              <div className={`weight-input-container ${
+              <div className={`weight-input-container text-uppercase ${
                 formik.touched.emptyWeight && formik.errors.emptyWeight
                   ? "error"
                   : ""
@@ -383,16 +449,16 @@ export default function FinalWeightForm({
                   type="number"
                   name="emptyWeight"
                   id="emptyWeight"
-                  className="weight-input-enhanced"
+                  className="weight-input-enhanced text-uppercase"
                   value={formik.values.emptyWeight}
                   onChange={formik.handleChange}
                   onBlur={formik.handleBlur}
-                  placeholder="Empty Weight *"
+                  placeholder={"Empty Weight *".toUpperCase()}
                 />
-                <div className="weight-unit">KG</div>
+                <div className="weight-unit text-uppercase">KG</div>
               </div>
               {formik.touched.emptyWeight && formik.errors.emptyWeight && (
-                <div className="error-message-enhanced">
+                <div className="error-message-enhanced text-uppercase">
                   <i className="fas fa-exclamation-triangle me-2"></i>
                   {formik.errors.emptyWeight}
                 </div>
@@ -401,7 +467,7 @@ export default function FinalWeightForm({
 
             {/* Current Weight (Live) */}
             <div className="input-group-enhanced weight-input-group">
-              <div className={`weight-input-container ${
+              <div className={`weight-input-container text-uppercase ${
                 formik.touched.finalWeight && formik.errors.finalWeight
                   ? "error"
                   : ""
@@ -410,20 +476,20 @@ export default function FinalWeightForm({
                   type="number"
                   name="finalWeight"
                   id="finalWeight"
-                  className="weight-input-enhanced"
+                  className="weight-input-enhanced text-uppercase"
                   value={formik.values.finalWeight}
                   onChange={formik.handleChange}
                   onBlur={formik.handleBlur}
-                  placeholder="Final Weight *"
+                  placeholder={"Final Weight *".toUpperCase()}
                 />
-                <div className="weight-unit">KG</div>
+                <div className="weight-unit text-uppercase">KG</div>
                 <div className="live-badge">
                   <span className="live-dot"></span>
-                  LIVE
+                  <span className="text-uppercase">LIVE</span>
                 </div>
               </div>
               {formik.touched.finalWeight && formik.errors.finalWeight && (
-                <div className="error-message-enhanced">
+                <div className="error-message-enhanced text-uppercase">
                   <i className="fas fa-exclamation-triangle me-2"></i>
                   {formik.errors.finalWeight}
                 </div>
@@ -431,7 +497,7 @@ export default function FinalWeightForm({
             </div>
 
             {/* Net Weight (Calculated) */}
-            <div className="input-group-enhanced" style={{ gridColumn: 'span 2' }}>
+            <div className="input-group-enhanced" style={{ gridColumn: 'span 1' }}>
               <div className="weight-input-container">
                 <input
                   type="number"
@@ -475,14 +541,14 @@ export default function FinalWeightForm({
           <div className="submit-section">
             <button 
               type="submit" 
-              className="submit-button-enhanced final-weight-submit"
+              className="submit-button-enhanced final-weight-submit text-uppercase"
               disabled={formik.isSubmitting}
             >
               <div className="button-content">
                 <div className="button-icon">
                   <FaBalanceScale size={18} />
                 </div>
-                <span className="button-text">
+                <span className="button-text text-uppercase">
                   {formik.isSubmitting ? 'Processing...' : 'Save Final Weight'}
                 </span>
                 <div className="button-arrow">

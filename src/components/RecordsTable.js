@@ -6,51 +6,47 @@ import PaginationControls from "./PaginationControls";
 import "../styles/Dashboard.css";
 import { formatToPST } from '../utils/dateUtils';
 
-// New function to format date as "22/10/25 @ 8:34 pm"
+// New function to format date as "22/10/25 @ 8:34" (without AM/PM)
 const formatDateTimeForDisplay = (dateString) => {
   if (!dateString) return "-";
   
   const date = new Date(dateString);
   if (isNaN(date.getTime())) return "-";
   
-  // Format as "22/10/25 @ 8:34 pm"
+  // Format as "22/10/25 @ 8:34" (without AM/PM)
   const day = date.toLocaleString("en-GB", { timeZone: "Asia/Karachi", day: "2-digit" });
   const month = date.toLocaleString("en-GB", { timeZone: "Asia/Karachi", month: "2-digit" });
   const year = date.toLocaleString("en-GB", { timeZone: "Asia/Karachi", year: "2-digit" });
   let hour = date.toLocaleString("en-GB", { timeZone: "Asia/Karachi", hour: "numeric", hour12: false });
   const minute = date.toLocaleString("en-GB", { timeZone: "Asia/Karachi", minute: "2-digit" });
   
-  // Convert to 12-hour format
-  let ampm = "am";
-  if (hour >= 12) {
-    ampm = "pm";
-    if (hour > 12) {
-      hour = hour - 12;
-    }
+  // Convert to 12-hour format without AM/PM
+  if (hour > 12) {
+    hour = hour - 12;
   }
   if (hour === 0) {
     hour = 12;
   }
   
-  return `${day}/${month}/${year} @ ${hour}:${minute} ${ampm}`;
+  return `${day}/${month}/${year} @ ${hour}:${minute}`.toUpperCase();
 };
 
-// Function to format weight without .00 decimals when not needed
+// Function to format weight without .00 decimals when not needed and convert to uppercase
 const formatWeight = (weight) => {
-  if (!weight) return "-";
-  const num = parseFloat(weight);
-  if (isNaN(num)) return "-";
-  
-  // If it's a whole number, don't show decimals
-  if (num % 1 === 0) {
-    return num.toString();
-  } else {
-    // Otherwise, show one decimal place
-    return num.toFixed(1);
-  }
+    if (!weight) return "-";
+    const num = parseFloat(weight);
+    if (isNaN(num)) return "-";
+    
+    // If it's a whole number, don't show decimals
+    if (num % 1 === 0) {
+        return num.toString().toUpperCase();
+    } else {
+        // Otherwise, show one decimal place
+        return num.toFixed(1).toUpperCase();
+    }
 };
 
-export default function RecordsTable({ records, expenses = [], openPrintModal, vehiclePrices, slipType, onUpdateRecord }) {
+export default function RecordsTable({ records, expenses = [], openPrintModal, vehiclePrices, slipType, onUpdateRecord, filters = {} }) {
     const [currentPage, setCurrentPage] = useState(1);
     const [recordsPerPage, setRecordsPerPage] = useState(12); // Default to 12 records per page
     const [editModalShow, setEditModalShow] = useState(false);
@@ -80,13 +76,357 @@ export default function RecordsTable({ records, expenses = [], openPrintModal, v
         return sum + weight;
     }, 0);
 
+    // Function to generate thermal printable report (79mm width for dot matrix printers)
+    const generateThermalPrintReport = () => {
+        // Create a new window for printing
+        const printWindow = window.open("", "", "width=800,height=600");
+        
+        // Group records by date
+        const recordsByDate = {};
+        records.forEach(record => {
+            if (record.first_weight_time) {
+                const date = new Date(record.first_weight_time);
+                const dateKey = date.toISOString().split('T')[0]; // YYYY-MM-DD format
+                if (!recordsByDate[dateKey]) {
+                    recordsByDate[dateKey] = [];
+                }
+                recordsByDate[dateKey].push(record);
+            }
+        });
+        
+        // Sort dates
+        const sortedDates = Object.keys(recordsByDate).sort();
+        
+        // Generate filter information for display
+        const filterInfo = [];
+        if (filters.search) {
+            filterInfo.push(`• Search: "${filters.search.toUpperCase()}"`);
+        }
+        if (filters.partyFilter && filters.partyFilter.length > 0) {
+            filterInfo.push(`• Party Names: ${filters.partyFilter.map(name => name.toUpperCase()).join(', ')}`);
+        }
+        if (filters.productFilter && filters.productFilter.length > 0) {
+            filterInfo.push(`• Products: ${filters.productFilter.map(product => product.toUpperCase()).join(', ')}`);
+        }
+        if (filters.vehicleTypeFilter && filters.vehicleTypeFilter.length > 0) {
+            filterInfo.push(`• Vehicle Types: ${filters.vehicleTypeFilter.map(type => type.toUpperCase()).join(', ')}`);
+        }
+        if (filters.businessNameFilter && filters.businessNameFilter.length > 0) {
+            filterInfo.push(`• Business Names: ${filters.businessNameFilter.map(name => name.toUpperCase()).join(', ')}`);
+        }
+        if (filters.reportType && filters.reportType !== 'overall') {
+            let reportTypeInfo = `• Report Type: ${filters.reportType}`;
+            if (filters.reportType === 'monthly' && filters.selectedMonth && filters.selectedYear) {
+                const monthName = new Date(filters.selectedYear, filters.selectedMonth - 1).toLocaleString('default', { month: 'long' });
+                reportTypeInfo += ` (${monthName} ${filters.selectedYear})`;
+            } else if (filters.reportType === 'yearly' && filters.selectedYear) {
+                reportTypeInfo += ` (${filters.selectedYear})`;
+            } else if (filters.reportType === 'custom' && filters.customFromDate && filters.customToDate) {
+                reportTypeInfo += ` (${filters.customFromDate} to ${filters.customToDate})`;
+            }
+            filterInfo.push(reportTypeInfo);
+        }
+        
+        // If no specific filters, show a message
+        if (filterInfo.length === 0) {
+            filterInfo.push("• No specific filters applied");
+        }
+        
+        // Function to format weight without .00 decimals when not needed
+        const formatWeight = (weight) => {
+            if (!weight) return "-";
+            const num = parseFloat(weight);
+            if (isNaN(num)) return "-";
+            
+            // If it's a whole number, don't show decimals
+            if (num % 1 === 0) {
+                return num.toString();
+            } else {
+                // Otherwise, show one decimal place
+                return num.toFixed(1);
+            }
+        };
+        
+        // Generate HTML content for thermal printing (79mm width)
+        const html = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Records Report - Thermal</title>
+            <style>
+                @media print {
+                    @page {
+                        size: 79mm auto;
+                        margin: 2mm;
+                    }
+                }
+                
+                body {
+                    font-family: 'Arial', 'Helvetica', sans-serif;
+                    font-size: 10px;
+                    font-weight: bold;
+                    line-height: 1.3;
+                    color: #000;
+                    margin: 0;
+                    padding: 2mm;
+                    width: 79mm;
+                }
+                
+                .header {
+                    text-align: center;
+                    border-bottom: 1px solid #000;
+                    padding-bottom: 2mm;
+                    margin-bottom: 2mm;
+                }
+                
+                .company-name {
+                    font-size: 12px;
+                    font-weight: bold;
+                }
+                
+                .company-details {
+                    font-size: 9px;
+                    margin: 1mm 0;
+                }
+                
+                .report-title {
+                    text-align: center;
+                    font-size: 11px;
+                    font-weight: bold;
+                    margin: 2mm 0;
+                }
+                
+                .report-date {
+                    text-align: center;
+                    font-size: 9px;
+                    margin-bottom: 2mm;
+                }
+                
+                .filters-section {
+                    text-align: left;
+                    font-size: 9px;
+                    margin-bottom: 2mm;
+                    padding: 1mm;
+                    border: 1px solid #000;
+                }
+                
+                .filter-item {
+                    margin: 1px 0;
+                }
+                
+                .date-section {
+                    margin: 3mm 0;
+                }
+                
+                .date-header {
+                    font-size: 10px;
+                    font-weight: bold;
+                    margin: 2mm 0 1mm 0;
+                    padding: 1mm 0;
+                    border-bottom: 1px solid #000;
+                }
+                
+                table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    margin: 2mm 0;
+                    font-size: 9px;
+                    font-weight: bold;
+                }
+                
+                th {
+                    background-color: #f0f0f0;
+                    border-bottom: 1px solid #000;
+                    padding: 1mm;
+                    text-align: left;
+                    font-weight: bold;
+                }
+                
+                td {
+                    border-bottom: 1px solid #000;
+                    padding: 0.5mm;
+                }
+                
+                .text-center {
+                    text-align: center;
+                }
+                
+                .text-right {
+                    text-align: right;
+                }
+                
+                .summary-row {
+                    font-weight: bold;
+                    background-color: #e0e0e0;
+                }
+                
+                .grand-total {
+                    font-weight: bold;
+                    background-color: #d0d0d0;
+                    border: 1px solid #000 !important;
+                }
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <div class="company-name">AL HUSSAINI COMPUTERISED KANTA</div>
+                <div class="company-details">Near Bhand Chowk, Taulka Sijawal Junejo | Phone: 0331 4812277</div>
+                <div class="report-date">Generated on: ${new Date().toLocaleString("en-GB", { timeZone: "Asia/Karachi" })}</div>
+            </div>
+            
+            <!-- Filters Section -->
+            <div class="filters-section">
+                ${filterInfo.map(info => `<div class="filter-item">${info}</div>`).join('')}
+            </div>
+            
+            ${sortedDates.map(dateKey => {
+                const dateRecords = recordsByDate[dateKey];
+                const dateObj = new Date(dateKey);
+                const formattedDate = dateObj.toLocaleDateString('en-GB', { 
+                    day: 'numeric', 
+                    month: 'short', 
+                    year: 'numeric' 
+                });
+                
+                // Calculate totals for this date
+                const dateTotalFirstWeight = dateRecords.reduce((sum, r) => sum + (parseFloat(r.first_weight) || 0), 0);
+                const dateTotalSecondWeight = dateRecords.reduce((sum, r) => sum + (parseFloat(r.second_weight) || 0), 0);
+                const dateTotalNetWeight = dateRecords.reduce((sum, r) => sum + (parseFloat(r.net_weight) || 0), 0);
+                const dateTotalPrice = dateRecords.reduce((sum, r) => sum + (parseFloat(r.total_price) || 0), 0);
+                
+                return `
+                <div class="date-section">
+                    <div class="date-header">${formattedDate}</div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Party</th>
+                                <th>Product</th>
+                                <th>F.Wt</th>
+                                <th>S.Wt</th>
+                                <th>Net</th>
+                                <th>Price</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${dateRecords.map((r, index) => `
+                                <tr>
+                                    <td>${r.id}</td>
+                                    <td>${r.party_name || '-'}</td>
+                                    <td>${r.product || '-'}</td>
+                                    <td>${formatWeight(r.first_weight)}</td>
+                                    <td>${formatWeight(r.second_weight)}</td>
+                                    <td>${formatWeight(r.net_weight)}</td>
+                                    <td>${r.total_price ? `${Number(r.total_price).toLocaleString()}` : "-"}</td>
+                                </tr>
+                            `).join('')}
+                            <tr class="summary-row">
+                                <td colspan="3">Total:</td>
+                                <td>${formatWeight(dateTotalFirstWeight)}</td>
+                                <td>${formatWeight(dateTotalSecondWeight)}</td>
+                                <td>${formatWeight(dateTotalNetWeight)}</td>
+                                <td>${dateTotalPrice.toLocaleString()}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                `;
+            }).join('')}
+            
+            <!-- Grand Total -->
+            <div style="margin-top: 3mm; border-top: 1px solid #000; padding-top: 2mm;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th colspan="2">Grand Total:</th>
+                            <th class="text-right">F.Wt</th>
+                            <th class="text-right">S.Wt</th>
+                            <th class="text-right">Net</th>
+                            <th class="text-right">Price</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr class="grand-total">
+                            <td colspan="2">(${records.length} records):</td>
+                            <td class="text-right">${formatWeight(records.reduce((sum, r) => sum + (parseFloat(r.first_weight) || 0), 0))}</td>
+                            <td class="text-right">${formatWeight(records.reduce((sum, r) => sum + (parseFloat(r.second_weight) || 0), 0))}</td>
+                            <td class="text-right">${formatWeight(records.reduce((sum, r) => sum + (parseFloat(r.net_weight) || 0), 0))}</td>
+                            <td class="text-right">${records.reduce((sum, r) => sum + (parseFloat(r.total_price) || 0), 0).toLocaleString()}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </body>
+        </html>
+        `;
+        
+        printWindow.document.write(html);
+        printWindow.document.close();
+        printWindow.focus();
+        
+        // Wait a bit for content to load before printing
+        setTimeout(() => {
+            printWindow.print();
+            // printWindow.close();
+        }, 500);
+    };
+    
     // Function to generate printable report
     const generatePrintReport = () => {
         // Create a new window for printing
         const printWindow = window.open("", "", "width=800,height=600");
         
-        // Calculate total munds
-        const totalMunds = totalNetWeight / 40;
+        // Group records by date
+        const recordsByDate = {};
+        records.forEach(record => {
+            if (record.first_weight_time) {
+                const date = new Date(record.first_weight_time);
+                const dateKey = date.toISOString().split('T')[0]; // YYYY-MM-DD format
+                if (!recordsByDate[dateKey]) {
+                    recordsByDate[dateKey] = [];
+                }
+                recordsByDate[dateKey].push(record);
+            }
+        });
+        
+        // Sort dates
+        const sortedDates = Object.keys(recordsByDate).sort();
+        
+        // Generate filter information for display
+        const filterInfo = [];
+        if (filters.search) {
+            filterInfo.push(`• Search: "${filters.search.toUpperCase()}"`);
+        }
+        if (filters.partyFilter && filters.partyFilter.length > 0) {
+            filterInfo.push(`• Party Names: ${filters.partyFilter.map(name => name.toUpperCase()).join(', ')}`);
+        }
+        if (filters.productFilter && filters.productFilter.length > 0) {
+            filterInfo.push(`• Products: ${filters.productFilter.map(product => product.toUpperCase()).join(', ')}`);
+        }
+        if (filters.vehicleTypeFilter && filters.vehicleTypeFilter.length > 0) {
+            filterInfo.push(`• Vehicle Types: ${filters.vehicleTypeFilter.map(type => type.toUpperCase()).join(', ')}`);
+        }
+        if (filters.businessNameFilter && filters.businessNameFilter.length > 0) {
+            filterInfo.push(`• Business Names: ${filters.businessNameFilter.map(name => name.toUpperCase()).join(', ')}`);
+        }
+        if (filters.reportType && filters.reportType !== 'overall') {
+            let reportTypeInfo = `• Report Type: ${filters.reportType}`;
+            if (filters.reportType === 'monthly' && filters.selectedMonth && filters.selectedYear) {
+                const monthName = new Date(filters.selectedYear, filters.selectedMonth - 1).toLocaleString('default', { month: 'long' });
+                reportTypeInfo += ` (${monthName} ${filters.selectedYear})`;
+            } else if (filters.reportType === 'yearly' && filters.selectedYear) {
+                reportTypeInfo += ` (${filters.selectedYear})`;
+            } else if (filters.reportType === 'custom' && filters.customFromDate && filters.customToDate) {
+                reportTypeInfo += ` (${filters.customFromDate} to ${filters.customToDate})`;
+            }
+            filterInfo.push(reportTypeInfo);
+        }
+        
+        // If no specific filters, show a message
+        if (filterInfo.length === 0) {
+            filterInfo.push("• No specific filters applied");
+        }
         
         // Generate HTML content for printing
         const html = `
@@ -103,9 +443,10 @@ export default function RecordsTable({ records, expenses = [], openPrintModal, v
                 }
                 
                 body {
-                    font-family: Courier New, sans-serif;
-                    font-size: 10px; /* Smaller font size */
-                    line-height: 1.3;
+                    font-family: 'Arial Black', 'Arial Bold', Arial, sans-serif;
+                    font-weight: bold;
+                    font-size: 12px;
+                    line-height: 1.4;
                     color: #000;
                     margin: 0;
                     padding: 15mm;
@@ -113,83 +454,68 @@ export default function RecordsTable({ records, expenses = [], openPrintModal, v
                 
                 .header {
                     text-align: center;
-                    border-bottom: 2px solid #000;
-                    padding-bottom: 8px;
-                    margin-bottom: 12px;
+                    border-bottom: 3px solid #000;
+                    padding-bottom: 10px;
+                    margin-bottom: 15px;
                 }
                 
                 .company-name {
-                    font-size: 20px;
+                    font-size: 24px;
                     font-weight: bold;
-                    color: #2c3e50;
+                    color: #000;
                 }
                 
                 .company-details {
-                    font-size: 12px;
-                    margin: 4px 0;
-                    color: #34495e;
+                    font-size: 14px;
+                    margin: 5px 0;
+                    color: #000;
                 }
                 
                 .report-title {
                     text-align: center;
-                    font-size: 16px;
+                    font-size: 18px;
                     font-weight: bold;
-                    margin: 12px 0;
-                    color: #1a5276;
+                    margin: 15px 0;
+                    color: #000;
                 }
                 
                 .report-date {
                     text-align: center;
-                    font-size: 11px;
-                    margin-bottom: 12px;
-                    color: #7f8c8d;
-                }
-                
-                .summary-section {
-                    margin: 12px 0;
-                    page-break-inside: avoid;
-                }
-                
-                .summary-title {
-                    text-align: center;
-                    font-size: 14px;
-                    font-weight: bold;
-                    border-bottom: 1px solid #000;
-                    padding-bottom: 4px;
-                    margin-bottom: 8px;
-                    color: #2c3e50;
-                }
-                
-                .summary-row {
-                    display: flex;
-                    justify-content: space-between;
-                    gap: 8px;
-                    margin: 6px 0;
-                    border-bottom: 1px dotted #999;
-                    font-size: 11px;
-                    align-items: center;
-                }
-                
-                .summary-label {
-                    font-weight: bold;
-                    display: inline-block;
-                    min-width: 120px;
-                    white-space: normal;
-                }
-                
-                .summary-value {
                     font-size: 12px;
+                    margin-bottom: 15px;
+                    color: #000;
+                }
+                
+                .filters-section {
+                    text-align: left;
+                    font-size: 12px;
+                    margin-bottom: 15px;
+                    padding: 12px;
+                    border: 2px solid #000;
                     font-weight: bold;
-                    display: inline-block;
-                    white-space: normal;
-                    word-break: break-word;
+                }
+                
+                .filter-item {
+                    margin: 3px 0;
+                }
+                
+                .date-section {
+                    margin: 25px 0;
+                }
+                
+                .date-header {
+                    font-size: 16px;
+                    font-weight: bold;
+                    margin: 18px 0 12px 0;
+                    padding: 6px 0;
+                    border-bottom: 2px solid #000;
                 }
                 
                 table {
                     width: 100%;
                     border-collapse: collapse;
-                    margin: 12px 0;
-                    font-size: 9px; /* Smaller font size for table */
+                    margin: 15px 0;
+                    font-size: 12px;
                     page-break-inside: auto;
                 }
                 
@@ -201,21 +527,25 @@ export default function RecordsTable({ records, expenses = [], openPrintModal, v
                     display: table-footer-group; 
                 }
                 
-                tr {
-                    page-break-inside: avoid;
-                    page-break-after: auto;
-                }
-                
-                th, td {
-                    text-align: left;
-                    padding: 4px 3px;
-                    border: 1px solid #000;
+                tr { 
+                    page-break-inside: avoid; 
                 }
                 
                 th {
+                    background-color: #f0f0f0;
+                    border-bottom: 1px solid #000;
+                    padding: 8px 5px;
+                    text-align: left;
                     font-weight: bold;
-                    font-size: 10px;
-                    background-color: #ecf0f1;
+                    color: #000;
+                    font-size: 12px;
+                }
+                
+                td {
+                    border-bottom: 1px solid #000;
+                    padding: 6px;
+                    font-size: 12px;
+                    vertical-align: top;
                 }
                 
                 .text-center {
@@ -226,18 +556,19 @@ export default function RecordsTable({ records, expenses = [], openPrintModal, v
                     text-align: right;
                 }
                 
-                .footer {
-                    padding-top: 12px;
-                    margin-top: 16px;
-                    text-align: center;
-                    font-size: 10px;
-                    border-top: 2px solid #000;
-                    page-break-inside: avoid;
+                .fw-bold {
+                    font-weight: bold;
                 }
                 
-                .signature-line {
-                    margin: 12px 0;
-                    font-size: 10px;
+                .summary-row {
+                    font-weight: bold;
+                    background-color: #e0e0e0;
+                }
+                
+                .grand-total {
+                    font-weight: bold;
+                    background-color: #d0d0d0;
+                    border: 3px solid #000 !important;
                 }
             </style>
         </head>
@@ -245,82 +576,91 @@ export default function RecordsTable({ records, expenses = [], openPrintModal, v
             <div class="header">
                 <div class="company-name">AL HUSSAINI COMPUTERISED KANTA</div>
                 <div class="company-details">Near Bhand Chowk, Taulka Sijawal Junejo | Phone: 0331 4812277</div>
+                <div class="report-date">Generated on: ${new Date().toLocaleString("en-GB", { timeZone: "Asia/Karachi" })}</div>
             </div>
             
-            <div class="report-title">RECORDS REPORT</div>
-            <div class="report-date">
-                Report Generated: ${new Date().toLocaleString('en-GB', { 
-                    day: '2-digit', 
-                    month: '2-digit', 
-                    year: '2-digit',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                })}
+            <!-- Filters Section -->
+            <div class="filters-section">
+                ${filterInfo.map(info => `<div class="filter-item">${info}</div>`).join('')}
             </div>
             
-            <div class="summary-section">
-                <div class="summary-title">SUMMARY</div>
-                <div class="summary-row">
-                    <span class="summary-label">Total Records:</span>
-                    <span class="summary-value">${records.length}</span>
+            ${sortedDates.map(dateKey => {
+                const dateRecords = recordsByDate[dateKey];
+                const dateObj = new Date(dateKey);
+                const formattedDate = dateObj.toLocaleDateString('en-GB', { 
+                    day: 'numeric', 
+                    month: 'short', 
+                    year: 'numeric' 
+                });
+                
+                // Calculate totals for this date
+                const dateTotalFirstWeight = dateRecords.reduce((sum, r) => sum + (parseFloat(r.first_weight) || 0), 0);
+                const dateTotalSecondWeight = dateRecords.reduce((sum, r) => sum + (parseFloat(r.second_weight) || 0), 0);
+                const dateTotalNetWeight = dateRecords.reduce((sum, r) => sum + (parseFloat(r.net_weight) || 0), 0);
+                const dateTotalPrice = dateRecords.reduce((sum, r) => sum + (parseFloat(r.total_price) || 0), 0);
+                
+                return `
+                <div class="date-section">
+                    <div class="date-header">${formattedDate}</div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Sr No:</th>
+                                <th>Party Name</th>
+                                <th>Product Name</th>
+                                <th>F. Weight</th>
+                                <th>S. Weight</th>
+                                <th>Net Weight</th>
+                                <th>Price</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${dateRecords.map((r, index) => `
+                                <tr>
+                                    <td>${r.id}</td>
+                                    <td>${r.party_name || '-'}</td>
+                                    <td>${r.product || '-'}</td>
+                                    <td>${formatWeight(r.first_weight)}</td>
+                                    <td>${formatWeight(r.second_weight)}</td>
+                                    <td>${formatWeight(r.net_weight)}</td>
+                                    <td>${r.total_price ? `${Number(r.total_price).toLocaleString()}` : "-"}</td>
+                                </tr>
+                            `).join('')}
+                            <tr class="summary-row">
+                                <td colspan="3"><strong>Total for ${formattedDate}:</strong></td>
+                                <td><strong>${formatWeight(dateTotalFirstWeight)}</strong></td>
+                                <td><strong>${formatWeight(dateTotalSecondWeight)}</strong></td>
+                                <td><strong>${formatWeight(dateTotalNetWeight)}</strong></td>
+                                <td><strong>${dateTotalPrice.toLocaleString()}</strong></td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
-                <div class="summary-row">
-                    <span class="summary-label">Total Sales:</span>
-                    <span class="summary-value">PKR ${grandTotal.toLocaleString()}</span>
-                </div>
-            </div>
+                `;
+            }).join('')}
             
-            <div class="summary-section">
-                <div class="summary-title">RECORDS</div>
+            <!-- Grand Total -->
+            <div style="margin-top: 35px; border-top: 4px solid #000; padding-top: 20px;">
                 <table>
                     <thead>
                         <tr>
-                            <th>ID</th>
-                            <th>Date</th>
-                            <th>Vehicle</th>
-                            <th>Party</th>
-                            <th>Type</th>
-                            <th>Product</th>
-                            <th>F.Weight</th>
-                            <th>S.Weight</th>
-                            <th>Net Weight</th>
-                            <th>Net Munds</th>
-                            <th>Price</th>
+                            <th colspan="3">Grand Total:</th>
+                            <th class="text-right">F. Weight</th>
+                            <th class="text-right">S. Weight</th>
+                            <th class="text-right">Net Weight</th>
+                            <th class="text-right">Total Price</th>
                         </tr>
                     </thead>
                     <tbody>
-                        ${records.map(r => {
-                            const netWeight = parseFloat(r.net_weight) || 0;
-                            // Use Math.trunc() to handle negative numbers correctly
-                            const netMunds = Math.trunc(netWeight / 40); // 1 Mund = 40 kg
-                            const firstWeight = parseFloat(r.first_weight) || 0;
-                            const secondWeight = parseFloat(r.second_weight) || 0;
-                            const recordDate = r.date || r.first_weight_time || '';
-                            return `
-                            <tr>
-                                <td>${r.id}</td>
-                                <td>${recordDate ? formatDateTimeForDisplay(recordDate) : '-'}</td>
-                                <td>${r.vehicle_number || '-'}</td>
-                                <td>${r.party_name || '-'}</td>
-                                <td>${r.vehicle_type}</td>
-                                <td>${r.product}</td>
-                                <td>${formatWeight(firstWeight)}</td>
-                                <td>${formatWeight(secondWeight)}</td>
-                                <td>${formatWeight(netWeight)} kg</td>
-                                <td>${netMunds.toFixed(2)} Munds</td>
-                                <td>Rs ${(parseFloat(r.total_price) || 0).toLocaleString()}</td>
-                            </tr>
-                        `}).join('')}
+                        <tr class="grand-total">
+                            <td colspan="3"><strong>All Dates (${records.length} records):</strong></td>
+                            <td class="text-right"><strong>${formatWeight(records.reduce((sum, r) => sum + (parseFloat(r.first_weight) || 0), 0))}</strong></td>
+                            <td class="text-right"><strong>${formatWeight(records.reduce((sum, r) => sum + (parseFloat(r.second_weight) || 0), 0))}</strong></td>
+                            <td class="text-right"><strong>${formatWeight(records.reduce((sum, r) => sum + (parseFloat(r.net_weight) || 0), 0))}</strong></td>
+                            <td class="text-right"><strong>${records.reduce((sum, r) => sum + (parseFloat(r.total_price) || 0), 0).toLocaleString()}</strong></td>
+                        </tr>
                     </tbody>
                 </table>
-            </div>
-            
-            <div class="footer">
-                <div class="signature-line">Operator: _____________</div>
-                <div class="signature-line">Customer: _____________</div>
-                <div style="margin-top: 12px; font-size: 9px;">
-                    Software by <span style="display:inline-block;padding:3px 8px;font-weight:bold;border:1px solid #000;border-radius:6px;background:#f0f0f0">AKS Solutions</span> - Business Solution by Kaleem Mahesar
-                </div>
             </div>
         </body>
         </html>
@@ -328,25 +668,16 @@ export default function RecordsTable({ records, expenses = [], openPrintModal, v
         
         printWindow.document.write(html);
         printWindow.document.close();
+        printWindow.focus();
         
-        // Wait for content to load then print
+        // Wait a bit for content to load before printing
         setTimeout(() => {
-            printWindow.focus();
             printWindow.print();
-            printWindow.close();
+            // printWindow.close();
         }, 500);
     };
 
-    const handlePrev = () => setCurrentPage((p) => Math.max(p - 1, 1));
-    const handleNext = () => setCurrentPage((p) => Math.min(p + 1, totalPages));
-    const handlePageClick = (page) => setCurrentPage(page);
-    const handleRecordsPerPageChange = (e) => {
-        setRecordsPerPage(Number(e.target.value));
-        setCurrentPage(1); // Reset to first page when changing records per page
-    };
-
-    const openEditModal = (record) => {
-        const slipType = record.final_weight === "Yes" ? "final" : "first";
+    const openEditModal = (record, slipType) => {
         setEditRecord(record);
         setEditSlipType(slipType);
         setEditModalShow(true);
@@ -360,12 +691,15 @@ export default function RecordsTable({ records, expenses = [], openPrintModal, v
         <div className="data-table mt-4">
             {/* Header with compact styling */}
             <div className="table-header d-flex justify-content-between align-items-center p-2">
-                <span className="fw-bold fs-6 mb-0">
+                <span className="fw-bold fs-6 mb-0 text-uppercase">
                     Records Management
                 </span>
-                <div className="d-flex align-items-center">
-                    <button className="btn btn-sm btn-outline-primary" onClick={generatePrintReport}>
-                        Print Report
+                <div className="d-flex align-items-center gap-2">
+                    <button className="btn btn-sm btn-outline-primary text-uppercase" onClick={generatePrintReport}>
+                        A4 Report
+                    </button>
+                    <button className="btn btn-sm btn-outline-secondary text-uppercase" onClick={generateThermalPrintReport}>
+                        Thermal Report
                     </button>
                 </div>
             </div>
@@ -374,55 +708,68 @@ export default function RecordsTable({ records, expenses = [], openPrintModal, v
                 {/* Compact table with consistent font sizes */}
                 <table className="table table-hover mb-0">
                     <thead>
-                        <tr className="table-header">
-                            <th className="py-2 px-2">ID</th>
-                            <th className="py-2 px-2">Vehicle</th>
-                            <th className="py-2 px-2">Party</th>
-                            <th className="py-2 px-2">Type</th>
-                            <th className="py-2 px-2">Product</th>
-                            <th className="py-2 px-2">F.Weight</th>
-                            <th className="py-2 px-2">S.Weight</th>
-                            <th className="py-2 px-2">Net Weight</th>
-                            <th className="py-2 px-2">Total Price</th>
-                            <th className="py-2 px-2">F.Time</th>
-                            <th className="py-2 px-2">S.Time</th>
-                            <th className="py-2 px-2">Actions</th>
+                        <tr className="table-header text-uppercase">
+                            <th className="py-2 px-2 text-uppercase">ID</th>
+                            <th className="py-2 px-2 text-uppercase">Business</th>
+                            <th className="py-2 px-2 text-uppercase">Vehicle</th>
+                            <th className="py-2 px-2 text-uppercase">Party</th>
+                            <th className="py-2 px-2 text-uppercase">Type</th>
+                            <th className="py-2 px-2 text-uppercase">Product</th>
+                            <th className="py-2 px-2 text-uppercase">F.Weight</th>
+                            <th className="py-2 px-2 text-uppercase">S.Weight</th>
+                            <th className="py-2 px-2 text-uppercase">Net Weight</th>
+                            <th className="py-2 px-2 text-uppercase">Total Price</th>
+                            <th className="py-2 px-2 text-uppercase">F.Time</th>
+                            <th className="py-2 px-2 text-uppercase">S.Time</th>
+                            <th className="py-2 px-2 text-uppercase">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         {paginatedRecords.length === 0 ? (
                             <tr>
-                                <td colSpan="12" className="text-center text-muted py-3">
+                                <td colSpan="13" className="text-center text-muted py-3 text-uppercase">
                                     No records found
                                 </td>
                             </tr>
                         ) : (
                             paginatedRecords.map((r, index) => (
-                                <tr key={r.id} className="align-middle">
-                                    <td className="py-1 px-2">{r.id}</td>
-                                    <td className="py-1 px-2">{r.vehicle_number}</td>
-                                    <td className="py-1 px-2">{r.party_name || '-'}</td>
-                                    <td className="py-1 px-2">{r.vehicle_type}</td>
-                                    <td className="py-1 px-2">{r.product || '-'}</td>
-                                    <td className="py-1 px-2">{formatWeight(r.first_weight)}</td>
-                                    <td className="py-1 px-2">{formatWeight(r.second_weight)}</td>
-                                    <td className="py-1 px-2">{formatWeight(r.net_weight)}</td>
-                                    <td className="py-1 px-2">{r.total_price ? `PKR ${Number(r.total_price).toLocaleString()}` : "-"}</td>
+                                <tr key={r.id} className="align-middle text-uppercase">
+                                    <td className="py-1 px-2 text-uppercase">{r.id}</td>
+                                    <td className="py-1 px-2 text-uppercase">{r.business_name || '-'}</td>
+                                    <td className="py-1 px-2 text-uppercase">{r.vehicle_number}</td>
+                                    <td className="py-1 px-2 text-uppercase">{r.party_name || '-'}</td>
+                                    <td className="py-1 px-2 text-uppercase">{r.vehicle_type}</td>
+                                    <td className="py-1 px-2 text-uppercase">{r.product || '-'}</td>
+                                    <td className="py-1 px-2 text-uppercase">{formatWeight(r.first_weight)}</td>
+                                    <td className="py-1 px-2 text-uppercase">{formatWeight(r.second_weight)}</td>
+                                    <td className="py-1 px-2 text-uppercase">{formatWeight(r.net_weight)}</td>
+                                    <td className="py-1 px-2 text-uppercase">{r.total_price ? `PKR ${Number(r.total_price).toLocaleString()}` : "-"}</td>
                                     {/* Use the new date format function */}
-                                    <td className="py-1 px-2">{r.first_weight_time ? formatDateTimeForDisplay(r.first_weight_time) : "-"}</td>
-                                    <td className="py-1 px-2">{r.second_weight_time ? formatDateTimeForDisplay(r.second_weight_time) : "-"}</td>
-                                    <td className="py-1 px-2">
+                                    <td className="py-1 px-2 text-uppercase">{r.first_weight_time ? formatDateTimeForDisplay(r.first_weight_time) : "-"}</td>
+                                    <td className="py-1 px-2 text-uppercase">{r.second_weight_time ? formatDateTimeForDisplay(r.second_weight_time) : "-"}</td>
+                                    <td className="py-1 px-2 text-uppercase">
                                         <div className="d-flex gap-1">
                                             <button
-                                                className="btn btn-sm btn-outline-secondary"
-                                                onClick={() => openEditModal(r)}
+                                                className="btn btn-sm btn-outline-secondary text-uppercase"
+                                                onClick={() => {
+                                                  // Determine the appropriate slip type based on record data
+                                                  let slipType = "first";
+                                                  if (r.second_weight && r.second_weight !== "0" && r.second_weight !== "0.00") {
+                                                    if (r.final_weight === "Yes") {
+                                                      slipType = "final";
+                                                    } else {
+                                                      slipType = "second";
+                                                    }
+                                                  }
+                                                  openEditModal(r, slipType);
+                                                }}
                                                 title="Edit Record"
                                             >
                                                 <FaEdit />
                                             </button>
                                             {r.final_weight === "Yes" ? (
                                                 <button
-                                                    className="btn btn-sm btn-success"
+                                                    className="btn btn-sm btn-success text-uppercase"
                                                     onClick={() => openPrintModal(r, "final")}
                                                     title="Print Final Weight"
                                                 >
@@ -431,7 +778,7 @@ export default function RecordsTable({ records, expenses = [], openPrintModal, v
                                             ) : (
                                                 <>
                                                     <button
-                                                        className="btn btn-sm btn-outline-primary"
+                                                        className="btn btn-sm btn-outline-primary text-uppercase"
                                                         onClick={() => openPrintModal(r, "first")}
                                                         title="Print First Weight"
                                                     >
@@ -439,7 +786,7 @@ export default function RecordsTable({ records, expenses = [], openPrintModal, v
                                                     </button>
                                                     {r.second_weight && (
                                                         <button
-                                                            className="btn btn-sm btn-outline-info"
+                                                            className="btn btn-sm btn-outline-info text-uppercase"
                                                             onClick={() => openPrintModal(r, "second")}
                                                             title="Print Second Weight"
                                                         >
@@ -457,19 +804,19 @@ export default function RecordsTable({ records, expenses = [], openPrintModal, v
                 </table>
 
                 {/* Summary row at the bottom */}
-                <div className="d-flex justify-content-between align-items-center p-3 border-top">
-                    <div>
-                        <span className="fw-bold" style={{ fontSize: '1.25rem' }}>Total Records: </span>
-                        <span style={{ fontSize: '1.25rem', fontWeight: 'bold' }}>{records.length}</span>
+                <div className="d-flex justify-content-between align-items-center p-3 border-top text-uppercase">
+                    <div className="text-uppercase">
+                        <span className="fw-bold text-uppercase" style={{ fontSize: '1rem' }}>Total Records: </span>
+                        <span className="text-uppercase" style={{ fontSize: '1.25rem', fontWeight: 'bold' }}>{records.length}</span>
                     </div>
                     
-                    <div>
-                        <span className="fw-bold" style={{ fontSize: '1.25rem' }}>Total Weight: </span>
-                        <span style={{ fontSize: '1.25rem', fontWeight: 'bold' }}>
+                    <div className="text-uppercase">
+                        <span className="fw-bold text-uppercase" style={{ fontSize: '1rem' }}>Total Weight: </span>
+                        <span className="text-uppercase" style={{ fontSize: '1.25rem', fontWeight: 'bold' }}>
                           {paginatedRecords.reduce((sum, r) => sum + Math.abs(parseFloat(r.net_weight) || 0), 0).toLocaleString()} kg
                         </span>
-                        <span className="mx-2">|</span>
-                        <span style={{ fontSize: '1.25rem', fontWeight: 'bold' }}>
+                        <span className="mx-2 text-uppercase">|</span>
+                        <span className="text-uppercase" style={{ fontSize: '1.25rem', fontWeight: 'bold' }}>
                           {(() => {
                             const totalNetWeight = paginatedRecords.reduce((sum, r) => sum + Math.abs(parseFloat(r.net_weight) || 0), 0);
                             const totalMunds = totalNetWeight / 40;
@@ -478,15 +825,15 @@ export default function RecordsTable({ records, expenses = [], openPrintModal, v
                             return `${mundsInteger}-${remainingKgs} Munds`;
                           })()}
                         </span>
-                        <span className="mx-2">|</span>
-                        <span style={{ fontSize: '1.25rem', fontWeight: 'bold' }}>
+                        <span className="mx-2 text-uppercase">|</span>
+                        <span className="text-uppercase" style={{ fontSize: '1.25rem', fontWeight: 'bold' }}>
                           {(paginatedRecords.reduce((sum, r) => sum + Math.abs(parseFloat(r.net_weight) || 0), 0) / 1000).toFixed(2)} tons
                         </span>
                     </div>
                     
-                    <div>
-                        <span className="fw-bold" style={{ fontSize: '1.25rem' }}>Total Sales: </span>
-                        <span style={{ fontSize: '1.25rem', fontWeight: 'bold' }}>PKR {grandTotal.toLocaleString()}</span>
+                    <div className="text-uppercase">
+                        <span className="fw-bold text-uppercase" style={{ fontSize: '1rem' }}>Total Sales: </span>
+                        <span className="text-uppercase" style={{ fontSize: '1.25rem', fontWeight: 'bold' }}>PKR {grandTotal.toLocaleString()}</span>
                     </div>
                 </div>
 

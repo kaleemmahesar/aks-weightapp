@@ -73,6 +73,7 @@ export const normalizeRecord = (record) => {
     second_weight_time: record.second_weight_time || record.secondTime || null,
     driver_name: record.driver_name || record.driver || '',
     status: record.status || 'pending',
-    final_weight: record.final_weight || 'No'
+    final_weight: record.final_weight || 'No',
+    business_name: record.business_name || record.businessName || null  // Handle both field names
   };
 };

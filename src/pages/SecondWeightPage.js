@@ -36,6 +36,20 @@ export default function SecondWeightPage() {
   const totalVehicles = records.length;
   // Count records where second_weight is null, undefined, or 0.00
   const pendingSecond = records.filter((r) => r && (r.second_weight === null || r.second_weight === undefined || r.second_weight === 0 || r.second_weight === "0" || r.second_weight === "0.00")).length;
+  
+  // Get the next record that needs second weight (lowest ID among pending records)
+  const getNextPendingRecord = () => {
+    const pendingRecords = records.filter((r) => r && (r.second_weight === null || r.second_weight === undefined || r.second_weight === 0 || r.second_weight === "0" || r.second_weight === "0.00"));
+    if (pendingRecords.length > 0) {
+      // Sort by ID (numeric) and get the first one
+      pendingRecords.sort((a, b) => parseInt(a.id) - parseInt(b.id));
+      return pendingRecords[0];
+    }
+    return null;
+  };
+  
+  const nextPendingRecord = getNextPendingRecord();
+  const nextSerialNumber = nextPendingRecord ? nextPendingRecord.id : 'N/A';
 
   // ✅ Save Second Weight Success Handler
   const secondWeightSuccess = async (updatedRecord) => {
@@ -76,22 +90,16 @@ export default function SecondWeightPage() {
 
         {/* Stats Cards - Show current status */}
         <div className="row mb-3 text-center">
-  <div className="col-md-4">
+  <div className="col-md-6">
     <div className="card px-2 py-2 bg-info-subtle text-black shadow-sm border-0 rounded">
       <small>Live Weight</small>
-      <h5 className="m-0"><b>{weight} KG</b></h5>
+      <h2 className="m-0"><b>{weight} KG</b></h2>
     </div>
   </div>
-  <div className="col-md-4">
-    <div className="card px-2 py-2 bg-danger-subtle text-black shadow-sm border-0 rounded">
-      <small>Total Vehicles</small>
-      <h5 className="m-0"><b>{totalVehicles}</b></h5>
-    </div>
-  </div>
-  <div className="col-md-4">
+  <div className="col-md-6">
     <div className="card px-2 py-2 bg-success-subtle text-black shadow-sm border-0 rounded">
       <small>Pending Second Weight</small>
-      <h5 className="m-0"><b>{pendingSecond}</b></h5>
+      <h2 className="m-0"><b>{pendingSecond}</b></h2>
     </div>
   </div>
 </div>
