@@ -395,6 +395,22 @@ export default function RecordsTable({ records, expenses = [], openPrintModal, v
         // Sort dates
         const sortedDates = Object.keys(recordsByDate).sort();
         
+        // Sort records within each date group by ID in ascending order
+        sortedDates.forEach(dateKey => {
+            recordsByDate[dateKey].sort((a, b) => {
+                // Convert IDs to numbers for proper sorting
+                const idA = parseInt(a.id, 10);
+                const idB = parseInt(b.id, 10);
+                
+                // Handle case where IDs might not be numeric
+                if (isNaN(idA) || isNaN(idB)) {
+                    return a.id.localeCompare(b.id);
+                }
+                
+                return idA - idB;
+            });
+        });
+        
         // Generate filter information for display
         const filterInfo = [];
         if (filters.search) {
@@ -517,7 +533,7 @@ export default function RecordsTable({ records, expenses = [], openPrintModal, v
                     width: 100%;
                     border-collapse: collapse;
                     margin: 15px 0;
-                    font-size: 12px;
+                    font-size: 10px;
                     page-break-inside: auto;
                 }
                 
@@ -540,13 +556,13 @@ export default function RecordsTable({ records, expenses = [], openPrintModal, v
                     text-align: left;
                     font-weight: bold;
                     color: #000;
-                    font-size: 12px;
+                    font-size: 10px;
                 }
                 
                 td {
                     border-bottom: 1px solid #000;
                     padding: 6px;
-                    font-size: 12px;
+                    font-size: 10px;
                     vertical-align: top;
                 }
                 
