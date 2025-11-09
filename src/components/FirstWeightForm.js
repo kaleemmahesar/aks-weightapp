@@ -284,25 +284,27 @@ const FirstWeightForm = ({ liveWeight, onSuccess }) => {
                 styles={{
                   ...customSelectStyles,
                   control: (provided, state) => ({
-                    ...provided,
+                    ...customSelectStyles.control(provided, state),
                     borderRadius: '4px',
-                    border: `1px solid ${formik.touched.businessName && formik.errors.businessName ? '#dc3545' : '#ced4da'}`,
-                    boxShadow: state.isFocused ? '0 0 0 0.2rem rgba(0, 123, 255, 0.25)' : 'none',
-                    borderColor: state.isFocused ? '#007bff' : (formik.touched.businessName && formik.errors.businessName ? '#dc3545' : '#ced4da'),
+                    border: `1px solid ${formik.touched.businessName && formik.errors.businessName ? '#dc3545' : '#000000'}`,
+                    boxShadow: state.isFocused ? '0 0 0 0.2rem rgba(0, 0, 0, 0.25)' : 'none',
+                    borderColor: state.isFocused ? '#000000' : (formik.touched.businessName && formik.errors.businessName ? '#dc3545' : '#000000'),
                     height: '58px',
                     minHeight: '58px',
                     textTransform: 'uppercase'
                   }),
                   option: (provided, state) => ({
-                    ...provided,
-                    backgroundColor: state.isSelected ? '#0d6efd' : state.isFocused ? '#f8f9fc' : 'white',
-                    color: state.isSelected ? 'white' : '#495057',
+                    ...customSelectStyles.option(provided, state),
+                    backgroundColor: state.isSelected ? '#000000' : state.isFocused ? '#f0f0f0' : 'white',
+                    color: state.isSelected ? 'white' : '#000000',
+                    fontWeight: '700',
                     textTransform: 'uppercase'
                   }),
                   singleValue: (provided) => ({
-                    ...provided,
+                    ...customSelectStyles.singleValue(provided),
                     margin: '0',
-                    color: '#495057',
+                    color: '#000000',
+                    fontWeight: '700',
                     textTransform: 'uppercase'
                   })
                 }}
@@ -331,25 +333,27 @@ const FirstWeightForm = ({ liveWeight, onSuccess }) => {
                 styles={{
                   ...customSelectStyles,
                   control: (provided, state) => ({
-                    ...provided,
+                    ...customSelectStyles.control(provided, state),
                     borderRadius: '4px',
-                    border: `1px solid ${formik.touched.vehicleType && formik.errors.vehicleType ? '#dc3545' : '#ced4da'}`,
-                    boxShadow: state.isFocused ? '0 0 0 0.2rem rgba(0, 123, 255, 0.25)' : 'none',
-                    borderColor: state.isFocused ? '#007bff' : (formik.touched.vehicleType && formik.errors.vehicleType ? '#dc3545' : '#ced4da'),
+                    border: `1px solid ${formik.touched.vehicleType && formik.errors.vehicleType ? '#dc3545' : '#000000'}`,
+                    boxShadow: state.isFocused ? '0 0 0 0.2rem rgba(0, 0, 0, 0.25)' : 'none',
+                    borderColor: state.isFocused ? '#000000' : (formik.touched.vehicleType && formik.errors.vehicleType ? '#dc3545' : '#000000'),
                     height: '58px',
                     minHeight: '58px',
                     textTransform: 'uppercase',
                   }),
                   option: (provided, state) => ({
-                    ...provided,
-                    backgroundColor: state.isSelected ? '#0d6efd' : state.isFocused ? '#f8f9fc' : 'white',
-                    color: state.isSelected ? 'white' : '#495057',
+                    ...customSelectStyles.option(provided, state),
+                    backgroundColor: state.isSelected ? '#000000' : state.isFocused ? '#f0f0f0' : 'white',
+                    color: state.isSelected ? 'white' : '#000000',
+                    fontWeight: '700',
                     textTransform: 'uppercase',
                   }),
                   singleValue: (provided) => ({
-                    ...provided,
+                    ...customSelectStyles.singleValue(provided),
                     margin: '0',
-                    color: '#495057',
+                    color: '#000000',
+                    fontWeight: '700',
                     textTransform: 'uppercase',
                   })
                 }}

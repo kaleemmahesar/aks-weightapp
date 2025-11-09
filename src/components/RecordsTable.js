@@ -468,6 +468,7 @@ export default function RecordsTable({ records, expenses = [], openPrintModal, v
                     color: #000;
                     margin: 0;
                     padding: 15mm;
+                    text-transform: uppercase;
                 }
                 
                 .header {
@@ -593,13 +594,13 @@ export default function RecordsTable({ records, expenses = [], openPrintModal, v
         <body>
             <div class="header">
                 <div class="company-name">AL HUSSAINI COMPUTERISED KANTA</div>
-                <div class="company-details">Near Bhand Chowk, Taulka Sijawal Junejo | Phone: 0331 4812277</div>
-                <div class="report-date">Generated on: ${new Date().toLocaleString("en-GB", { timeZone: "Asia/Karachi" })}</div>
+                <div class="company-details">NEAR BHAND CHOWK, TAUKA SIJAWAL JUNEJO | PHONE: 0331 4812277</div>
+                <div class="report-date">GENERATED ON: ${new Date().toLocaleString("en-GB", { timeZone: "Asia/Karachi" }).toUpperCase()}</div>
             </div>
             
             <!-- Filters Section -->
             <div class="filters-section">
-                ${filterInfo.map(info => `<div class="filter-item">${info}</div>`).join('')}
+                ${filterInfo.map(info => `<div class="filter-item">${info.toUpperCase()}</div>`).join('')}
             </div>
             
             ${sortedDates.map(dateKey => {
@@ -609,7 +610,7 @@ export default function RecordsTable({ records, expenses = [], openPrintModal, v
                     day: 'numeric', 
                     month: 'short', 
                     year: 'numeric' 
-                });
+                }).toUpperCase();
                 
                 // Calculate totals for this date
                 const dateTotalFirstWeight = dateRecords.reduce((sum, r) => sum + (parseFloat(r.first_weight) || 0), 0);
@@ -623,21 +624,25 @@ export default function RecordsTable({ records, expenses = [], openPrintModal, v
                     <table>
                         <thead>
                             <tr>
-                                <th>Sr No:</th>
-                                <th>Party Name</th>
-                                <th>Product Name</th>
-                                <th>F. Weight</th>
-                                <th>S. Weight</th>
-                                <th>Net Weight</th>
-                                <th>Price</th>
+                                <th>SR:</th>
+                                <th>BUSINESS NAME</th>
+                                <th>PARTY</th>
+                                <th>PRODUCT</th>
+                                <th>VEHICLE</th>
+                                <th>F. WEIGHT</th>
+                                <th>S. WEIGHT</th>
+                                <th>NET WEIGHT</th>
+                                <th>PRICE</th>
                             </tr>
                         </thead>
                         <tbody>
                             ${dateRecords.map((r, index) => `
                                 <tr>
                                     <td>${r.id}</td>
-                                    <td>${r.party_name || '-'}</td>
-                                    <td>${r.product || '-'}</td>
+                                    <td>${(r.business_name || '-').toUpperCase()}</td>
+                                    <td>${(r.party_name || '-').toUpperCase()}</td>
+                                    <td>${(r.product || '-').toUpperCase()}</td>
+                                    <td>${(r.vehicle_type || '-').toUpperCase()}</td>
                                     <td>${formatWeight(r.first_weight)}</td>
                                     <td>${formatWeight(r.second_weight)}</td>
                                     <td>${formatWeight(r.net_weight)}</td>
@@ -645,7 +650,7 @@ export default function RecordsTable({ records, expenses = [], openPrintModal, v
                                 </tr>
                             `).join('')}
                             <tr class="summary-row">
-                                <td colspan="3"><strong>Total for ${formattedDate}:</strong></td>
+                                <td colspan="5"><strong>TOTAL FOR ${formattedDate}:</strong></td>
                                 <td><strong>${formatWeight(dateTotalFirstWeight)}</strong></td>
                                 <td><strong>${formatWeight(dateTotalSecondWeight)}</strong></td>
                                 <td><strong>${formatWeight(dateTotalNetWeight)}</strong></td>
@@ -662,16 +667,16 @@ export default function RecordsTable({ records, expenses = [], openPrintModal, v
                 <table>
                     <thead>
                         <tr>
-                            <th colspan="3">Grand Total:</th>
-                            <th class="text-right">F. Weight</th>
-                            <th class="text-right">S. Weight</th>
-                            <th class="text-right">Net Weight</th>
-                            <th class="text-right">Total Price</th>
+                            <th colspan="5">GRAND TOTAL:</th>
+                            <th class="text-right">F. WEIGHT</th>
+                            <th class="text-right">S. WEIGHT</th>
+                            <th class="text-right">NET WEIGHT</th>
+                            <th class="text-right">TOTAL PRICE</th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr class="grand-total">
-                            <td colspan="3"><strong>All Dates (${records.length} records):</strong></td>
+                            <td colspan="5"><strong>ALL DATES (${records.length} RECORDS):</strong></td>
                             <td class="text-right"><strong>${formatWeight(records.reduce((sum, r) => sum + (parseFloat(r.first_weight) || 0), 0))}</strong></td>
                             <td class="text-right"><strong>${formatWeight(records.reduce((sum, r) => sum + (parseFloat(r.second_weight) || 0), 0))}</strong></td>
                             <td class="text-right"><strong>${formatWeight(records.reduce((sum, r) => sum + (parseFloat(r.net_weight) || 0), 0))}</strong></td>

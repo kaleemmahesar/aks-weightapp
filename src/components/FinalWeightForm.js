@@ -98,7 +98,7 @@ export default function FinalWeightForm({
 
   // Business name options for react-select
   const businessNameOptions = [
-    { value: "", label: "Select Business Name (Optional)".toUpperCase() },
+    { value: "", label: "Select Business Name".toUpperCase() },
     ...businessNames.map(name => ({
       value: name,
       label: name.toUpperCase()  // Make label uppercase
@@ -277,24 +277,12 @@ export default function FinalWeightForm({
                   control: (provided, state) => ({
                     ...provided,
                     borderRadius: '4px',
-                    border: `1px solid ${formik.touched.businessName && formik.errors.businessName ? '#dc3545' : '#ced4da'}`,
+                    border: `1px solid ${formik.touched.finalVehicleType && formik.errors.finalVehicleType ? '#dc3545' : '#000'}`,
                     boxShadow: state.isFocused ? '0 0 0 0.2rem rgba(0, 123, 255, 0.25)' : 'none',
-                    borderColor: state.isFocused ? '#007bff' : (formik.touched.businessName && formik.errors.businessName ? '#dc3545' : '#ced4da'),
+                    borderColor: state.isFocused ? '#007bff' : (formik.touched.finalVehicleType && formik.errors.finalVehicleType ? '#dc3545' : '#ced4da'),
                     height: '58px',
                     minHeight: '58px',
-                    textTransform: 'uppercase'  // Add uppercase text transform
-                  }),
-                  option: (provided, state) => ({
-                    ...provided,
-                    backgroundColor: state.isSelected ? '#0d6efd' : state.isFocused ? '#f8f9fc' : 'white',
-                    color: state.isSelected ? 'white' : '#495057',
-                    textTransform: 'uppercase'  // Add uppercase text transform to options
-                  }),
-                  singleValue: (provided) => ({
-                    ...provided,
-                    margin: '0',
-                    color: '#495057',
-                    textTransform: 'uppercase'  // Add uppercase text transform to selected value
+                    textTransform: 'uppercase',  // Add uppercase text transform
                   })
                 }}
                 placeholder="Select Business Name"
@@ -324,7 +312,7 @@ export default function FinalWeightForm({
                   control: (provided, state) => ({
                     ...provided,
                     borderRadius: '4px',
-                    border: `1px solid ${formik.touched.finalVehicleType && formik.errors.finalVehicleType ? '#dc3545' : '#ced4da'}`,
+                    border: `1px solid ${formik.touched.finalVehicleType && formik.errors.finalVehicleType ? '#dc3545' : '#000'}`,
                     boxShadow: state.isFocused ? '0 0 0 0.2rem rgba(0, 123, 255, 0.25)' : 'none',
                     borderColor: state.isFocused ? '#007bff' : (formik.touched.finalVehicleType && formik.errors.finalVehicleType ? '#dc3545' : '#ced4da'),
                     height: '58px',
@@ -523,14 +511,16 @@ export default function FinalWeightForm({
                   }
                   readOnly
                   style={{ backgroundColor: "#f8f9fa", fontWeight: "600", color: "#007bff" }}
-                  placeholder="Net Weight (Auto Calculated)"
+                  placeholder="Net Weight"
                 />
                 <div className="weight-unit">KG</div>
               </div>
-              {/* Display Net Weight in KG, Munds, and Tons like SecondWeightForm */}
+            </div>
+          </div>
+          {/* Display Net Weight in KG, Munds, and Tons like SecondWeightForm */}
               {formik.values.finalWeight && formik.values.emptyWeight && (
                 <div className="summary-item net-weight" style={{ marginTop: '10px', padding: '10px', backgroundColor: '#f8f9fa', borderRadius: '4px' }}>
-                  <span className="summary-value" style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#007bff' }}>
+                  <span className="summary-value" style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#007bff' }}>
                     {(() => {
                       const netWeight = formik.values.finalWeight - formik.values.emptyWeight;
                       const munds = netWeight / 40;
@@ -544,10 +534,6 @@ export default function FinalWeightForm({
                   </span>
                 </div>
               )}
-            </div>
-
-          </div>
-
           {/* Enhanced Submit Button */}
           <div className="submit-section">
             <button 

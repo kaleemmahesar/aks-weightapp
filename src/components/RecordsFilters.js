@@ -58,14 +58,16 @@ const RecordsFilters = ({
   const customStyles = {
     control: (provided) => ({
       ...provided,
-      minHeight: '38px',
+      minHeight: '45px', // Increased from 38px to 45px (increase of 7px)
       fontSize: '14px',
-      borderColor: '#ced4da',
+      borderColor: '#000000', // Dark border
       borderRadius: '0.375rem',
       boxShadow: 'none',
       '&:hover': {
-        borderColor: '#ced4da'
-      }
+        borderColor: '#000000' // Dark border on hover
+      },
+      display: 'flex',
+      alignItems: 'center'
     }),
     menu: (provided) => ({
       ...provided,
@@ -78,7 +80,28 @@ const RecordsFilters = ({
     }),
     placeholder: (provided) => ({
       ...provided,
-      color: '#6c757d'
+      color: '#000000', // Dark color
+      fontWeight: '700', // Bold
+      display: 'flex',
+      alignItems: 'center'
+    }),
+    singleValue: (provided) => ({
+      ...provided,
+      color: '#000000', // Dark color
+      fontWeight: '700', // Bold
+      display: 'flex',
+      alignItems: 'center'
+    }),
+    multiValue: (provided) => ({
+      ...provided,
+      color: '#000000', // Dark color
+      fontWeight: '700', // Bold
+      backgroundColor: '#e9ecef'
+    }),
+    multiValueLabel: (provided) => ({
+      ...provided,
+      color: '#000000', // Dark color
+      fontWeight: '700' // Bold
     })
   };
 
@@ -86,7 +109,7 @@ const RecordsFilters = ({
     <div className="col-md-9">
       <div className="row g-3">
         <div className="col-md-4">
-          <label className="form-label text-muted fw-semibold text-uppercase">Search Records</label>
+          {/* <label className="form-label text-muted fw-semibold text-uppercase">Search Records</label> */}
           <input 
             type="text" 
             className="form-control text-uppercase" 
@@ -96,12 +119,18 @@ const RecordsFilters = ({
               setSearch(e.target.value); 
               setCurrentPage(1); 
             }} 
+            style={{ 
+              color: '#000000', 
+              fontWeight: '700',
+              borderColor: '#000000',
+              height: '45px' // Increased height
+            }}
           />
         </div>
         
         {/* Business Name Filter - Modified for multiple selection */}
         <div className="col-md-4">
-          <label className="form-label text-muted fw-semibold text-uppercase">Business Name</label>
+          {/* <label className="form-label text-muted fw-semibold text-uppercase">Business Name</label> */}
           <Select
             options={businessNameOptions}
             value={businessNameOptions.filter(option => businessNameFilter.includes(option.value))}
@@ -117,27 +146,45 @@ const RecordsFilters = ({
               ...customStyles,
               control: (provided) => ({
                 ...provided,
-                minHeight: '38px',
+                minHeight: '45px', // Increased from 38px to 45px (increase of 7px)
                 fontSize: '14px',
-                borderColor: '#ced4da',
+                borderColor: '#000000',
                 borderRadius: '0.375rem',
                 boxShadow: 'none',
                 '&:hover': {
-                  borderColor: '#ced4da'
+                  borderColor: '#000000'
                 },
-                textTransform: 'uppercase'
+                textTransform: 'uppercase',
+                color: '#000000',
+                fontWeight: '700'
               }),
               option: (provided) => ({
                 ...provided,
-                textTransform: 'uppercase'
+                textTransform: 'uppercase',
+                color: '#000000',
+                fontWeight: '700'
               }),
               singleValue: (provided) => ({
                 ...provided,
-                textTransform: 'uppercase'
+                textTransform: 'uppercase',
+                color: '#000000',
+                fontWeight: '700'
+              }),
+              multiValue: (provided) => ({
+                ...provided,
+                color: '#000000',
+                fontWeight: '700',
+                backgroundColor: '#e9ecef'
+              }),
+              multiValueLabel: (provided) => ({
+                ...provided,
+                color: '#000000',
+                fontWeight: '700'
               }),
               placeholder: (provided) => ({
                 ...provided,
-                color: '#6c757d',
+                color: '#000000',
+                fontWeight: '700',
                 textTransform: 'uppercase'
               })
             }}
@@ -148,7 +195,7 @@ const RecordsFilters = ({
         
         {/* Party Name Filter - Modified for multiple selection */}
         <div className="col-md-4">
-          <label className="form-label text-muted fw-semibold text-uppercase">Party Name</label>
+          {/* <label className="form-label text-muted fw-semibold text-uppercase">Party Name</label> */}
           <Select
             options={partyOptions}
             value={partyOptions.filter(option => partyFilter.includes(option.value))}
@@ -164,27 +211,45 @@ const RecordsFilters = ({
               ...customStyles,
               control: (provided) => ({
                 ...provided,
-                minHeight: '38px',
+                minHeight: '45px', // Increased from 38px to 45px (increase of 7px)
                 fontSize: '14px',
-                borderColor: '#ced4da',
+                borderColor: '#000000',
                 borderRadius: '0.375rem',
                 boxShadow: 'none',
                 '&:hover': {
-                  borderColor: '#ced4da'
+                  borderColor: '#000000'
                 },
-                textTransform: 'uppercase'
+                textTransform: 'uppercase',
+                color: '#000000',
+                fontWeight: '700'
               }),
               option: (provided) => ({
                 ...provided,
-                textTransform: 'uppercase'
+                textTransform: 'uppercase',
+                color: '#000000',
+                fontWeight: '700'
               }),
               singleValue: (provided) => ({
                 ...provided,
-                textTransform: 'uppercase'
+                textTransform: 'uppercase',
+                color: '#000000',
+                fontWeight: '700'
+              }),
+              multiValue: (provided) => ({
+                ...provided,
+                color: '#000000',
+                fontWeight: '700',
+                backgroundColor: '#e9ecef'
+              }),
+              multiValueLabel: (provided) => ({
+                ...provided,
+                color: '#000000',
+                fontWeight: '700'
               }),
               placeholder: (provided) => ({
                 ...provided,
-                color: '#6c757d',
+                color: '#000000',
+                fontWeight: '700',
                 textTransform: 'uppercase'
               })
             }}
@@ -195,7 +260,7 @@ const RecordsFilters = ({
         
         {/* Product Filter - Modified for multiple selection */}
         <div className="col-md-4">
-          <label className="form-label text-muted fw-semibold text-uppercase">Product</label>
+          {/* <label className="form-label text-muted fw-semibold text-uppercase">Product</label> */}
           <Select
             options={productOptions}
             value={productOptions.filter(option => productFilter.includes(option.value))}
@@ -211,27 +276,45 @@ const RecordsFilters = ({
               ...customStyles,
               control: (provided) => ({
                 ...provided,
-                minHeight: '38px',
+                minHeight: '45px', // Increased from 38px to 45px (increase of 7px)
                 fontSize: '14px',
-                borderColor: '#ced4da',
+                borderColor: '#000000',
                 borderRadius: '0.375rem',
                 boxShadow: 'none',
                 '&:hover': {
-                  borderColor: '#ced4da'
+                  borderColor: '#000000'
                 },
-                textTransform: 'uppercase'
+                textTransform: 'uppercase',
+                color: '#000000',
+                fontWeight: '700'
               }),
               option: (provided) => ({
                 ...provided,
-                textTransform: 'uppercase'
+                textTransform: 'uppercase',
+                color: '#000000',
+                fontWeight: '700'
               }),
               singleValue: (provided) => ({
                 ...provided,
-                textTransform: 'uppercase'
+                textTransform: 'uppercase',
+                color: '#000000',
+                fontWeight: '700'
+              }),
+              multiValue: (provided) => ({
+                ...provided,
+                color: '#000000',
+                fontWeight: '700',
+                backgroundColor: '#e9ecef'
+              }),
+              multiValueLabel: (provided) => ({
+                ...provided,
+                color: '#000000',
+                fontWeight: '700'
               }),
               placeholder: (provided) => ({
                 ...provided,
-                color: '#6c757d',
+                color: '#000000',
+                fontWeight: '700',
                 textTransform: 'uppercase'
               })
             }}
@@ -242,7 +325,7 @@ const RecordsFilters = ({
         
         {/* Vehicle Type Filter - Modified for multiple selection */}
         <div className="col-md-4">
-          <label className="form-label text-muted fw-semibold text-uppercase">Vehicle Type</label>
+          {/* <label className="form-label text-muted fw-semibold text-uppercase">Vehicle Type</label> */}
           <Select
             options={vehicleTypeOptions}
             value={vehicleTypeOptions.filter(option => vehicleTypeFilter.includes(option.value))}
@@ -258,27 +341,45 @@ const RecordsFilters = ({
               ...customStyles,
               control: (provided) => ({
                 ...provided,
-                minHeight: '38px',
+                minHeight: '45px', // Increased from 38px to 45px (increase of 7px)
                 fontSize: '14px',
-                borderColor: '#ced4da',
+                borderColor: '#000000',
                 borderRadius: '0.375rem',
                 boxShadow: 'none',
                 '&:hover': {
-                  borderColor: '#ced4da'
+                  borderColor: '#000000'
                 },
-                textTransform: 'uppercase'
+                textTransform: 'uppercase',
+                color: '#000000',
+                fontWeight: '700'
               }),
               option: (provided) => ({
                 ...provided,
-                textTransform: 'uppercase'
+                textTransform: 'uppercase',
+                color: '#000000',
+                fontWeight: '700'
               }),
               singleValue: (provided) => ({
                 ...provided,
-                textTransform: 'uppercase'
+                textTransform: 'uppercase',
+                color: '#000000',
+                fontWeight: '700'
+              }),
+              multiValue: (provided) => ({
+                ...provided,
+                color: '#000000',
+                fontWeight: '700',
+                backgroundColor: '#e9ecef'
+              }),
+              multiValueLabel: (provided) => ({
+                ...provided,
+                color: '#000000',
+                fontWeight: '700'
               }),
               placeholder: (provided) => ({
                 ...provided,
-                color: '#6c757d',
+                color: '#000000',
+                fontWeight: '700',
                 textTransform: 'uppercase'
               })
             }}
@@ -288,11 +389,17 @@ const RecordsFilters = ({
         </div>
         
         <div className="col-md-4">
-          <label className="form-label text-muted fw-semibold text-uppercase">Report Type</label>
+          {/* <label className="form-label text-muted fw-semibold text-uppercase">Report Type</label> */}
           <select 
             className="form-select text-uppercase" 
             value={reportType} 
             onChange={e => setReportType(e.target.value)}
+            style={{ 
+              color: '#000000', 
+              fontWeight: '700',
+              borderColor: '#000000',
+              height: '45px' // Increased height
+            }}
           >
             <option value="daily" className="text-uppercase">Daily Report</option>
             <option value="monthly" className="text-uppercase">Monthly Report</option>
@@ -304,11 +411,17 @@ const RecordsFilters = ({
         
         {reportType === 'monthly' && (
           <div className="col-md-2">
-            <label className="form-label text-muted fw-semibold text-uppercase">Month</label>
+            {/* <label className="form-label text-muted fw-semibold text-uppercase">Month</label> */}
             <select 
               className="form-select text-uppercase" 
               value={selectedMonth} 
               onChange={e => setSelectedMonth(parseInt(e.target.value))}
+              style={{ 
+                color: '#000000', 
+                fontWeight: '700',
+                borderColor: '#000000',
+                height: '45px' // Increased height
+              }}
             >
               {Array.from({length: 12}, (_, i) => (
                 <option key={i+1} value={i+1} className="text-uppercase">
@@ -321,11 +434,17 @@ const RecordsFilters = ({
         
         {(reportType === 'monthly' || reportType === 'yearly') && (
           <div className="col-md-3">
-            <label className="form-label text-muted fw-semibold text-uppercase">Year</label>
+            {/* <label className="form-label text-muted fw-semibold text-uppercase">Year</label> */}
             <select 
               className="form-select text-uppercase" 
               value={selectedYear} 
               onChange={e => setSelectedYear(parseInt(e.target.value))}
+              style={{ 
+                color: '#000000', 
+                fontWeight: '700',
+                borderColor: '#000000',
+                height: '45px' // Increased height
+              }}
             >
               {Array.from({length: 5}, (_, i) => {
                 const year = new Date().getFullYear() - 2 + i;
@@ -342,21 +461,33 @@ const RecordsFilters = ({
         {reportType === 'custom' && (
           <>
             <div className="col-md-3">
-              <label className="form-label text-muted fw-semibold text-uppercase">From Date</label>
+              {/* <label className="form-label text-muted fw-semibold text-uppercase">From Date</label> */}
               <input 
                 type="date" 
                 className="form-control text-uppercase" 
                 value={customFromDate} 
                 onChange={e => setCustomFromDate(e.target.value)}
+                style={{ 
+                  color: '#000000', 
+                  fontWeight: '700',
+                  borderColor: '#000000',
+                  height: '45px' // Increased height
+                }}
               />
             </div>
             <div className="col-md-3">
-              <label className="form-label text-muted fw-semibold text-uppercase">To Date</label>
+              {/* <label className="form-label text-muted fw-semibold text-uppercase">To Date</label> */}
               <input 
                 type="date" 
                 className="form-control text-uppercase" 
                 value={customToDate} 
                 onChange={e => setCustomToDate(e.target.value)}
+                style={{ 
+                  color: '#000000', 
+                  fontWeight: '700',
+                  borderColor: '#000000',
+                  height: '45px' // Increased height
+                }}
               />
             </div>
           </>
@@ -366,6 +497,12 @@ const RecordsFilters = ({
           <button 
             className="btn btn-outline-secondary w-100 text-uppercase" 
             onClick={onClearFilters}
+            style={{ 
+              color: '#000000', 
+              fontWeight: '700',
+              borderColor: '#000000',
+              height: '45px' // Increased height
+            }}
           >
             Clear Filters
           </button>
