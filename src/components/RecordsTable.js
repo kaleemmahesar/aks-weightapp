@@ -271,8 +271,8 @@ export default function RecordsTable({ records, expenses = [], openPrintModal, v
         </head>
         <body>
             <div class="header">
-                <div class="company-name">AL HUSSAINI COMPUTERISED KANTA</div>
-                <div class="company-details">Near Bhand Chowk, Taulka Sijawal Junejo | Phone: 0331 4812277</div>
+                <div class="company-name">Madina Rice Mill Kanta</div>
+                <div class="company-details">Gaji Khuhawar , Qambar Shahdadkot | 03111367387</div>
                 <div class="report-date">Generated on: ${new Date().toLocaleString("en-GB", { timeZone: "Asia/Karachi" })}</div>
             </div>
             
@@ -593,7 +593,7 @@ export default function RecordsTable({ records, expenses = [], openPrintModal, v
         </head>
         <body>
             <div class="header">
-                <div class="company-name">AL HUSSAINI COMPUTERISED KANTA</div>
+                <div class="company-name">Madina Rice Mill Kanta</div>
                 <div class="company-details">NEAR BHAND CHOWK, TAUKA SIJAWAL JUNEJO | PHONE: 0331 4812277</div>
                 <div class="report-date">GENERATED ON: ${new Date().toLocaleString("en-GB", { timeZone: "Asia/Karachi" }).toUpperCase()}</div>
             </div>

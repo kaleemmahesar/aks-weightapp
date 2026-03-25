@@ -27,6 +27,16 @@ const Navbar = ({ onLogout }) => {
     return role.charAt(0).toUpperCase() + role.slice(1);
   };
 
+  const baseMenuItems = [
+    { path: "/dashboard", label: "First Weight", icon: <FaTachometerAlt /> },
+    { path: "/second-weight", label: "Second Weight", icon: <FaBalanceScale /> },
+    { path: "/final-weight", label: "Final Weight", icon: <FaCheckCircle /> },
+    { path: "/expenses", label: "Expenses", icon: <FaMoneyBillWave /> },
+    { path: "/records", label: "Records", icon: <FaTable /> },
+  ];
+
+  const menuItems = role !== 'operator' ? [...baseMenuItems, { path: "/settings", label: "Settings", icon: <FaCog /> }] : baseMenuItems;
+
   return (
     <nav
       className="navbar navbar-expand-lg sticky-top shadow-sm"
@@ -48,7 +58,7 @@ const Navbar = ({ onLogout }) => {
             alignItems: "center"
           }}
         >
-          <FaWeight className="me-2 text-blue-400" /> Al Hussaini Kanta
+          <FaWeight className="me-2 text-blue-400" /> Madina Rice Mill Kanta
         </NavLink>
 
         {/* Mobile Toggle */}
@@ -65,14 +75,7 @@ const Navbar = ({ onLogout }) => {
         {/* Menu Items */}
         <div className="collapse navbar-collapse" id="navbarNav">
           <ul className="navbar-nav me-auto">
-            {[
-              { path: "/dashboard", label: "First Weight", icon: <FaTachometerAlt /> },
-              { path: "/second-weight", label: "Second Weight", icon: <FaBalanceScale /> },
-              { path: "/final-weight", label: "Final Weight", icon: <FaCheckCircle /> },
-              { path: "/expenses", label: "Expenses", icon: <FaMoneyBillWave /> },
-              { path: "/records", label: "Records", icon: <FaTable /> },
-              { path: "/settings", label: "Settings", icon: <FaCog /> } // Added Settings link
-            ].map((item) => (
+            {menuItems.map((item) => (
               <li className="nav-item" key={item.path}>
                 <NavLink
                   to={item.path}

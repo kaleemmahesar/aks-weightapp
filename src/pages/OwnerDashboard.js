@@ -248,7 +248,7 @@ export default function OwnerDashboard() {
         </head>
         <body>
             <div class="header">
-                <div class="company-name">AL HUSSAINI COMPUTERISED KANTA</div>
+                <div class="company-name">Madina Rice Mill Kanta</div>
                 <div class="report-info">Date Range: ${fromDate || "Start"} to ${toDate || "End"}</div>
             </div>
             

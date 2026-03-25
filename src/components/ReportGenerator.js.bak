@@ -466,8 +466,8 @@ const ReportGenerator = ({
       <body>
         <div class="report-container">
           <div class="header">
-            <div class="company-name">AL HUSSAINI COMPUTERISED KANTA</div>
-            <div class="company-details">Near Bhand Chowk, Taulka Sijawal Junejo | Phone: 0331 4812277</div>
+            <div class="company-name">Madina Rice Mill Kanta</div>
+            <div class="company-details">Gaji Khuhawar , Qambar Shahdadkot | 03111367387</div>
           </div>
 
           <div class="report-title">${dateRange}</div>

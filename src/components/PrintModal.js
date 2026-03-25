@@ -1,7 +1,7 @@
 import React from "react";
 import { useSelector } from "react-redux";
 import { FaBalanceScale  } from "react-icons";
-import logo from '../assets/scale.png';
+import logo from '../assets/mrice.jpeg';
 import { formatToPST } from '../utils/dateUtils';
 import OldPrinterPrint from './OldPrinterPrint'; // Import the new component
 
@@ -343,15 +343,26 @@ const PrintModal = ({ show, slipType, onClose }) => {
     <head>
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
-      <link rel="preconnect" href="https://fonts.googleapis.com">
-      <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-      <link href="https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu&display=swap" rel="stylesheet">
       <title>وزن سلپ</title>
       <style>
+        @font-face {
+          font-family: 'NotoNastaliqUrdu-VariableFont_wght';
+          src: url('/fonts/NotoNastaliqUrdu-VariableFont_wght.eot');
+          src: url('/fonts/NotoNastaliqUrdu-VariableFont_wght.eot?#iefix') format('embedded-opentype'),
+               url('/fonts/NotoNastaliqUrdu-VariableFont_wght.woff2') format('woff2'),
+               url('/fonts/NotoNastaliqUrdu-VariableFont_wght.woff') format('woff'),
+               url('/fonts/NotoNastaliqUrdu-VariableFont_wght.otf') format('opentype'),
+               url('/fonts/NotoNastaliqUrdu-VariableFont_wght.svg') format('svg'),
+               url('/fonts/NotoNastaliqUrdu-VariableFont_wght.dfont') format('truetype'),
+               url('/fonts/NotoNastaliqUrdu-VariableFont_wght.pfb') format('type1');
+          font-weight: normal;
+          font-style: normal;
+          font-display: swap;
+        }
         @page { margin: 0; size: ${isSmallVehicle ? '80mm 160mm' : '80mm 220mm'}; }
         html,body { margin:0; padding:0; }
         body {
-          font-family: 'Noto Nastaliq Urdu', 'Noto Naskh Arabic', serif;
+          font-family: 'NotoNastaliqUrdu-VariableFont_wght', 'Noto Naskh Arabic', serif;
           direction: rtl;
           text-align: right;
           font-size: ${isSmallVehicle ? '8px' : '14px'};
@@ -374,9 +385,9 @@ const PrintModal = ({ show, slipType, onClose }) => {
 
         .slip-container { width:${isSmallVehicle ? '70mm' : '70mm'}; margin:0 auto; border:1px solid #000; padding:${isSmallVehicle ? '4px' : '6px'}; background:#fff; box-sizing:border-box; }
         .header { text-align:center; border-bottom:1px solid #000; padding-bottom:${isSmallVehicle ? '2px' : '6px'}; margin-bottom:${isSmallVehicle ? '3px' : '8px'}; }
-        .company-name { font-size:${isSmallVehicle ? '11px' : '18px'}; font-weight:bold; }
+        .company-name { font-size:${isSmallVehicle ? '11px' : '14px'}; font-weight:bold; }
         .company-details { font-size:${isSmallVehicle ? '8px' : '10px'}; margin:1px 0; }
-        .copy-label { text-align:center; font-size:${isSmallVehicle ? '9px' : '14px'}; font-weight:bold; margin-bottom:${isSmallVehicle ? '4px' : '6px'}; }
+        .copy-label { text-align:center; font-size:${isSmallVehicle ? '9px' : '12px'}; font-weight:bold; margin-bottom:${isSmallVehicle ? '4px' : '6px'}; }
         .content-section { margin:${isSmallVehicle ? '4px 0' : '6px 0'}; }
         .info-row { display:flex; justify-content:space-between; gap:${isSmallVehicle ? '4px' : '6px'}; margin:${isSmallVehicle ? '2px 0' : '4px 0'}; border-bottom:1px dotted #999; font-size:${isSmallVehicle ? '7px' : '11px'}; align-items:center; }
         .info-row .info-label { font-weight:bold; display:inline-block; min-width:${isSmallVehicle ? '50px' : '70px'}; white-space:normal; }
@@ -400,10 +411,10 @@ const PrintModal = ({ show, slipType, onClose }) => {
           <hr style="border: 1px dashed #000; margin: ${isSmallVehicle ? '3px 0 6px' : '5px 0 10px'};" />
           <div class="header">
             ${!isSmallVehicle ? `<img src="${logo}" alt="logo" style="width:30px;height:30px;display:block;margin:0 auto 4px auto" />` : ''}
-            <div class="company-name">الحسینی کمپیوٹرائزڈ کانٹا</div>
+            <div class="company-name">Madina Rice Mill Kanta</div>
             ${!isSmallVehicle ? `
-            <div class="company-details">Near Bhand Chowk, Taulka Sijawal Junejo</div>
-            <div class="company-details">Phone: 0331 4812277</div>
+            <div class="company-details">Gaji Khuhawar, Qambar Shahdadkot</div>
+            <div class="company-details">0311-1367387</div>
             ` : ''}
             <div class="company-details" style="font-weight:bold;font-size:${isSmallVehicle ? '9px' : '12px'};margin-top:${isSmallVehicle ? '4px' : '6px'};">
               ${slipType === "first" ? "پہلا وزن سلپ" : slipType === "second" ? "دوسرا وزن سلپ" : "حتمی وزن سلپ"}
@@ -601,8 +612,8 @@ const PrintModal = ({ show, slipType, onClose }) => {
             </div>
             <div className="modal-body" style={{ padding: '1.5rem 2rem' }}>
               <div className="text-center mb-4">
-                <h3 className="mt-2 fw-bold">Al Hussaini Computerised Kanta</h3>
-                <p>Near Bhand Chowk, Taulka Sijawal Junejo | Phone: 0331 4812277</p>
+                <h3 className="mt-2 fw-bold">Madina Rice Mill Kanta</h3>
+                <p>Gaji Khuhawar , Qambar Shahdadkot | 03111367387</p>
                 <hr />
               </div>
               <h4 className="text-center mb-4 fw-bold">
@@ -756,11 +767,11 @@ const PrintModal = ({ show, slipType, onClose }) => {
             </div>
             <div className="modal-footer" style={{ padding: '1rem 0' }}>
               <div className="d-flex justify-content-center w-100">
-                {/* <button className="btn btn-primary me-3" onClick={handlePrint}>
+                <button className="btn btn-primary me-3" onClick={handlePrint}>
                   Print
-                </button> */}
+                </button>
                 {/* Use the new component for old printer printing */}
-                <OldPrinterPrint record={record} slipType={slipType} />
+                {/* <OldPrinterPrint record={record} slipType={slipType} /> */}
                 <button className="btn btn-secondary ms-3" onClick={onClose}>
                   Close
                 </button>

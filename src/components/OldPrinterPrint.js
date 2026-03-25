@@ -286,7 +286,7 @@ const OldPrinterPrint = ({ record, slipType }) => {
             slipType === "first" ? 
             `<div class="weight-line">
               <span class="vehicle-info">${(record.vehicle_type || "N/A").toUpperCase()}</span>
-              <span class="serial-info">${(record.vehicle_id || "N/A").toUpperCase()}</span>
+              <span class="serial-info">${String(record.vehicle_id || "N/A").toUpperCase()}</span>
               <span class="datetime-info">${formatDateTimeForPrint(record.first_weight_time).toUpperCase()}</span>
               <span class="weight-info">${formatWeight(record.first_weight)} KG</span>
               <span class="weight-type">G</span>
@@ -298,14 +298,14 @@ const OldPrinterPrint = ({ record, slipType }) => {
             </div>` : 
             `<div class="weight-line">
               <span class="vehicle-info">${(record.vehicle_type || "N/A").toUpperCase()}</span>
-              <span class="serial-info">${(record.vehicle_id || "N/A").toUpperCase()}</span>
+              <span class="serial-info">${String(record.vehicle_id || "N/A").toUpperCase()}</span>
               <span class="datetime-info">${formatDateTimeForPrint(record.first_weight_time).toUpperCase()}</span>
               <span class="weight-info">${formatWeight(record.first_weight)} KG</span>
               <span class="weight-type">G</span>
             </div>
             <div class="weight-line">
               <span class="vehicle-info">${(record.vehicle_type || "N/A").toUpperCase()}</span>
-              <span class="serial-info">${(record.vehicle_id || "N/A").toUpperCase()}</span>
+              <span class="serial-info">${String(record.vehicle_id || "N/A").toUpperCase()}</span>
               <span class="datetime-info">${formatDateTimeForPrint(record.second_weight_time).toUpperCase()}</span>
               <span class="weight-info">${formatWeight(record.second_weight)} KG</span>
               <span class="weight-type">T</span>

@@ -122,8 +122,11 @@ const recordsSlice = createSlice({
       .addCase(fetchRecords.fulfilled, (state, action) => {
         state.loading = false;
         const rawRecords = extractRecordsFromResponse(action.payload);
+        const recordsArray = Array.isArray(rawRecords) ? rawRecords : [];
         // Normalize all records to ensure consistent field names
-        state.records = rawRecords.map(record => normalizeRecord(record)).filter(Boolean);
+        state.records = recordsArray
+          .map(record => normalizeRecord(record))
+          .filter(Boolean);
         state.error = null;
       })
       .addCase(fetchRecords.rejected, (state, action) => {

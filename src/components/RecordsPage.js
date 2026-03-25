@@ -696,8 +696,8 @@ export default function RecordsPage() {
       <body>
         <div class="report-container">
           <div class="header">
-            <div class="company-name">AL HUSSAINI COMPUTERISED KANTA</div>
-            <div class="company-details">Near Bhand Chowk, Taulka Sijawal Junejo | Phone: 0331 4812277</div>
+            <div class="company-name">Madina Rice Mill Kanta</div>
+            <div class="company-details">Gaji Khuhawar , Qambar Shahdadkot | 03111367387</div>
           </div>
 
           <div class="report-title">CUSTOMER SUMMARY REPORT</div>
@@ -1027,8 +1027,8 @@ export default function RecordsPage() {
       </head>
       <body>
         <div class="header">
-          <div class="company-name">AL HUSSAINI COMPUTERISED KANTA</div>
-          <div class="company-details">Near Bhand Chowk, Taulka Sijawal Junejo | Phone: 0331 4812277</div>
+          <div class="company-name">Madina Rice Mill Kanta</div>
+          <div class="company-details">Gaji Khuhawar , Qambar Shahdadkot | 03111367387</div>
           <div class="report-date">Generated on: ${new Date().toLocaleString("en-GB", { timeZone: "Asia/Karachi" })}</div>
         </div>
         
@@ -1403,7 +1403,7 @@ export default function RecordsPage() {
       </head>
       <body>
         <div class="header">
-          <div class="company-name">AL HUSSAINI COMPUTERISED KANTA</div>
+          <div class="company-name">Madina Rice Mill Kanta</div>
           <div class="company-details">NEAR BHAND CHOWK, TAUKA SIJAWAL JUNEJO | PHONE: 0331 4812277</div>
           <div class="report-date">GENERATED ON: ${new Date().toLocaleString("en-GB", { timeZone: "Asia/Karachi" }).toUpperCase()}</div>
         </div>
@@ -1612,16 +1612,14 @@ export default function RecordsPage() {
                     search={search}
                   />
                   <div className="d-grid gap-2">
-                    {role === 'admin' && (
-                      <button className="btn btn-primary w-100 d-block" onClick={generateOwnerReport}>
-                        <FaFileInvoice className="me-2" />
-                        A4 Owner Report
-                      </button>
-                    )}
-                    {/* <button className="btn btn-secondary w-100 d-block" onClick={generateThermalOwnerReport}>
+                    <button className="btn btn-primary w-100 d-block" onClick={generateOwnerReport}>
+                      <FaFileInvoice className="me-2" />
+                      A4 Owner Report
+                    </button>
+                    <button className="btn btn-secondary w-100 d-block" onClick={generateThermalOwnerReport}>
                       <FaFileInvoice className="me-2" />
                       Thermal Owner Report
-                    </button> */}
+                    </button>
                   </div>
                 </div>
               </div>
