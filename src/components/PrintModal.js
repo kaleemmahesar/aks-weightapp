@@ -5,12 +5,12 @@ import logo from '../assets/mrice.jpeg';
 import { formatToPST } from '../utils/dateUtils';
 import OldPrinterPrint from './OldPrinterPrint'; // Import the new component
 
-const PrintModal = ({ show, slipType, onClose }) => {
+const PrintModal = ({ show, slipType, onClose, duplicateSlipTitle = false }) => {
   const { selectedRecord: record } = useSelector(state => state.records || {});
   // console.log('PrintModal - vehicle_type:', record?.vehicle_type, 'record:', record);
   
   if (!show || !record) return null; // Completely unmount when hidden
-
+  console.log('PrintModal rendered with record:', record);
   // Helper function to format weight without unnecessary decimals
   const formatWeight = (weight) => {
     if (weight === null || weight === undefined || weight === "") return "0";
@@ -263,7 +263,7 @@ const PrintModal = ({ show, slipType, onClose }) => {
           slipType === "first" ? 
           `<div class="weight-line">
             <span class="vehicle-info">${record.vehicle_type || "N/A"}</span>
-            <span class="serial-info">${record.vehicle_id || "N/A"}</span>
+            <span class="serial-info">${record.vehicle_id || record.id || "N/A"}</span>
             <span class="datetime-info">${formatToPST(record.first_weight_time)}</span>
             <span class="weight-info">${formatWeight(record.first_weight)} KG</span>
             <span class="weight-type">G</span>
@@ -275,14 +275,14 @@ const PrintModal = ({ show, slipType, onClose }) => {
           </div>` : 
           `<div class="weight-line">
             <span class="vehicle-info">${record.vehicle_type || "N/A"}</span>
-            <span class="serial-info">${record.vehicle_id || "N/A"}</span>
+            <span class="serial-info">${record.id || "N/A"}</span>
             <span class="datetime-info">${formatToPST(record.first_weight_time)}</span>
             <span class="weight-info">${formatWeight(record.first_weight)} KG</span>
             <span class="weight-type">G</span>
           </div>
           <div class="weight-line">
             <span class="vehicle-info">${record.vehicle_type || "N/A"}</span>
-            <span class="serial-info">${record.vehicle_id || "N/A"}</span>
+            <span class="serial-info">${record.id || "N/A"}</span>
             <span class="datetime-info">${formatToPST(record.second_weight_time)}</span>
             <span class="weight-info">${formatWeight(record.second_weight)} KG</span>
             <span class="weight-type">T</span>
@@ -337,6 +337,12 @@ const PrintModal = ({ show, slipType, onClose }) => {
   const vehicleType = (record.vehicle_type || '').toLowerCase();
   const isSmallVehicle = vehicleType === "daaloss" || vehicleType === "daalass" || vehicleType === "gadahganoss";
 
+  const slipTitle = slipType === "first"
+    ? "پہلا وزن سلپ"
+    : slipType === "second"
+      ? "دوسرا وزن سلپ"
+      : "مینیول ویٹ سلپ";
+
   const html = `
     <!doctype html>
     <html lang="ur">
@@ -383,48 +389,46 @@ const PrintModal = ({ show, slipType, onClose }) => {
         }
         */
 
-        .slip-container { width:${isSmallVehicle ? '70mm' : '70mm'}; margin:0 auto; border:1px solid #000; padding:${isSmallVehicle ? '4px' : '6px'}; background:#fff; box-sizing:border-box; }
+        .slip-container { width:${isSmallVehicle ? '70mm' : '70mm'}; margin:0; border:1px solid #000; padding:${isSmallVehicle ? '4px' : '6px'}; background:#fff; box-sizing:border-box; page-break-after: always; break-after: page; }
         .header { text-align:center; border-bottom:1px solid #000; padding-bottom:${isSmallVehicle ? '2px' : '6px'}; margin-bottom:${isSmallVehicle ? '3px' : '8px'}; }
-        .company-name { font-size:${isSmallVehicle ? '11px' : '14px'}; font-weight:bold; }
+        .company-name { font-size:${isSmallVehicle ? '22px' : '22px'}; font-weight:bold; }
         .company-details { font-size:${isSmallVehicle ? '8px' : '10px'}; margin:1px 0; }
-        .copy-label { text-align:center; font-size:${isSmallVehicle ? '9px' : '12px'}; font-weight:bold; margin-bottom:${isSmallVehicle ? '4px' : '6px'}; }
+        .copy-label { text-align:center; font-size:${isSmallVehicle ? '12px' : '12px'}; font-weight:bold; margin-bottom:${isSmallVehicle ? '4px' : '6px'}; }
         .content-section { margin:${isSmallVehicle ? '4px 0' : '6px 0'}; }
-        .info-row { display:flex; justify-content:space-between; gap:${isSmallVehicle ? '4px' : '6px'}; margin:${isSmallVehicle ? '2px 0' : '4px 0'}; border-bottom:1px dotted #999; font-size:${isSmallVehicle ? '7px' : '11px'}; align-items:center; }
+        .info-row { display:flex; justify-content:space-between; gap:${isSmallVehicle ? '4px' : '6px'}; margin:${isSmallVehicle ? '2px 0' : '4px 0'}; border-bottom:1px dotted #999; font-size:${isSmallVehicle ? '14px' : '14px'}; align-items:center; }
         .info-row .info-label { font-weight:bold; display:inline-block; min-width:${isSmallVehicle ? '50px' : '70px'}; white-space:normal; }
-        .info-row .info-value { font-size:${isSmallVehicle ? '8px' : '13px'}; font-weight:bold; display:inline-block; white-space:normal; word-break:break-word; }
+        .info-row .info-value { font-size:${isSmallVehicle ? '16px' : '16px'}; font-weight:bold; display:inline-block; white-space:normal; word-break:break-word; }
         .weight-section { border:1px solid #000; margin:${isSmallVehicle ? '4px 0' : '6px 0'}; padding:${isSmallVehicle ? '4px' : '6px'}; }
-        .weight-row { display:flex; justify-content:space-between; margin:${isSmallVehicle ? '2px 0' : '3px 0'}; font-weight:bold; font-size:${isSmallVehicle ? '8px' : '13px'}; gap:${isSmallVehicle ? '4px' : '6px'}; align-items:center; }
-        .net-weight { border:1px solid #000; padding:${isSmallVehicle ? '3px' : '4px'}; font-size:${isSmallVehicle ? '9px' : '14px'}; margin-top:${isSmallVehicle ? '3px' : '4px'}; }
-        .warning { border:1px solid #000; padding:${isSmallVehicle ? '3px' : '4px'}; font-size:${isSmallVehicle ? '6px' : '10px'}; text-align:center; font-weight:bold; margin-top:${isSmallVehicle ? '4px' : '6px'}; }
+        .weight-row { display:flex; justify-content:space-between; margin:${isSmallVehicle ? '2px 0' : '3px 0'}; font-weight:bold; font-size:${isSmallVehicle ? '14px' : '14px'}; gap:${isSmallVehicle ? '4px' : '6px'}; align-items:center; }
+        .net-weight { border:1px solid #000; padding:${isSmallVehicle ? '3px' : '4px'}; font-size:${isSmallVehicle ? '14px' : '14px'}; margin-top:${isSmallVehicle ? '3px' : '4px'}; }
+        .warning { display:none; border:1px solid #000; padding:${isSmallVehicle ? '3px' : '4px'}; font-size:${isSmallVehicle ? '6px' : '10px'}; text-align:center; font-weight:bold; margin-top:${isSmallVehicle ? '4px' : '6px'}; }
         .footer { padding-top:${isSmallVehicle ? '4px' : '6px'}; margin-top:${isSmallVehicle ? '5px' : '8px'}; text-align:center; font-size:${isSmallVehicle ? '8px' : '10px'}; }
         .footer .eng { margin-top:${isSmallVehicle ? '5px' : '8px'}; text-align:center; font-family: Courier New, sans-serif; direction:ltr; font-size:${isSmallVehicle ? '6px' : '8px'}; letter-spacing:1px; display:block; }
-        .page-break { page-break-after: always; margin:${isSmallVehicle ? '6px 0' : '10px 0'}; }
       </style>
     </head>
     <body>
       ${(slipType === "first" 
-    ? ["کسٹمر کاپی"] 
-    : ["کسٹمر کاپی","ٹھیکیدار کاپی"]
-).map((copyType, index) => `
+    ? ["Customer Copy"] 
+    : ["Customer Copy","Mill Copy"]
+).map((copyType, index, copies) => `
         <div class="slip-container">
           <div class="copy-label">${copyType}</div>
           <hr style="border: 1px dashed #000; margin: ${isSmallVehicle ? '3px 0 6px' : '5px 0 10px'};" />
           <div class="header">
-            ${!isSmallVehicle ? `<img src="${logo}" alt="logo" style="width:30px;height:30px;display:block;margin:0 auto 4px auto" />` : ''}
+            ${!isSmallVehicle ? `<img src="${logo}" alt="logo" style="width:80px;height:80px;display:block;margin:0 auto 4px auto" />` : ''}
             <div class="company-name">Madina Rice Mill Kanta</div>
             ${!isSmallVehicle ? `
-            <div class="company-details">Gaji Khuhawar, Qambar Shahdadkot</div>
-            <div class="company-details">0311-1367387</div>
             ` : ''}
             <div class="company-details" style="font-weight:bold;font-size:${isSmallVehicle ? '9px' : '12px'};margin-top:${isSmallVehicle ? '4px' : '6px'};">
-              ${slipType === "first" ? "پہلا وزن سلپ" : slipType === "second" ? "دوسرا وزن سلپ" : "حتمی وزن سلپ"}
+              ${slipTitle}
             </div>
+            ${duplicateSlipTitle ? `<div class="company-details" style="font-weight:bold;font-size:${isSmallVehicle ? '9px' : '12px'};margin-top:2px;">Duplicate Slip</div>` : ''}
           </div>
 
           <div class="content-section">
             <div class="info-row">
               <span class="info-label">سیرئیل نمبر:</span>
-              <span class="info-value">${record.vehicle_id || "N/A"}</span>
+              <span class="info-value">${record.vehicle_id || record.id || "N/A"}</span>
             </div>
             <div class="info-row">
               <span class="info-label">گاڑی نمبر:</span>
@@ -444,43 +448,48 @@ const PrintModal = ({ show, slipType, onClose }) => {
             ${slipType !== "final" ? `
               <div class="weight-row">
                 <span>پہلا وزن:</span>
-                <span style="font-size:${isSmallVehicle ? '14px' : '18px'}">${record.first_weight ? formatWeight(record.first_weight) : "0"} کلو</span>
+                <span style="font-size:${isSmallVehicle ? '23px' : '23px'}">${record.first_weight ? formatWeight(record.first_weight) : "0"} کلو</span>
+                
               </div>
+              
               <div class="info-row">
-                <span class="info-label" style="font-size:${isSmallVehicle ? '8px' : '11px'};">پہلے وزن کا وقت:</span>
-                <span class="info-value" style="font-size:${isSmallVehicle ? '8px' : '11px'};  direction:ltr;">${formatToPST(record.first_weight_time)}</span>
+                <span class="info-label" style="font-size:${isSmallVehicle ? '11px' : '11px'};">پہلے وزن کا وقت:</span>
+                <span class="info-value" style="font-size:${isSmallVehicle ? '11px' : '11px'};  direction:ltr;">${formatToPST(record.first_weight_time)}</span>
               </div>` : ""}
 
             ${slipType === "final" && record.first_weight ? `
               <div class="weight-row">
                 <span>موجودہ وزن:</span>
-                <span style="font-size:${isSmallVehicle ? '14px' : '18px'}">${formatWeight(record.first_weight)} کلو</span>
+                <span style="font-size:${isSmallVehicle ? '23px' : '23px'}">${formatWeight(record.first_weight)} کلو</span>
               </div>
+              
+
               <div class="info-row">
-                <span class="info-label" style="font-size:${isSmallVehicle ? '8px' : '11px'};">وقت:</span>
-                <span class="info-value" style="font-size:${isSmallVehicle ? '8px' : '11px'};">${formatToPST(record.first_weight_time)}</span>
+                <span class="info-label" style="font-size:${isSmallVehicle ? '11px' : '11px'};">وقت:</span>
+                <span class="info-value" style="font-size:${isSmallVehicle ? '11px' : '11px'};">${formatToPST(record.first_weight_time)}</span>
               </div>` : ""}
 
             ${slipType !== "first" && record.second_weight ? `
               <div class="weight-row">
                 <span>${slipType === "final" ? "خالی وزن:" : "دوسرا وزن:"}</span>
-                <span style="font-size:${isSmallVehicle ? '14px' : '18px'}">${formatWeight(record.second_weight)} کلو</span>
+                <span style="font-size:${isSmallVehicle ? '23px' : '23px'}">${formatWeight(record.second_weight)} کلو</span>
               </div>
+              
               ${slipType !== "final" ? `
                 <div class="info-row">
-                  <span class="info-label" style="font-size:${isSmallVehicle ? '8px' : '11px'};">دوسرے وزن کا وقت:</span>
-                  <span class="info-value" style="font-size:${isSmallVehicle ? '8px' : '11px'}; direction:ltr;">${formatToPST(record.second_weight_time)}</span>
+                  <span class="info-label" style="font-size:${isSmallVehicle ? '11px' : '11px'};">دوسرے وزن کا وقت:</span>
+                  <span class="info-value" style="font-size:${isSmallVehicle ? '11px' : '11px'}; direction:ltr;">${formatToPST(record.second_weight_time)}</span>
                 </div>` : ""}` : ""}
 
             ${slipType !== "first" && record.net_weight ? `
               <div class="net-weight">
                 <div class="weight-row">
                   <span>خالص وزن:</span>
-                  <span style="font-size:${isSmallVehicle ? '14px' : '18px'}">${formatWeight(record.net_weight)} کلو</span>
+                  <span style="font-size:${isSmallVehicle ? '27px' : '27px'}">${formatWeight(record.net_weight)} کلو</span>
                 </div>
                 <div class="weight-row">
   <span>من:</span>
-  <span style="font-size:${isSmallVehicle ? '14px' : '18px'}; white-space: nowrap;">
+  <span style="font-size:${isSmallVehicle ? '27px' : '27px'}; white-space: nowrap;">
     ${(({ sign, munds, remKg }) => `${sign}${munds} من ${remKg} کلو`)(kgToMundsString(record.net_weight))}
   </span>
 </div>
@@ -502,7 +511,7 @@ const PrintModal = ({ show, slipType, onClose }) => {
           </div>
           ` : ''}
         </div>
-        ${index === 0 ? '<div class="page-break"></div>' : ''}
+        ${index < copies.length - 1 ? '<div class="page-break"></div>' : ''}
       `).join('')}
     </body>
     </html>
@@ -652,8 +661,8 @@ const PrintModal = ({ show, slipType, onClose }) => {
                 </div>
                 <div className="col-md-6">
                   <div className="d-flex">
-                    <strong className="me-2">Driver:</strong>
-                    <span>{record.driver_name || record.driver || 'N/A'}</span>
+                    <strong className="me-2">ID:</strong>
+                    <span>{record.vehicle_id || 'N/A'}</span>
                   </div>
                 </div>
                 <div className="col-md-6">

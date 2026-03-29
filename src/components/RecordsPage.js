@@ -1655,7 +1655,7 @@ export default function RecordsPage() {
         {/* Removing the old Pagination component since RecordsTable has its own pagination */}
         {/* Pagination & Grand Total - This section is now handled by RecordsTable */}
         
-        {reduxSelectedRecord && <PrintModal show={showPrintModal} slipType={slipType} onClose={closePrintModal} />}
+        {reduxSelectedRecord && <PrintModal show={showPrintModal} slipType={slipType} onClose={closePrintModal} duplicateSlipTitle={true} />}
         {editModalShow && editRecord && <EditRecordModal show={editModalShow} onClose={() => setEditModalShow(false)} record={editRecord} slipType={editSlipType} />}
       </div>
     </div>

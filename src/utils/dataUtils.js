@@ -61,6 +61,7 @@ export const normalizeRecord = (record) => {
   
   return {
     id: record.id || null,
+    vehicle_id: record.vehicle_id || record.id || null,
     vehicle_number: record.vehicle_number || record.vehicle || '',
     party_name: record.party_name || record.party || '',
     vehicle_type: record.vehicle_type || record.type || '',
